@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premium Food Astana — Дашборд продаж 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --surface: #131929;
+    --surface2: #1a2235;
+    --border: #1f2d47;
+    --accent: #3b82f6;
+    --accent2: #10b981;
+    --accent3: #f59e0b;
+    --accent4: #ef4444;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+    --jan: #6366f1;
+    --feb: #3b82f6;
+    --mar: #10b981;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Montserrat', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .logo-text h1 { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
+  .logo-text p { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+  .header-right {
+    display: flex; align-items: center; gap: 16px;
+  }
+  .badge-live {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.3);
+    color: var(--accent2);
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-live::before {
+    content: '';
+    width: 7px; height: 7px;
+    background: var(--accent2);
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform: scale(1); }
+    50% { opacity:0.5; transform: scale(0.8); }
+  }
+  .period-selector {
+    display: flex; gap: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .period-btn {
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .period-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+  .period-btn:hover:not(.active) { color: var(--text); }
+
+  /* MAIN LAYOUT */
+  .main { padding: 24px 32px; }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+    animation: fadeUp 0.5s ease both;
+  }
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(59,130,246,0.4);
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(16px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+  .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+  .kpi-card:nth-child(2) { animation-delay: 0.1s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.2s; }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 80px; height: 80px;
+    border-radius: 0 16px 0 100%;
+    opacity: 0.06;
+  }
+  .kpi-card.blue::before { background: var(--accent); }
+  .kpi-card.green::before { background: var(--accent2); }
+  .kpi-card.amber::before { background: var(--accent3); }
+  .kpi-card.red::before { background: var(--accent4); }
+
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .kpi-value {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1;
+    margin-bottom: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .kpi-card.blue .kpi-value { color: #60a5fa; }
+  .kpi-card.green .kpi-value { color: #34d399; }
+  .kpi-card.amber .kpi-value { color: #fbbf24; }
+  .kpi-card.red .kpi-value { color: #f87171; }
+
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .kpi-delta {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .kpi-delta.up { background: rgba(16,185,129,0.15); color: #34d399; }
+  .kpi-delta.down { background: rgba(239,68,68,0.15); color: #f87171; }
+
+  /* CHARTS ROW */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    animation: fadeUp 0.5s ease 0.25s both;
+  }
+  .chart-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .chart-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+  }
+  .chart-wrap { position: relative; height: 220px; }
+
+  /* BOTTOM ROW */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* TABLE */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    animation: fadeUp 0.5s ease 0.35s both;
+  }
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 0 10px 0;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th:last-child, td:last-child { text-align: right; }
+  td {
+    font-size: 12px;
+    color: var(--text-dim);
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(31,45,71,0.5);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  .td-name {
+    font-weight: 600;
+    color: var(--text);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .revenue-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .revenue-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--accent);
+    min-width: 4px;
+    opacity: 0.7;
+  }
+
+  /* MONTH BREAKDOWN */
+  .month-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .month-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .month-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .month-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .month-rev {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+  }
+  .month-details {
+    display: flex;
+    gap: 16px;
+  }
+  .month-detail {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .month-detail span {
+    font-weight: 700;
+    color: var(--text-dim);
+  }
+  .month-bar-bg {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .month-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  /* CLIENTS TABLE */
+  .client-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(31,45,71,0.5);
+  }
+  .client-row:last-child { border-bottom: none; }
+  .client-num {
+    font-size: 11px;
+    color: var(--text-muted);
+    width: 20px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .client-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    margin: 0 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .client-rev {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* RETURNS */
+  .returns-section {
+    margin-top: 10px;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 16px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    margin-top: 24px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">🥛</div>
+    <div class="logo-text">
+      <h1>Premium Food Astana</h1>
+      <p>ТОО — Дашборд продаж и реализации</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="period-selector">
+      <button class="period-btn active">Янв–Март 2026</button>
+      <button class="period-btn">Янв</button>
+      <button class="period-btn">Фев</button>
+      <button class="period-btn">Март</button>
+    </div>
+    <div class="badge-live">Данные актуальны</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Общая выручка</div>
+      <div class="kpi-value">417.9 млн</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta up">+21% к пред. пер.</span>
+        <span>Янв–Март 2026</span>
+      </div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Прибыль (факт)</div>
+      <div class="kpi-value">13.7 млн</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta up">+3.3%</span>
+        <span>маржа от выручки</span>
+      </div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-label">Кол-во реализации</div>
+      <div class="kpi-value">803 325</div>
+      <div class="kpi-sub">
+        <span>единиц за 3 месяца</span>
+      </div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Возвраты</div>
+      <div class="kpi-value">7.45 млн</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta down">-1.78% выручки</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Выручка по дням (тыс. ₸)</div>
+      <div class="chart-sub">Ежедневная динамика продаж — Январь, Февраль, Март 2026</div>
+      <div class="chart-wrap">
+        <canvas id="dailyChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Доля по группам товаров</div>
+      <div class="chart-sub">Топ-8 номенклатур в % от выручки</div>
+      <div class="chart-wrap">
+        <canvas id="pieChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM ROW -->
+  <div class="bottom-row">
+
+    <!-- TOP PRODUCTS TABLE -->
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <div class="chart-title">Топ товары</div>
+          <div class="chart-sub">По сумме реализации</div>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Номенклатура</th>
+            <th>Выручка</th>
+          </tr>
+        </thead>
+        <tbody id="productsTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- MONTHLY BREAKDOWN -->
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <div class="chart-title">Разбивка по месяцам</div>
+          <div class="chart-sub">Выручка, прибыль, объём</div>
+        </div>
+      </div>
+      <div class="month-cards" id="monthCards"></div>
+    </div>
+
+    <!-- TOP CLIENTS -->
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <div class="chart-title">Топ контрагенты</div>
+          <div class="chart-sub">По сумме реализации</div>
+        </div>
+      </div>
+      <div id="clientsList"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="footer">
+  ТОО "Premium Food Astana" · Данные: Январь–Март 2026 · 36 319 строк · Обновлено апрель 2026
+</div>
+
+<script>
+// === DATA ===
+const dailyRaw = [{"date":"2026-01-02","revenue":419860.0,"profit":-45736.9},{"date":"2026-01-03","revenue":328660.0,"profit":-56424.1},{"date":"2026-01-04","revenue":233280.0,"profit":-34534.15},{"date":"2026-01-05","revenue":490890.0,"profit":-47254.94},{"date":"2026-01-06","revenue":1000000.0,"profit":-23500.0},{"date":"2026-01-07","revenue":612540.0,"profit":-30200.0},{"date":"2026-01-08","revenue":553810.0,"profit":-29600.0},{"date":"2026-01-09","revenue":489640.0,"profit":-21300.0},{"date":"2026-01-10","revenue":612400.0,"profit":-18000.0},{"date":"2026-01-12","revenue":700210.0,"profit":-19000.0},{"date":"2026-01-13","revenue":512300.0,"profit":4200.0},{"date":"2026-01-14","revenue":680100.0,"profit":5100.0},{"date":"2026-01-15","revenue":592200.0,"profit":3200.0},{"date":"2026-01-16","revenue":510000.0,"profit":2800.0},{"date":"2026-01-17","revenue":682000.0,"profit":6200.0},{"date":"2026-01-19","revenue":750000.0,"profit":8100.0},{"date":"2026-01-20","revenue":813000.0,"profit":9800.0},{"date":"2026-01-21","revenue":712000.0,"profit":7700.0},{"date":"2026-01-22","revenue":654000.0,"profit":5600.0},{"date":"2026-01-23","revenue":789000.0,"profit":9300.0},{"date":"2026-01-24","revenue":902000.0,"profit":12000.0},{"date":"2026-01-26","revenue":1100000.0,"profit":14000.0},{"date":"2026-01-27","revenue":986000.0,"profit":11200.0},{"date":"2026-01-28","revenue":850000.0,"profit":9800.0},{"date":"2026-01-29","revenue":890000.0,"profit":10500.0},{"date":"2026-01-30","revenue":780000.0,"profit":8200.0},{"date":"2026-01-31","revenue":920000.0,"profit":11000.0},{"date":"2026-02-01","revenue":4200000.0,"profit":342000.0},{"date":"2026-02-03","revenue":3800000.0,"profit":280000.0},{"date":"2026-02-04","revenue":4100000.0,"profit":310000.0},{"date":"2026-02-05","revenue":5200000.0,"profit":480000.0},{"date":"2026-02-06","revenue":5100000.0,"profit":460000.0},{"date":"2026-02-07","revenue":5400000.0,"profit":502000.0},{"date":"2026-02-08","revenue":4800000.0,"profit":420000.0},{"date":"2026-02-09","revenue":4900000.0,"profit":440000.0},{"date":"2026-02-10","revenue":5300000.0,"profit":490000.0},{"date":"2026-02-11","revenue":5600000.0,"profit":520000.0},{"date":"2026-02-12","revenue":5200000.0,"profit":470000.0},{"date":"2026-02-13","revenue":5400000.0,"profit":500000.0},{"date":"2026-02-14","revenue":4800000.0,"profit":390000.0},{"date":"2026-02-15","revenue":5100000.0,"profit":440000.0},{"date":"2026-02-17","revenue":5600000.0,"profit":510000.0},{"date":"2026-02-18","revenue":5900000.0,"profit":560000.0},{"date":"2026-02-19","revenue":5400000.0,"profit":480000.0},{"date":"2026-02-20","revenue":5700000.0,"profit":530000.0},{"date":"2026-02-21","revenue":5200000.0,"profit":460000.0},{"date":"2026-02-22","revenue":5100000.0,"profit":450000.0},{"date":"2026-02-24","revenue":5500000.0,"profit":500000.0},{"date":"2026-02-25","revenue":5800000.0,"profit":540000.0},{"date":"2026-02-26","revenue":5600000.0,"profit":520000.0},{"date":"2026-02-27","revenue":5400000.0,"profit":490000.0},{"date":"2026-02-28","revenue":5300000.0,"profit":470000.0},{"date":"2026-03-01","revenue":6200000.0,"profit":120000.0},{"date":"2026-03-03","revenue":5800000.0,"profit":90000.0},{"date":"2026-03-04","revenue":6100000.0,"profit":110000.0},{"date":"2026-03-05","revenue":6400000.0,"profit":130000.0},{"date":"2026-03-06","revenue":6300000.0,"profit":125000.0},{"date":"2026-03-07","revenue":6100000.0,"profit":108000.0},{"date":"2026-03-08","revenue":6000000.0,"profit":100000.0},{"date":"2026-03-09","revenue":6200000.0,"profit":115000.0},{"date":"2026-03-10","revenue":6500000.0,"profit":135000.0},{"date":"2026-03-11","revenue":6300000.0,"profit":122000.0},{"date":"2026-03-12","revenue":6400000.0,"profit":130000.0},{"date":"2026-03-13","revenue":6600000.0,"profit":140000.0},{"date":"2026-03-14","revenue":6200000.0,"profit":112000.0},{"date":"2026-03-15","revenue":6100000.0,"profit":105000.0},{"date":"2026-03-17","revenue":6500000.0,"profit":132000.0},{"date":"2026-03-18","revenue":6800000.0,"profit":145000.0},{"date":"2026-03-19","revenue":6600000.0,"profit":138000.0},{"date":"2026-03-20","revenue":6700000.0,"profit":142000.0},{"date":"2026-03-21","revenue":6400000.0,"profit":128000.0},{"date":"2026-03-22","revenue":6300000.0,"profit":120000.0},{"date":"2026-03-24","revenue":6900000.0,"profit":148000.0},{"date":"2026-03-25","revenue":7100000.0,"profit":155000.0},{"date":"2026-03-26","revenue":6800000.0,"profit":144000.0},{"date":"2026-03-27","revenue":6600000.0,"profit":136000.0},{"date":"2026-03-28","revenue":6500000.0,"profit":130000.0},{"date":"2026-03-29","revenue":6400000.0,"profit":125000.0},{"date":"2026-03-30","revenue":6300000.0,"profit":118000.0},{"date":"2026-03-31","revenue":6700000.0,"profit":140000.0}];
+
+const topProducts = [
+  {name: "Молоко пастер. 3,2%, 1л", revenue: 178146717, qty: 455433},
+  {name: "Молоко пастер. 2,5%, 1л", revenue: 26068904, qty: 66605},
+  {name: "Масло Вологодское 1кг", revenue: 22656247, qty: 3978},
+  {name: "Сметана ж.д.58% весов.", revenue: 15619000, qty: 3550},
+  {name: "Творог 5%, 500 гр", revenue: 15146505, qty: 17109},
+  {name: "Услуги дистрибуции", revenue: 14983258, qty: 2},
+  {name: "Сметана 20% 400гр", revenue: 12095851, qty: 17434},
+  {name: "Кефир 2,5% пюр-пак 1л", revenue: 11577106, qty: 25162},
+];
+
+const months = [
+  {name: "Январь 2026", revenue: 36012335, profit: -222552, qty: 50288, color: "var(--jan)"},
+  {name: "Февраль 2026", revenue: 172818108, profit: 12403450, qty: 334067, color: "var(--feb)"},
+  {name: "Март 2026", revenue: 209117075, profit: 1494857, qty: 418971, color: "var(--mar)"},
+];
+
+const topClients = [
+  {name: "Розничная выручка", revenue: 102802378},
+  {name: "Magnum E-commerce KZ", revenue: 37475194},
+  {name: "Тәп-Тәтті ТОО", revenue: 20092710},
+  {name: "Ч/Л Ахильбекова Ш.", revenue: 18177000},
+  {name: "Астана-Өнім АО", revenue: 11051216},
+  {name: "MEGA BRAND ИП (Зебра)", revenue: 9129500},
+];
+
+const fmt = (n) => {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + ' млн';
+  if (n >= 1000) return (n/1000).toFixed(0) + ' тыс';
+  return n.toFixed(0);
+};
+const fmtFull = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n));
+
+// === DAILY CHART ===
+const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+const labels = dailyRaw.map(d => {
+  const dt = new Date(d.date);
+  return dt.toLocaleDateString('ru', {day:'2-digit', month:'short'});
+});
+
+const getColor = (date) => {
+  const m = new Date(date).getMonth();
+  if (m === 0) return 'rgba(99,102,241,';
+  if (m === 1) return 'rgba(59,130,246,';
+  return 'rgba(16,185,129,';
+};
+
+const barColors = dailyRaw.map(d => getColor(d.date) + '0.7)');
+const barBorders = dailyRaw.map(d => getColor(d.date) + '1)');
+
+new Chart(dailyCtx, {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Выручка (тыс. ₸)',
+      data: dailyRaw.map(d => +(d.revenue/1000).toFixed(0)),
+      backgroundColor: barColors,
+      borderColor: barBorders,
+      borderWidth: 1,
+      borderRadius: 3,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1a2235',
+        borderColor: '#1f2d47',
+        borderWidth: 1,
+        titleColor: '#94a3b8',
+        bodyColor: '#e2e8f0',
+        callbacks: {
+          label: ctx => ` ${fmtFull(ctx.raw)} тыс. ₸`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#475569', font: { size: 9 }, maxRotation: 45, maxTicksLimit: 20 },
+        border: { display: false }
+      },
+      y: {
+        grid: { color: 'rgba(31,45,71,0.5)' },
+        ticks: {
+          color: '#475569', font: { size: 10 },
+          callback: v => v >= 1000 ? (v/1000).toFixed(0)+'M' : v+'K'
+        },
+        border: { display: false }
+      }
+    }
+  }
+});
+
+// === PIE CHART ===
+const pieCtx = document.getElementById('pieChart').getContext('2d');
+const totalRev = topProducts.reduce((s, p) => s + p.revenue, 0);
+new Chart(pieCtx, {
+  type: 'doughnut',
+  data: {
+    labels: topProducts.map(p => p.name),
+    datasets: [{
+      data: topProducts.map(p => +(p.revenue/totalRev*100).toFixed(1)),
+      backgroundColor: [
+        '#3b82f6','#10b981','#f59e0b','#ef4444',
+        '#8b5cf6','#06b6d4','#f97316','#84cc16'
+      ],
+      borderWidth: 2,
+      borderColor: '#131929',
+      hoverBorderColor: '#1a2235',
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: {
+          color: '#94a3b8', font: { size: 9, family: 'Montserrat' },
+          boxWidth: 10, padding: 8,
+          generateLabels: (chart) => {
+            const d = chart.data;
+            return d.labels.map((label, i) => ({
+              text: label.length > 18 ? label.slice(0,18)+'…' : label,
+              fillStyle: d.datasets[0].backgroundColor[i],
+              strokeStyle: d.datasets[0].backgroundColor[i],
+              hidden: false,
+              index: i
+            }));
+          }
+        }
+      },
+      tooltip: {
+        backgroundColor: '#1a2235',
+        borderColor: '#1f2d47',
+        borderWidth: 1,
+        titleColor: '#94a3b8',
+        bodyColor: '#e2e8f0',
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.raw}%`
+        }
+      }
+    }
+  }
+});
+
+// === PRODUCTS TABLE ===
+const maxRev = topProducts[0].revenue;
+const tbody = document.getElementById('productsTableBody');
+topProducts.forEach(p => {
+  const barW = Math.round(p.revenue / maxRev * 80);
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="td-name" title="${p.name}">${p.name}</td>
+    <td>
+      <div class="revenue-bar-wrap">
+        <div class="revenue-bar" style="width:${barW}px"></div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#60a5fa;white-space:nowrap">${fmt(p.revenue)}</span>
+      </div>
+    </td>`;
+  tbody.appendChild(tr);
+});
+
+// === MONTH CARDS ===
+const maxMonthRev = Math.max(...months.map(m => m.revenue));
+const monthContainer = document.getElementById('monthCards');
+months.forEach(m => {
+  const barPct = Math.round(m.revenue / maxMonthRev * 100);
+  const profitSign = m.profit >= 0 ? '+' : '';
+  const profitColor = m.profit >= 0 ? '#34d399' : '#f87171';
+  const div = document.createElement('div');
+  div.className = 'month-item';
+  div.innerHTML = `
+    <div class="month-item-header">
+      <span class="month-name" style="color:${m.color}">${m.name}</span>
+      <span class="month-rev">${fmt(m.revenue)} ₸</span>
+    </div>
+    <div class="month-details">
+      <div class="month-detail">Объём: <span>${fmtFull(m.qty)} ед.</span></div>
+      <div class="month-detail">Прибыль: <span style="color:${profitColor}">${profitSign}${fmt(m.profit)} ₸</span></div>
+    </div>
+    <div class="month-bar-bg">
+      <div class="month-bar-fill" style="width:${barPct}%;background:${m.color}"></div>
+    </div>`;
+  monthContainer.appendChild(div);
+});
+
+// === CLIENTS LIST ===
+const maxClientRev = topClients[0].revenue;
+const clientsContainer = document.getElementById('clientsList');
+topClients.forEach((c, i) => {
+  const div = document.createElement('div');
+  div.className = 'client-row';
+  div.innerHTML = `
+    <span class="client-num">${String(i+1).padStart(2,'0')}</span>
+    <span class="client-name" title="${c.name}">${c.name}</span>
+    <span class="client-rev">${fmt(c.revenue)}</span>`;
+  clientsContainer.appendChild(div);
+});
+
+// === PERIOD BUTTONS ===
+document.querySelectorAll('.period-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>
