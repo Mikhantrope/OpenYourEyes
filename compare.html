@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PF — Сравнение периодов</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#2f81f7;--green:#3fb950;--red:#f85149;--amber:#d29922;--text:#e6edf3;--muted:#8b949e;--dim:#484f58;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;}
+#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+.load-logo{font-size:44px;font-weight:900;background:linear-gradient(135deg,#2f81f7,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.pb{width:320px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .4s;width:0%;}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;}
+.hdr-left{display:flex;align-items:center;gap:10px;}
+.logo{width:32px;height:32px;background:linear-gradient(135deg,#2f81f7,#3fb950);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;}
+.nav-tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
+.nav-tab{padding:4px 11px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+.nav-tab.active,.nav-tab:hover{color:var(--text);}
+.nav-tab.active{background:var(--surface2);}
+.live-badge{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--green);background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);padding:3px 9px;border-radius:12px;}
+.live-dot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.icon-btn{padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;}
+.icon-btn:hover{color:var(--text);}
+.sel{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 9px;border-radius:6px;font-size:11px;outline:none;}
+
+.main{padding:16px;display:flex;flex-direction:column;gap:16px;height:calc(100vh - 52px);overflow-y:auto;}
+
+.period-selector{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex-wrap:wrap;}
+.period-group{display:flex;align-items:center;gap:8px;}
+.period-label{font-size:11px;color:var(--muted);font-weight:600;}
+.period-dot{width:10px;height:10px;border-radius:50%;}
+
+/* DELTA CARDS */
+.delta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.delta-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.dc-label{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.dc-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
+.dc-a{font-size:16px;font-weight:700;font-family:'Consolas',monospace;color:#58a6ff;}
+.dc-b{font-size:16px;font-weight:700;font-family:'Consolas',monospace;color:#bc8cff;}
+.dc-delta{font-size:13px;font-weight:700;font-family:'Consolas',monospace;}
+.dc-pct{font-size:11px;font-weight:600;}
+
+/* CHARTS */
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.card-title{font-size:12px;font-weight:700;margin-bottom:2px;}
+.card-sub{font-size:10px;color:var(--muted);margin-bottom:12px;}
+
+/* COMPARE TABLE */
+.cmp-table{width:100%;border-collapse:collapse;}
+.cmp-table th{background:var(--surface2);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:6px 10px;border-bottom:2px solid var(--border);text-align:right;white-space:nowrap;}
+.cmp-table th:first-child{text-align:left;width:220px;}
+.cmp-table th.a-col{color:#58a6ff;}.cmp-table th.b-col{color:#bc8cff;}
+.cmp-table td{padding:4px 10px;border-bottom:1px solid rgba(48,54,61,.4);text-align:right;font-family:'Consolas',monospace;font-size:11px;white-space:nowrap;}
+.cmp-table td:first-child{text-align:left;font-family:'Segoe UI',sans-serif;font-size:11px;}
+.pos{color:#3fb950;}.neg{color:#f85149;}.neu{color:var(--muted);}
+</style>
+</head>
+<body>
+<div id="ls">
+  <div class="load-logo">PF</div>
+  <div style="font-size:15px;font-weight:600;color:var(--text)">Premium Food Astana</div>
+  <div style="font-size:11px;color:var(--muted)">Загрузка данных для сравнения...</div>
+  <div class="pb"><div class="pf" id="prog"></div></div>
+  <div style="font-size:11px;color:var(--dim)" id="loadStep">Инициализация...</div>
+</div>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="logo">PF</div>
+    <div><div style="font-size:13px;font-weight:700;">Сравнение периодов</div><div style="font-size:10px;color:var(--muted)" id="dataInfo">Загрузка...</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+    <div class="nav-tabs">
+      <a class="nav-tab" href="index.html">📊 Таблица</a>
+      <a class="nav-tab" href="dashboard.html">📈 Дашборд</a>
+      <a class="nav-tab" href="prikhod.html">📦 Приход</a>
+      <span class="nav-tab active">📅 Сравнение</span>
+      <a class="nav-tab" href="pnl.html">💰 P&L</a>
+    </div>
+    <div class="live-badge"><div class="live-dot"></div>Live</div>
+    <button class="icon-btn" onclick="reloadData()">⟳</button>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Period selector -->
+  <div class="period-selector">
+    <div class="period-group">
+      <div class="period-dot" style="background:#58a6ff"></div>
+      <span class="period-label">Период А:</span>
+      <select class="sel" id="periodA" onchange="renderCompare()"></select>
+    </div>
+    <span style="color:var(--muted);font-size:20px;">vs</span>
+    <div class="period-group">
+      <div class="period-dot" style="background:#bc8cff"></div>
+      <span class="period-label">Период Б:</span>
+      <select class="sel" id="periodB" onchange="renderCompare()"></select>
+    </div>
+    <span style="color:var(--dim);font-size:11px;margin-left:auto" id="cmpInfo"></span>
+  </div>
+
+  <!-- Delta cards -->
+  <div class="delta-grid" id="deltaGrid"></div>
+
+  <!-- Charts -->
+  <div class="chart-row">
+    <div class="card">
+      <div class="card-title">Выручка по категориям SKU</div>
+      <div class="card-sub">Сравнение А vs Б, млн ₸</div>
+      <div style="position:relative"><canvas id="skuChart" height="220"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Топ контрагенты — динамика</div>
+      <div class="card-sub">Выручка топ-8 контрагентов в обоих периодах</div>
+      <div style="position:relative"><canvas id="kntChart" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Detail table -->
+  <div class="card">
+    <div class="card-title">Детальное сравнение по группам контрагентов</div>
+    <div class="card-sub">Все метрики периода А vs Б с изменением</div>
+    <div style="overflow-x:auto;margin-top:10px"><table class="cmp-table" id="cmpTable"></table></div>
+  </div>
+</div>
+
+<script src="pf-data.js"></script>
+<script>
+let rawRows=[], months=[], charts={};
+
+async function loadData(){
+  try{
+    const res=await PF.loadSales((pct,step)=>{document.getElementById('prog').style.width=pct+'%';document.getElementById('loadStep').textContent=step;});
+    rawRows=res.rawRows; months=res.months;
+    const selA=document.getElementById('periodA');
+    const selB=document.getElementById('periodB');
+    months.forEach(([k,lbl],i)=>{
+      selA.innerHTML+=`<option value="${k}">${lbl}</option>`;
+      selB.innerHTML+=`<option value="${k}">${lbl}</option>`;
+    });
+    if(months.length>=2){selA.value=months[months.length-2][0];selB.value=months[months.length-1][0];}
+    else if(months.length>=1){selA.value=months[0][0];selB.value=months[0][0];}
+    document.getElementById('dataInfo').textContent=`${rawRows.length.toLocaleString('ru')} строк | ${months.length} мес.`;
+    document.getElementById('prog').style.width='100%';
+    setTimeout(()=>{document.getElementById('ls').style.display='none';renderCompare();},300);
+  }catch(err){console.error(err);document.getElementById('loadStep').textContent='❌ '+err.message;}
+}
+
+function getRows(mk){return rawRows.filter(r=>r.mk===mk);}
+
+function destroyCharts(){Object.values(charts).forEach(c=>c&&c.destroy());charts={};}
+
+function delta(a,b){if(!a&&!b)return{v:0,pct:0};if(!a)return{v:b,pct:null};return{v:b-a,pct:a?((b-a)/Math.abs(a)*100):null};}
+
+function renderCompare(){
+  destroyCharts();
+  const mkA=document.getElementById('periodA').value;
+  const mkB=document.getElementById('periodB').value;
+  if(!mkA||!mkB)return;
+  const rowsA=getRows(mkA); const rowsB=getRows(mkB);
+  const totA=PF.agg(rowsA); const totB=PF.agg(rowsB);
+  const lblA=months.find(([k])=>k===mkA)?.[1]||mkA;
+  const lblB=months.find(([k])=>k===mkB)?.[1]||mkB;
+  document.getElementById('cmpInfo').textContent=`${lblA} vs ${lblB}`;
+
+  // Delta cards
+  const metrics=[
+    {label:'Выручка (без НДС)',ka:'rev',kb:'rev',fmt:'rev'},
+    {label:'Прибыль',ka:'prof',kb:'prof',fmt:'rev'},
+    {label:'Маржа %',ka:'mar',kb:'mar',fmt:'pct'},
+    {label:'Объём кг',ka:'kg',kb:'kg',fmt:'kg'},
+    {label:'Кол-во шт',ka:'qty',kb:'qty',fmt:'qty'},
+    {label:'Возвраты',ka:'ret',kb:'ret',fmt:'rev'},
+    {label:'Себестоимость',ka:'seb',kb:'seb',fmt:'rev'},
+    {label:'Ср. цена ₸/шт',ka:'avg',kb:'avg',fmt:'full'},
+  ];
+  document.getElementById('deltaGrid').style.gridTemplateColumns=`repeat(${Math.min(4,metrics.length)},1fr)`;
+  document.getElementById('deltaGrid').innerHTML=metrics.map(m=>{
+    const vA=totA[m.ka]||0; const vB=totB[m.kb]||0;
+    const d=delta(vA,vB);
+    const fmtV=v=>{
+      if(m.fmt==='rev') return PF.fmtRev(v)+' ₸';
+      if(m.fmt==='pct') return v.toFixed(1)+'%';
+      if(m.fmt==='kg')  return PF.fmtKg(v)+' кг';
+      if(m.fmt==='qty') return PF.fmtQty(v);
+      return PF.fmtFull(v)+' ₸';
+    };
+    const dColor=d.v>0?'#3fb950':d.v<0?'#f85149':'var(--muted)';
+    const arrow=d.v>0?'↑':d.v<0?'↓':'→';
+    return `<div class="delta-card">
+      <div class="dc-label">${m.label}</div>
+      <div class="dc-row"><span class="dc-a">${fmtV(vA)}</span><span style="color:var(--muted);font-size:11px">${lblA.split(' ')[0]}</span></div>
+      <div class="dc-row"><span class="dc-b">${fmtV(vB)}</span><span style="color:var(--muted);font-size:11px">${lblB.split(' ')[0]}</span></div>
+      <div style="margin-top:6px;display:flex;align-items:center;gap:6px;">
+        <span class="dc-delta" style="color:${dColor}">${arrow} ${fmtV(Math.abs(d.v))}</span>
+        ${d.pct!=null?`<span class="dc-pct" style="color:${dColor}">${d.pct>0?'+':''}${d.pct.toFixed(1)}%</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // SKU group chart
+  const allSG=[...new Set([...rowsA,...rowsB].map(r=>r.skuGroup))].sort();
+  const bySGA=PF.groupBy(rowsA,r=>r.skuGroup);
+  const bySGB=PF.groupBy(rowsB,r=>r.skuGroup);
+  charts.sku=new Chart(document.getElementById('skuChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:allSG,datasets:[
+      {label:lblA.split(' ')[0],data:allSG.map(g=>Math.round((PF.agg(bySGA[g]||[]).rev)/1e6*10)/10),backgroundColor:'rgba(88,166,255,.7)',borderColor:'#58a6ff',borderWidth:1,borderRadius:4},
+      {label:lblB.split(' ')[0],data:allSG.map(g=>Math.round((PF.agg(bySGB[g]||[]).rev)/1e6*10)/10),backgroundColor:'rgba(188,140,255,.7)',borderColor:'#bc8cff',borderWidth:1,borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8b949e',font:{size:10}}}},
+      scales:{x:{ticks:{color:'#8b949e',maxRotation:30},grid:{color:'rgba(48,54,61,.4)'},border:{display:false}},
+              y:{ticks:{color:'#8b949e',callback:v=>v+' млн'},grid:{color:'rgba(48,54,61,.4)'},border:{display:false}}}}
+  });
+
+  // Top kontragent chart
+  const allK=Object.entries(PF.groupBy([...rowsA,...rowsB],r=>r.knt))
+    .map(([k,r])=>({k,rev:PF.agg(r).rev})).sort((a,b)=>b.rev-a.rev).slice(0,8).map(e=>e.k);
+  const byKA=PF.groupBy(rowsA,r=>r.knt);
+  const byKB=PF.groupBy(rowsB,r=>r.knt);
+  charts.knt=new Chart(document.getElementById('kntChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:allK.map(k=>k.length>18?k.slice(0,18)+'…':k),datasets:[
+      {label:lblA.split(' ')[0],data:allK.map(k=>Math.round(PF.agg(byKA[k]||[]).rev/1000)),backgroundColor:'rgba(88,166,255,.7)',borderColor:'#58a6ff',borderWidth:1,borderRadius:4},
+      {label:lblB.split(' ')[0],data:allK.map(k=>Math.round(PF.agg(byKB[k]||[]).rev/1000)),backgroundColor:'rgba(188,140,255,.7)',borderColor:'#bc8cff',borderWidth:1,borderRadius:4},
+    ]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8b949e',font:{size:10}}}},
+      scales:{x:{ticks:{color:'#8b949e',callback:v=>v+' тыс'},grid:{color:'rgba(48,54,61,.4)'},border:{display:false}},
+              y:{ticks:{color:'#8b949e',font:{size:10}},grid:{display:false},border:{display:false}}}}
+  });
+
+  // Detail table by group
+  const allGrps=[...new Set([...rowsA,...rowsB].map(r=>r.group))].sort();
+  const byGrpA=PF.groupBy(rowsA,r=>r.group);
+  const byGrpB=PF.groupBy(rowsB,r=>r.group);
+  const fR=v=>PF.fmtRev(v)+' ₸';
+  const fP=v=>PF.fmtPct(v);
+  document.getElementById('cmpTable').innerHTML=
+    `<thead><tr>
+      <th style="text-align:left">Группа</th>
+      <th class="a-col">Выручка ${lblA.split(' ')[0]}</th><th class="b-col">Выручка ${lblB.split(' ')[0]}</th><th>∆ Выручка</th>
+      <th class="a-col">Прибыль А</th><th class="b-col">Прибыль Б</th><th>∆ Прибыль</th>
+      <th class="a-col">Маржа А</th><th class="b-col">Маржа Б</th><th>∆ Маржа</th>
+    </tr></thead><tbody>`+
+    allGrps.map(g=>{
+      const a=PF.agg(byGrpA[g]||[]);const b=PF.agg(byGrpB[g]||[]);
+      const dRev=delta(a.rev,b.rev);const dProf=delta(a.prof,b.prof);const dMar=delta(a.mar,b.mar);
+      const dc=v=>`class="${v>0?'pos':v<0?'neg':'neu'}"`;
+      return `<tr>
+        <td>${g}</td>
+        <td style="color:#58a6ff">${fR(a.rev)}</td><td style="color:#bc8cff">${fR(b.rev)}</td>
+        <td ${dc(dRev.v)}>${dRev.pct!=null?`${dRev.pct>0?'+':''}${dRev.pct.toFixed(1)}%`:'—'}</td>
+        <td style="color:#58a6ff">${fR(a.prof)}</td><td style="color:#bc8cff">${fR(b.prof)}</td>
+        <td ${dc(dProf.v)}>${dProf.pct!=null?`${dProf.pct>0?'+':''}${dProf.pct.toFixed(1)}%`:'—'}</td>
+        <td style="color:#58a6ff">${fP(a.mar)}</td><td style="color:#bc8cff">${fP(b.mar)}</td>
+        <td ${dc(dMar.v)}>${dMar.v>0?'+':''}${dMar.v.toFixed(1)}п.п.</td>
+      </tr>`;
+    }).join('')+'</tbody>';
+}
+
+async function reloadData(){document.getElementById('ls').style.display='flex';document.getElementById('prog').style.width='0%';rawRows=[];months=[];destroyCharts();await loadData();}
+loadData();
+</script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PF — P&L / EBITDA</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#2f81f7;--green:#3fb950;--red:#f85149;--amber:#d29922;--text:#e6edf3;--muted:#8b949e;--dim:#484f58;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;}
+#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+.load-logo{font-size:44px;font-weight:900;background:linear-gradient(135deg,#2f81f7,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.pb{width:320px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .4s;width:0%;}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;}
+.hdr-left{display:flex;align-items:center;gap:10px;}
+.logo{width:32px;height:32px;background:linear-gradient(135deg,#2f81f7,#3fb950);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;}
+.nav-tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
+.nav-tab{padding:4px 11px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+.nav-tab.active,.nav-tab:hover{color:var(--text);}
+.nav-tab.active{background:var(--surface2);}
+.live-badge{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--green);background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);padding:3px 9px;border-radius:12px;}
+.live-dot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.icon-btn{padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;}
+.icon-btn:hover{color:var(--text);}
+.pills{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
+.pill{padding:3px 10px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;}
+.pill.active{background:var(--accent);color:#fff;}
+.pill:hover:not(.active){color:var(--text);}
+
+.main{padding:16px;display:flex;flex-direction:column;gap:14px;height:calc(100vh - 52px);overflow-y:auto;}
+
+.notice{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.3);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--amber);}
+
+/* P&L TABLE */
+.pnl-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.pnl-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.pnl-card-title{font-size:14px;font-weight:700;}
+.pnl-table{width:100%;border-collapse:collapse;}
+.pnl-table tr td{padding:7px 18px;border-bottom:1px solid rgba(48,54,61,.4);font-size:12px;}
+.pnl-table tr td:first-child{color:var(--muted);width:40px;font-family:'Consolas',monospace;font-size:11px;}
+.pnl-table tr td:nth-child(2){color:var(--text);font-weight:500;}
+.pnl-table tr td:nth-child(3),.pnl-table tr td:nth-child(4),.pnl-table tr td:nth-child(5){text-align:right;font-family:'Consolas',monospace;}
+.pnl-table thead th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:7px 18px;border-bottom:2px solid var(--border);text-align:right;}
+.pnl-table thead th:nth-child(2){text-align:left;}
+.pnl-table tr.section-header td{background:rgba(47,129,247,.06);font-weight:700;color:#58a6ff;font-size:12px;}
+.pnl-table tr.subtotal td{background:rgba(63,185,80,.05);font-weight:700;}
+.pnl-table tr.total td{background:rgba(63,185,80,.1);font-weight:800;font-size:13px;border-top:2px solid rgba(63,185,80,.4);}
+.pnl-table tr.negative td{color:var(--red);}
+.pnl-table tr.todo td:nth-child(3),.pnl-table tr.todo td:nth-child(4),.pnl-table tr.todo td:nth-child(5){color:var(--dim);font-style:italic;}
+.pos{color:#3fb950 !important;}.neg{color:#f85149 !important;}
+.badge-manual{font-size:9px;padding:2px 6px;background:rgba(210,153,34,.15);color:var(--amber);border-radius:4px;border:1px solid rgba(210,153,34,.3);}
+.badge-auto{font-size:9px;padding:2px 6px;background:rgba(63,185,80,.15);color:var(--green);border-radius:4px;border:1px solid rgba(63,185,80,.3);}
+</style>
+</head>
+<body>
+<div id="ls">
+  <div class="load-logo">PF</div>
+  <div style="font-size:15px;font-weight:600;color:var(--text)">Premium Food Astana</div>
+  <div style="font-size:11px;color:var(--muted)">Загрузка данных P&L...</div>
+  <div class="pb"><div class="pf" id="prog"></div></div>
+  <div style="font-size:11px;color:var(--dim)" id="loadStep">Инициализация...</div>
+</div>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="logo">PF</div>
+    <div><div style="font-size:13px;font-weight:700;">P&L / EBITDA — Набросок</div><div style="font-size:10px;color:var(--muted)" id="dataInfo">Загрузка...</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+    <div class="nav-tabs">
+      <a class="nav-tab" href="index.html">📊 Таблица</a>
+      <a class="nav-tab" href="dashboard.html">📈 Дашборд</a>
+      <a class="nav-tab" href="prikhod.html">📦 Приход</a>
+      <a class="nav-tab" href="compare.html">📅 Сравнение</a>
+      <span class="nav-tab active">💰 P&L</span>
+    </div>
+    <div class="live-badge"><div class="live-dot"></div>Live</div>
+    <button class="icon-btn" onclick="reloadData()">⟳</button>
+    <div class="pills" id="periodPills"><button class="pill active" data-m="all">Все</button></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="notice">
+    ⚠️ <strong>Набросок для согласования.</strong> Зелёные строки считаются автоматически из 1С. Жёлтые — ручной ввод (ФОТ, аренда, прочее). Красные — данные ещё не подключены. Обсудим с директором что добавлять.
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <span style="font-size:11px;color:var(--muted)">Легенда:</span>
+    <span class="badge-auto">🟢 Авто (из 1С)</span>
+    <span class="badge-manual">🟡 Ручной ввод</span>
+    <span style="font-size:11px;padding:2px 6px;background:rgba(248,81,73,.1);color:var(--red);border-radius:4px;border:1px solid rgba(248,81,73,.3)">🔴 Нужно добавить</span>
+  </div>
+
+  <div class="pnl-card">
+    <div class="pnl-card-header">
+      <div class="pnl-card-title">Отчёт о прибылях и убытках (P&L)</div>
+      <div style="font-size:11px;color:var(--muted)" id="pnlPeriod">—</div>
+    </div>
+    <table class="pnl-table">
+      <thead>
+        <tr>
+          <th style="text-align:left;width:40px">#</th>
+          <th style="text-align:left">Статья</th>
+          <th>Январь</th>
+          <th>Февраль</th>
+          <th>Март</th>
+          <th>Итого</th>
+          <th style="text-align:right;width:60px">Источник</th>
+        </tr>
+      </thead>
+      <tbody id="pnlBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="pf-data.js"></script>
+<script>
+let rawRows=[], currentMonth='all', months=[];
+
+// Ручные данные — заглушки (нужно будет вносить или подключить из Расходы листа)
+const MANUAL = {
+  fot:     {'2026-01':16598626, '2026-02':31943720, '2026-03':766067},
+  rent:    {'2026-01':628131,   '2026-02':956828,   '2026-03':170000},
+  logistics:{'2026-01':70000,  '2026-02':184680,   '2026-03':90322},
+  it:      {'2026-01':327586,   '2026-02':785407,   '2026-03':609828},
+  other:   {'2026-01':600852,   '2026-02':128208,   '2026-03':777976},
+  amort:   {'2026-01':877034,   '2026-02':1241552,  '2026-03':0},
+};
+
+function getMk(mk){ return MANUAL[mk] || {}; }
+function manualSum(key, mks){ return mks.reduce((s,mk)=>s+(MANUAL[key]?.[mk]||0),0); }
+
+async function loadData(){
+  try{
+    const res=await PF.loadSales((pct,step)=>{document.getElementById('prog').style.width=pct+'%';document.getElementById('loadStep').textContent=step;});
+    rawRows=res.rawRows; months=res.months;
+
+    const pillsEl=document.getElementById('periodPills');
+    pillsEl.innerHTML='<button class="pill active" data-m="all">Все</button>'+
+      months.map(([k,lbl])=>`<button class="pill" data-m="${k}">${lbl.split(' ')[0]}</button>`).join('');
+    pillsEl.addEventListener('click',e=>{
+      const btn=e.target.closest('.pill');if(!btn)return;
+      pillsEl.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');currentMonth=btn.dataset.m;renderPnl();
+    });
+
+    document.getElementById('dataInfo').textContent=`${rawRows.length.toLocaleString('ru')} строк`;
+    document.getElementById('prog').style.width='100%';
+    setTimeout(()=>{document.getElementById('ls').style.display='none';renderPnl();},300);
+  }catch(err){console.error(err);document.getElementById('loadStep').textContent='❌ '+err.message;}
+}
+
+function renderPnl(){
+  const mks=currentMonth==='all'?months.map(([k])=>k):[currentMonth];
+  const lbl=currentMonth==='all'?'Янв–Март 2026':(months.find(([k])=>k===currentMonth)?.[1]||currentMonth);
+  document.getElementById('pnlPeriod').textContent=lbl;
+
+  // Aggregate by month
+  function aggMk(mk){ return PF.agg(rawRows.filter(r=>r.mk===mk)); }
+  const byMk={}; mks.forEach(mk=>byMk[mk]=aggMk(mk));
+  const tot=PF.agg(rawRows.filter(r=>mks.includes(r.mk)));
+
+  const m=['2026-01','2026-02','2026-03'];
+  const mLabels=['Январь','Февраль','Март'];
+  const colMks=currentMonth==='all'?m:[currentMonth];
+  const colLabels=currentMonth==='all'?mLabels:[(months.find(([k])=>k===currentMonth)?.[1]||currentMonth).split(' ')[0]];
+
+  // Calculate totals
+  const rev=   mks.map(mk=>(byMk[mk]||{rev:0}).rev);
+  const seb=   mks.map(mk=>(byMk[mk]||{seb:0}).seb);
+  const prof=  mks.map(mk=>(byMk[mk]||{prof:0}).prof);
+  const fotArr= colMks.map(mk=>MANUAL.fot?.[mk]||0);
+  const rentArr=colMks.map(mk=>MANUAL.rent?.[mk]||0);
+  const logArr= colMks.map(mk=>MANUAL.logistics?.[mk]||0);
+  const itArr=  colMks.map(mk=>MANUAL.it?.[mk]||0);
+  const othArr= colMks.map(mk=>MANUAL.other?.[mk]||0);
+  const amArr=  colMks.map(mk=>MANUAL.amort?.[mk]||0);
+
+  const totalIndirect=colMks.map((_,i)=>fotArr[i]+rentArr[i]+logArr[i]+itArr[i]+othArr[i]);
+  const ebitda=colMks.map((_,i)=>(byMk[colMks[i]]||{prof:0}).prof-totalIndirect[i]);
+  const ebit=colMks.map((_,i)=>ebitda[i]-amArr[i]);
+
+  const fR=v=>v?PF.fmtRev(v)+' ₸':'—';
+  const fA=arr=>arr.reduce((s,v)=>s+v,0);
+  const cls=v=>v>=0?'pos':'neg';
+
+  // Rebuild thead with dynamic columns
+  const thead=document.querySelector('.pnl-table thead tr');
+  thead.innerHTML=`<th style="text-align:left;width:40px">#</th><th style="text-align:left">Статья</th>`+
+    colLabels.map(l=>`<th>${l}</th>`).join('')+`<th>Итого</th><th style="text-align:center">Источник</th>`;
+
+  function row(num,label,vals,cssClass='',src='auto'){
+    const total=vals.reduce((s,v)=>s+(v||0),0);
+    const srcBadge=src==='auto'?'<span class="badge-auto">🟢 Авто</span>':
+                   src==='manual'?'<span class="badge-manual">🟡 Ручной</span>':
+                   '<span style="font-size:9px;padding:2px 6px;background:rgba(248,81,73,.1);color:var(--red);border-radius:4px;border:1px solid rgba(248,81,73,.3)">🔴 Нет данных</span>';
+    return `<tr class="${cssClass}"><td>${num}</td><td>${label}</td>`+
+      vals.map(v=>`<td class="${cls(v)}">${fR(v)}</td>`).join('')+
+      `<td class="${cls(total)}">${fR(total)}</td><td style="text-align:center">${srcBadge}</td></tr>`;
+  }
+  function sectionRow(label){ return `<tr class="section-header"><td></td><td colspan="${colLabels.length+2}">${label}</td><td></td></tr>`; }
+  function emptyRow(num,label){ return `<tr class="todo"><td>${num}</td><td>${label}</td>${colLabels.map(()=>'<td style="color:var(--dim)">нет данных</td>').join('')}<td style="color:var(--dim)">—</td><td style="text-align:center"><span style="font-size:9px;padding:2px 6px;background:rgba(248,81,73,.1);color:var(--red);border-radius:4px;">🔴 Нет данных</span></td></tr>`; }
+
+  const revArr=colMks.map(mk=>(byMk[mk]||{rev:0}).rev);
+  const sebArr=colMks.map(mk=>(byMk[mk]||{seb:0}).seb);
+  const profArr=colMks.map(mk=>(byMk[mk]||{prof:0}).prof);
+
+  document.getElementById('pnlBody').innerHTML=[
+    sectionRow('I. ДОХОДЫ'),
+    row('1.1','Выручка от реализации (без НДС)',revArr,'','auto'),
+    emptyRow('1.2','Прочие доходы'),
+    sectionRow('II. ПРЯМЫЕ ЗАТРАТЫ (Себестоимость)'),
+    row('2.1','Закуп молочной продукции',sebArr.map(v=>-v),'','auto'),
+    sectionRow('III. ВАЛОВАЯ ПРИБЫЛЬ'),
+    row('','Выручка − Себестоимость',profArr,'subtotal','auto'),
+    sectionRow('IV. КОСВЕННЫЕ РАСХОДЫ (OPEX)'),
+    row('4.1','ФОТ (зарплаты)',fotArr.map(v=>-v),'','manual'),
+    row('4.2','Аренда помещений',rentArr.map(v=>-v),'','manual'),
+    row('4.3','Логистика и доставка',logArr.map(v=>-v),'','manual'),
+    row('4.4','IT и обслуживание 1С',itArr.map(v=>-v),'','manual'),
+    row('4.5','Прочие расходы',othArr.map(v=>-v),'','manual'),
+    emptyRow('4.6','Маркетинг и реклама'),
+    emptyRow('4.7','Командировочные'),
+    sectionRow('V. EBITDA'),
+    row('','Валовая прибыль − Косвенные расходы',ebitda,'subtotal ebitda-row','auto'),
+    sectionRow('VI. АМОРТИЗАЦИЯ'),
+    row('6.1','Амортизация ОС',amArr.map(v=>-v),'','manual'),
+    sectionRow('VII. EBIT (Операционная прибыль)'),
+    row('','EBITDA − Амортизация',ebit,'subtotal','auto'),
+    emptyRow('8.1','Финансовые расходы (проценты по кредитам)'),
+    sectionRow('VIII. ЧИСТАЯ ПРИБЫЛЬ (до КПН)'),
+    row('','EBIT − Финансовые расходы',ebit,'total','auto'),
+  ].join('');
+}
+
+async function reloadData(){document.getElementById('ls').style.display='flex';document.getElementById('prog').style.width='0%';rawRows=[];months=[];await loadData();}
+loadData();
+</script>
+</body>
+</html>

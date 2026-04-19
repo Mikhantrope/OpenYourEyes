@@ -1,196 +1,145 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PF — Приход товара</title>
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#2f81f7;--green:#3fb950;--red:#f85149;--amber:#d29922;--text:#e6edf3;--muted:#8b949e;--dim:#484f58;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;}
-
-#loadScreen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
-.load-logo{font-size:44px;font-weight:800;color:var(--accent);}
-.progress-bar{width:320px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .4s;width:0%;}
-.load-step{font-size:11px;color:var(--dim);}
-.load-error{color:var(--red);font-size:12px;max-width:440px;text-align:center;line-height:1.7;display:none;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);padding:14px;border-radius:8px;}
-
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;gap:8px;flex-wrap:wrap;}
+#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+.load-logo{font-size:44px;font-weight:900;background:linear-gradient(135deg,#2f81f7,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.pb{width:320px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .4s;width:0%;}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;}
 .hdr-left{display:flex;align-items:center;gap:10px;}
-.logo{width:34px;height:34px;background:linear-gradient(135deg,#2f81f7,#3fb950);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;}
-.hdr-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.logo{width:32px;height:32px;background:linear-gradient(135deg,#2f81f7,#3fb950);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;}
 .nav-tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
-.nav-tab{padding:4px 14px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;}
-.nav-tab.active{background:var(--surface2);color:var(--text);}
-.nav-tab:hover:not(.active){color:var(--text);}
+.nav-tab{padding:4px 11px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+.nav-tab.active,.nav-tab:hover{color:var(--text);}
+.nav-tab.active{background:var(--surface2);}
 .live-badge{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--green);background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);padding:3px 9px;border-radius:12px;}
 .live-dot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .icon-btn{padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;}
-.icon-btn:hover{color:var(--text);border-color:var(--accent);}
+.icon-btn:hover{color:var(--text);}
 .pills{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
 .pill{padding:3px 10px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;}
 .pill.active{background:var(--accent);color:#fff;}
 .pill:hover:not(.active){color:var(--text);}
+select.sel{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;outline:none;}
 
-.main{padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;height:calc(100vh - 55px);}
+.main{padding:14px;display:flex;flex-direction:column;gap:12px;height:calc(100vh - 52px);overflow-y:auto;}
 
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;}
-.kpi-label{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
-.kpi-val{font-size:20px;font-weight:800;font-family:'Consolas',monospace;margin-bottom:3px;}
-.kpi-sub{font-size:10px;color:var(--muted);}
-.blue{color:#58a6ff;}.green{color:#3fb950;}.amber{color:#d29922;}.red{color:#f85149;}
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+.kk-label{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.kk-val{font-size:16px;font-weight:700;font-family:'Consolas',monospace;margin-bottom:2px;}
+.kk-sub{font-size:10px;color:var(--muted);}
+.blue{color:#58a6ff;}.green{color:#3fb950;}.amber{color:#d29922;}
 
-.toolbar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;}
-.search-box{display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 9px;min-width:200px;}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.search-box{display:flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 9px;min-width:200px;}
 .search-box input{background:transparent;border:none;outline:none;color:var(--text);font-size:12px;width:100%;}
 .search-box input::placeholder{color:var(--dim);}
-select.sel{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;outline:none;}
-.tlabel{font-size:11px;color:var(--muted);font-weight:600;}
-.sep{width:1px;height:20px;background:var(--border);}
 
-.table-wrap{overflow:auto;max-height:calc(100vh - 280px);background:var(--surface);border:1px solid var(--border);border-radius:12px;}
-table{width:100%;border-collapse:collapse;table-layout:auto;}
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;flex:1;}
+.table-wrap{overflow:auto;max-height:calc(100vh - 300px);}
+table{width:100%;border-collapse:collapse;}
 thead{position:sticky;top:0;z-index:10;}
-th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:2px solid var(--border);text-align:right;white-space:nowrap;cursor:pointer;}
-th:first-child{text-align:left;}
+th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:7px 10px;border-bottom:2px solid var(--border);text-align:right;white-space:nowrap;cursor:pointer;user-select:none;}
+th:first-child,.th-l{text-align:left;}
 th:hover{color:var(--text);}
-td{padding:5px 10px;border-bottom:1px solid rgba(48,54,61,.4);text-align:right;font-size:12px;font-family:'Consolas',monospace;white-space:nowrap;}
-td:first-child{text-align:left;font-family:'Segoe UI',sans-serif;}
-td:nth-child(2){font-family:'Segoe UI',sans-serif;max-width:200px;overflow:hidden;text-overflow:ellipsis;}
-tr:hover td{background:rgba(48,54,61,.3);}
-.pos{color:#3fb950;}.neg{color:#f85149;}.muted{color:var(--muted);}
+td{padding:4px 10px;border-bottom:1px solid rgba(48,54,61,.35);text-align:right;font-size:12px;font-family:'Consolas',monospace;white-space:nowrap;}
+td.tl{text-align:left;font-family:'Segoe UI',sans-serif;max-width:220px;overflow:hidden;text-overflow:ellipsis;}
+tr:hover td{background:rgba(48,54,61,.25);}
+.pos{color:#3fb950;}.muted-c{color:var(--muted);}
 .statusbar{font-size:10px;color:var(--muted);padding:4px 12px;background:var(--surface);border-top:1px solid var(--border);}
 .statusbar span{color:var(--text);font-weight:600;}
 </style>
 </head>
 <body>
-
-<div id="loadScreen">
+<div id="ls">
   <div class="load-logo">PF</div>
-  <div style="font-size:16px;font-weight:600;color:var(--text)">Premium Food Astana</div>
-  <div style="font-size:12px;color:var(--muted)">Загрузка данных прихода...</div>
-  <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
-  <div class="load-step" id="loadStep">Инициализация...</div>
-  <div class="load-error" id="loadError"></div>
+  <div style="font-size:15px;font-weight:600;color:var(--text)">Premium Food Astana</div>
+  <div style="font-size:11px;color:var(--muted)">Загрузка журнала прихода...</div>
+  <div class="pb"><div class="pf" id="prog"></div></div>
+  <div style="font-size:11px;color:var(--dim)" id="loadStep">Инициализация...</div>
 </div>
 
 <div class="hdr">
   <div class="hdr-left">
     <div class="logo">PF</div>
-    <div>
-      <div style="font-size:14px;font-weight:700;">Premium Food Astana — Приход товара</div>
-      <div style="font-size:10px;color:var(--muted)" id="dataInfo">Загрузка...</div>
-    </div>
+    <div><div style="font-size:13px;font-weight:700;">Приход товара</div><div style="font-size:10px;color:var(--muted)" id="dataInfo">Загрузка...</div></div>
   </div>
-  <div class="hdr-right">
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
     <div class="nav-tabs">
-      <a class="nav-tab" href="index.html">📊 Детальная таблица</a>
+      <a class="nav-tab" href="index.html">📊 Таблица</a>
       <a class="nav-tab" href="dashboard.html">📈 Дашборд</a>
       <span class="nav-tab active">📦 Приход</span>
+      <a class="nav-tab" href="compare.html">📅 Сравнение</a>
+      <a class="nav-tab" href="pnl.html">💰 P&L</a>
     </div>
     <div class="live-badge"><div class="live-dot"></div>Live</div>
-    <button class="icon-btn" onclick="reloadData()">⟳ Обновить</button>
-    <div class="pills" id="periodPills">
-      <button class="pill active" data-m="all">Все</button>
-    </div>
+    <button class="icon-btn" onclick="reloadData()">⟳</button>
+    <div class="pills" id="periodPills"><button class="pill active" data-m="all">Все</button></div>
   </div>
 </div>
 
 <div class="main">
   <div class="kpi-row">
-    <div class="kpi-card"><div class="kpi-label">Всего приходов</div><div class="kpi-val blue" id="p-total">—</div><div class="kpi-sub">строк в журнале</div></div>
-    <div class="kpi-card"><div class="kpi-label">Сумма закупа</div><div class="kpi-val amber" id="p-sum">—</div><div class="kpi-sub">общая стоимость без НДС</div></div>
-    <div class="kpi-card"><div class="kpi-label">Кол-во (шт)</div><div class="kpi-val green" id="p-qty">—</div><div class="kpi-sub">единиц принято на склад</div></div>
-    <div class="kpi-card"><div class="kpi-label">Поставщиков</div><div class="kpi-val blue" id="p-sup">—</div><div class="kpi-sub">уникальных контрагентов</div></div>
+    <div class="kpi-card"><div class="kk-label">Приходов (строк)</div><div class="kk-val blue" id="p-total">—</div><div class="kk-sub">записей в журнале</div></div>
+    <div class="kpi-card"><div class="kk-label">Сумма закупа</div><div class="kk-val amber" id="p-sum">—</div><div class="kk-sub">без НДС</div></div>
+    <div class="kpi-card"><div class="kk-label">Кол-во (шт)</div><div class="kk-val green" id="p-qty">—</div><div class="kk-sub">принято на склад</div></div>
+    <div class="kpi-card"><div class="kk-label">Ср. цена закупа</div><div class="kk-val amber" id="p-avg">—</div><div class="kk-sub">сумма ÷ кол-во</div></div>
+    <div class="kpi-card"><div class="kk-label">НДС</div><div class="kk-val" id="p-nds" style="color:var(--muted)">—</div><div class="kk-sub">сумма НДС</div></div>
+    <div class="kpi-card"><div class="kk-label">Поставщиков</div><div class="kk-val blue" id="p-sup">—</div><div class="kk-sub">уникальных</div></div>
   </div>
 
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-    <div class="search-box">
-      <span style="color:var(--muted)">🔍</span>
-      <input type="text" id="searchInput" placeholder="Поиск по SKU или поставщику..." oninput="renderTable()">
-    </div>
-    <span class="tlabel">Сортировка:</span>
+  <div class="toolbar">
+    <div class="search-box"><span style="color:var(--muted)">🔍</span><input type="text" id="searchInput" placeholder="Поиск по SKU или поставщику..." oninput="renderTable()"></div>
     <select class="sel" id="sortSel" onchange="renderTable()">
       <option value="date_d">По дате ↓</option>
       <option value="sum_d">По сумме ↓</option>
       <option value="qty_d">По кол-ву ↓</option>
       <option value="price_d">По цене ↓</option>
+      <option value="date_a">По дате ↑</option>
     </select>
-    <div style="margin-left:auto;font-size:10px;color:var(--dim)" id="lastUpdate"></div>
+    <span style="font-size:10px;color:var(--dim);margin-left:auto" id="lastUpdate"></span>
   </div>
 
-  <div class="table-wrap">
-    <table>
-      <thead><tr>
-        <th style="text-align:left">Дата</th>
-        <th style="text-align:left">SKU (Номенклатура)</th>
-        <th style="text-align:left">Поставщик</th>
-        <th onclick="setSortP('qty')">Кол-во</th>
-        <th onclick="setSortP('price')">Цена ₸</th>
-        <th onclick="setSortP('sum')">Сумма ₸</th>
-        <th>НДС ₸</th>
-        <th>Ед.изм.</th>
-      </tr></thead>
-      <tbody id="ptbody"></tbody>
-    </table>
+  <div class="table-card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th class="th-l" onclick="setSort('date')">Дата</th>
+          <th class="th-l">SKU (Номенклатура)</th>
+          <th class="th-l">Поставщик</th>
+          <th onclick="setSort('qty')">Кол-во</th>
+          <th onclick="setSort('price')">Цена ₸</th>
+          <th onclick="setSort('sum')">Сумма ₸</th>
+          <th>НДС ₸</th>
+          <th>Сумма+НДС ₸</th>
+          <th>Ед.</th>
+        </tr></thead>
+        <tbody id="ptbody"></tbody>
+      </table>
+    </div>
+    <div class="statusbar">Показано: <span id="p-rows">—</span> из <span id="p-all">—</span> строк</div>
   </div>
-  <div class="statusbar">Строк: <span id="p-rows">—</span> из <span id="p-all">—</span></div>
 </div>
 
+<script src="pf-data.js"></script>
 <script>
-const PUB_ID='2PACX-1vTwyEj5Huy-avrqvCZj1rCqTBJObnOHNJ-GVdZic0J1_fwVafku2G0MpiZtGle8zOXzUUmEer26ylrO';
-const GID_PRIHOD='1270219264';
-const csvUrl=gid=>`https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=${gid}&single=true&output=csv`;
-
 let pRows=[], currentMonth='all';
-const MO=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-const toNum=s=>parseFloat(String(s||'').replace(/\s/g,'').replace(',','.')) || 0;
-function parseCSV(t){const r=[];for(const l of t.split('\n')){if(!l.trim())continue;const c=[];let cu='',q=false;for(const ch of l){if(ch==='"'){q=!q;continue;}if(ch===','&&!q){c.push(cu.trim());cu='';}else cu+=ch;}c.push(cu.trim());r.push(c);}return r;}
-function toDate(s){s=String(s||'').trim();if(/^\d{2}\.\d{2}\.\d{4}/.test(s)){const[d,m,y]=s.split('.');return new Date(+y,+m-1,+d);}const d=new Date(s);return isNaN(d)?null:d;}
-const fmt=n=>{const a=Math.abs(n||0);if(a>=1e6)return(n/1e6).toFixed(1)+' млн';if(a>=1e3)return Math.round(n).toLocaleString('ru');return Math.round(n||0).toString();};
-function setP(pct,step){document.getElementById('prog').style.width=pct+'%';document.getElementById('loadStep').textContent=step;}
+let sortKey='date_d';
 
 async function loadData(){
-  const errEl=document.getElementById('loadError');errEl.style.display='none';
   try{
-    setP(30,'Загрузка журнала прихода...');
-    const resp=await fetch(csvUrl(GID_PRIHOD));
-    if(!resp.ok)throw new Error('HTTP '+resp.status);
-    const rows=parseCSV(await resp.text());
-    const H=rows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
-    const fi=(...ns)=>{for(const n of ns){const i=H.findIndex(h=>h.includes(n));if(i>=0)return i;}return -1;};
+    const res=await PF.loadPrikhod((pct,step)=>{document.getElementById('prog').style.width=pct+'%';document.getElementById('loadStep').textContent=step;});
+    pRows=res.pRows;
+    const months=res.months;
 
-    const iSku=fi('номенклатура','sku','товар');
-    const iSup=fi('контрагент','поставщик','supplier');
-    const iDate=fi('дата','date','ссылка.дата');
-    const iQty=fi('количество','qty');
-    const iPrice=fi('цена','price');
-    const iSum=fi('сумма','sum','итого');
-    const iNDS=fi('нд','nds','ндс');
-    const iEd=fi('ед.','единица','ед_изм','unit');
-
-    setP(70,'Обработка строк...');
-    pRows=[];const monthMap=new Map();
-
-    for(let i=1;i<rows.length;i++){
-      const r=rows[i];
-      const sku=String(r[iSku]||'').trim();
-      const sup=String(r[iSup]||'').trim();
-      if(!sku)continue;
-      const rawDate=String(r[iDate]||'').trim();
-      // Handle datetime like "01.02.2026 10:13:52"
-      const dtStr=rawDate.split(' ')[0];
-      const dt=toDate(dtStr);
-      if(!dt)continue;
-      const mk=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
-      if(!monthMap.has(mk))monthMap.set(mk,MO[dt.getMonth()]+' '+dt.getFullYear());
-      pRows.push({sku,sup,dt,mk,qty:toNum(r[iQty]),price:toNum(r[iPrice]),sum:toNum(r[iSum]),nds:toNum(r[iNDS]),ed:String(r[iEd]||'').trim()});
-    }
-
-    const months=[...monthMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
     const pillsEl=document.getElementById('periodPills');
     pillsEl.innerHTML='<button class="pill active" data-m="all">Все</button>'+
       months.map(([k,lbl])=>`<button class="pill" data-m="${k}">${lbl.split(' ')[0]}</button>`).join('');
@@ -200,27 +149,17 @@ async function loadData(){
       btn.classList.add('active');currentMonth=btn.dataset.m;renderTable();
     });
 
-    document.getElementById('dataInfo').textContent=`ТОО | ${pRows.length.toLocaleString('ru')} приходов | ${months.length} мес.`;
+    document.getElementById('dataInfo').textContent=`${pRows.length.toLocaleString('ru')} приходов | ${months.length} мес.`;
     document.getElementById('p-all').textContent=pRows.length.toLocaleString('ru');
-    document.getElementById('lastUpdate').textContent='Обновлено: '+new Date().toLocaleTimeString('ru');
-    setP(100,'Готово!');
-    setTimeout(()=>{document.getElementById('loadScreen').style.display='none';renderTable();},300);
-  }catch(err){
-    console.error(err);
-    const el=document.getElementById('loadError');el.style.display='block';
-    el.innerHTML=`❌ Ошибка: <b>${err.message}</b><br>F12 → Console для деталей`;
-    document.getElementById('loadStep').textContent='Ошибка!';
-  }
+    document.getElementById('lastUpdate').textContent='Обн.: '+new Date().toLocaleTimeString('ru');
+    document.getElementById('prog').style.width='100%';
+    setTimeout(()=>{document.getElementById('ls').style.display='none';renderTable();},300);
+  }catch(err){console.error(err);document.getElementById('loadStep').textContent='❌ '+err.message;}
 }
 
 function filtered(){return currentMonth==='all'?pRows:pRows.filter(r=>r.mk===currentMonth);}
 
-let sortKey='date_d';
-function setSortP(col){
-  sortKey=sortKey===col+'_d'?col+'_a':col+'_d';
-  document.getElementById('sortSel').value=sortKey;
-  renderTable();
-}
+function setSort(col){sortKey=sortKey===col+'_d'?col+'_a':col+'_d';document.getElementById('sortSel').value=sortKey;renderTable();}
 
 function renderTable(){
   const term=document.getElementById('searchInput').value.trim().toLowerCase();
@@ -228,52 +167,51 @@ function renderTable(){
   if(term) rows=rows.filter(r=>r.sku.toLowerCase().includes(term)||r.sup.toLowerCase().includes(term));
 
   // Sort
-  const sk=document.getElementById('sortSel').value||sortKey;
-  const[col,dir]=sk.split('_');
-  const asc=dir==='a';
+  const sk=document.getElementById('sortSel').value||sortKey;sortKey=sk;
+  const[col,dir]=sk.split('_');const asc=dir==='a';
   rows.sort((a,b)=>{
     let va,vb;
     if(col==='date'){va=a.dt;vb=b.dt;}
     else if(col==='qty'){va=a.qty;vb=b.qty;}
     else if(col==='price'){va=a.price;vb=b.price;}
     else{va=a.sum;vb=b.sum;}
-    return asc?(va<vb?-1:1):(va>vb?-1:1);
+    return asc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);
   });
 
   // KPIs
   const totalSum=rows.reduce((s,r)=>s+r.sum,0);
   const totalQty=rows.reduce((s,r)=>s+r.qty,0);
+  const totalNds=rows.reduce((s,r)=>s+r.nds,0);
   const uniqSup=new Set(rows.map(r=>r.sup)).size;
+  const avgPrice=totalQty?totalSum/totalQty:0;
   document.getElementById('p-total').textContent=rows.length.toLocaleString('ru');
-  document.getElementById('p-sum').textContent=fmt(totalSum)+' ₸';
+  document.getElementById('p-sum').textContent=PF.fmtRev(totalSum)+' ₸';
   document.getElementById('p-qty').textContent=Math.round(totalQty).toLocaleString('ru');
+  document.getElementById('p-avg').textContent=Math.round(avgPrice).toLocaleString('ru')+' ₸';
+  document.getElementById('p-nds').textContent=PF.fmtRev(totalNds)+' ₸';
   document.getElementById('p-sup').textContent=uniqSup;
-  document.getElementById('p-rows').textContent=rows.length.toLocaleString('ru');
+  document.getElementById('p-rows').textContent=Math.min(rows.length,500).toLocaleString('ru');
 
   const tbody=document.getElementById('ptbody');
-  tbody.innerHTML=rows.slice(0,500).map(r=>`<tr>
-    <td class="muted">${r.dt.toLocaleDateString('ru-RU')}</td>
-    <td title="${r.sku}">${r.sku.length>40?r.sku.slice(0,40)+'…':r.sku}</td>
-    <td class="muted" title="${r.sup}">${r.sup.length>30?r.sup.slice(0,30)+'…':r.sup}</td>
+  const show=rows.slice(0,500);
+  tbody.innerHTML=show.map(r=>`<tr>
+    <td class="muted-c">${r.dt.toLocaleDateString('ru-RU')}</td>
+    <td class="tl" title="${r.sku}">${r.sku.length>35?r.sku.slice(0,35)+'…':r.sku}</td>
+    <td class="tl muted-c" title="${r.sup}">${r.sup.length>25?r.sup.slice(0,25)+'…':r.sup}</td>
     <td>${r.qty.toLocaleString('ru-RU')}</td>
     <td>${r.price?r.price.toLocaleString('ru-RU'):'—'}</td>
     <td class="pos">${r.sum.toLocaleString('ru-RU')}</td>
-    <td class="muted">${r.nds?r.nds.toLocaleString('ru-RU'):'—'}</td>
-    <td class="muted">${r.ed||'шт'}</td>
+    <td class="muted-c">${r.nds?r.nds.toLocaleString('ru-RU'):'—'}</td>
+    <td class="muted-c">${(r.sum+r.nds).toLocaleString('ru-RU')}</td>
+    <td class="muted-c">${r.ed||'шт'}</td>
   </tr>`).join('');
 
   if(rows.length>500){
-    tbody.innerHTML+=`<tr><td colspan="8" style="text-align:center;color:var(--dim);padding:10px;">... показано 500 из ${rows.length} строк. Используй фильтр или поиск.</td></tr>`;
+    tbody.innerHTML+=`<tr><td colspan="9" style="text-align:center;color:var(--dim);padding:8px">... ещё ${rows.length-500} строк — используй фильтр или поиск</td></tr>`;
   }
 }
 
-async function reloadData(){
-  document.getElementById('loadScreen').style.display='flex';
-  document.getElementById('prog').style.width='0%';
-  pRows=[];
-  await loadData();
-}
-
+async function reloadData(){document.getElementById('ls').style.display='flex';document.getElementById('prog').style.width='0%';pRows=[];await loadData();}
 loadData();
 </script>
 </body>
