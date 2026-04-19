@@ -11,16 +11,16 @@
   --text:#e6edf3;--muted:#8b949e;--dim:#484f58;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;overflow-x:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;}
 
 #loadScreen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
 .load-logo{font-size:44px;}
 .load-title{font-size:19px;font-weight:700;}
 .load-sub{font-size:12px;color:var(--muted);}
-.progress-bar{width:300px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .3s;width:0%;}
-.load-step{font-size:11px;color:var(--dim);}
-.load-error{color:var(--red);font-size:12px;max-width:380px;text-align:center;line-height:1.6;display:none;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);padding:12px;border-radius:8px;}
+.progress-bar{width:320px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .4s;width:0%;}
+.load-step{font-size:11px;color:var(--dim);min-height:16px;}
+.load-error{color:var(--red);font-size:12px;max-width:420px;text-align:center;line-height:1.7;display:none;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);padding:14px 18px;border-radius:8px;margin-top:4px;}
 
 .hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;}
 .hdr-left{display:flex;align-items:center;gap:10px;}
@@ -58,7 +58,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .exp-btn:hover{color:var(--text);}
 select.sort-sel{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;outline:none;}
 
-.table-wrap{overflow:auto;height:calc(100vh - 183px);}
+.table-wrap{overflow:auto;height:calc(100vh - 185px);}
 table{width:100%;border-collapse:collapse;table-layout:fixed;}
 thead{position:sticky;top:0;z-index:100;}
 th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:7px 9px;border-bottom:2px solid var(--border);border-right:1px solid var(--border);text-align:right;white-space:nowrap;}
@@ -184,151 +184,167 @@ tr.total-row{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,
 </div>
 
 <script>
-// ── CONFIG ────────────────────────────────────────────────────
-const SHEET_ID  = '1YJ3AxjpJv8w1uu1rhiBniDplb-3a5taKW3KslCKdqI0';
+// ══════════════════════════════════════════════════════════════
+// CONFIG — используем /e/ опубликованный ID (без CORS блокировки)
+// ══════════════════════════════════════════════════════════════
+const PUB_ID = '2PACX-1vTwyEj5Huy-avrqvCZj1rCqTBJObnOHNJ-GVdZic0J1_fwVafku2G0MpiZtGle8zOXzUUmEer26ylrO';
+
+// gid номера листов (из адресной строки Google Sheets)
 const GID_REAL  = '1836485982';  // ИсхРеал
 const GID_KONTR = '1039539700'; // КонтрагентыСправочник
+
+// Правильный URL формат — /e/ версия работает без CORS
+const csvUrl = (gid) =>
+  `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=${gid}&single=true&output=csv`;
 
 // ── STATE ─────────────────────────────────────────────────────
 let rawRows = [], groupMap = {}, hierarchy = 'k';
 let currentMonth = 'all', expanded = new Set(), searchTerm = '';
 
-// ── HELPERS ───────────────────────────────────────────────────
-const csvUrl = gid =>
-  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
-
-async function fetchCSV(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error('HTTP ' + r.status + ' — ' + url);
-  return r.text();
+// ── UTILS ─────────────────────────────────────────────────────
+function setProgress(pct, step) {
+  document.getElementById('prog').style.width = pct + '%';
+  document.getElementById('loadStep').textContent = step;
 }
 
 function parseCSV(text) {
-  return text.split('\n').filter(l => l.trim()).map(line => {
+  const rows = [];
+  const lines = text.split('\n');
+  for (const line of lines) {
+    if (!line.trim()) continue;
     const cols = []; let cur = '', inQ = false;
     for (const c of line) {
-      if (c === '"') inQ = !inQ;
-      else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      if (c === '"') { inQ = !inQ; continue; }
+      if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
       else cur += c;
     }
-    cols.push(cur.trim()); return cols;
-  });
+    cols.push(cur.trim());
+    rows.push(cols);
+  }
+  return rows;
 }
 
-const num = s => parseFloat(String(s||'').replace(/\s/g,'').replace(',','.')) || 0;
+const toNum = s => parseFloat(String(s||'').replace(/\s/g,'').replace(',','.')) || 0;
 
-function parseDate(s) {
+function toDate(s) {
   s = String(s||'').trim();
-  let d;
   if (/^\d{2}\.\d{2}\.\d{4}/.test(s)) {
-    const [dd,mm,yy] = s.split('.'); d = new Date(yy, mm-1, dd);
-  } else { d = new Date(s); }
+    const [d,m,y] = s.split('.'); return new Date(+y, +m-1, +d);
+  }
+  const d = new Date(s);
   return isNaN(d) ? null : d;
 }
 
 const MO = ['Январь','Февраль','Март','Апрель','Май','Июнь',
             'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
-function setProgress(pct, step) {
-  document.getElementById('prog').style.width = pct + '%';
-  document.getElementById('loadStep').textContent = step;
-}
-
 // ── LOAD ──────────────────────────────────────────────────────
 async function loadData() {
-  try {
-    setProgress(10, 'Загрузка справочника контрагентов...');
-    const kText = await fetchCSV(csvUrl(GID_KONTR));
-    const kRows = parseCSV(kText);
-    const kH = kRows[0].map(h => h.toLowerCase().replace(/\s/g,''));
+  const errEl = document.getElementById('loadError');
+  errEl.style.display = 'none';
 
-    // Find column indices flexibly
-    const ci = (...needles) => {
+  try {
+    // 1. КонтрагентыСправочник
+    setProgress(15, 'Загрузка справочника групп...');
+    const kResp = await fetch(csvUrl(GID_KONTR));
+    if (!kResp.ok) throw new Error(`Справочник: HTTP ${kResp.status}`);
+    const kRows = parseCSV(await kResp.text());
+
+    // Найти столбцы гибко
+    const kH = kRows[0].map(h => h.toLowerCase().replace(/\s/g,''));
+    const findCol = (row, ...needles) => {
       for (const n of needles) {
-        const i = kH.findIndex(h => h.includes(n));
+        const i = row.findIndex(h => h.includes(n));
         if (i >= 0) return i;
       }
       return -1;
     };
-    const iKntK = ci('контрагент','kontragent','name');
-    const iGrpK = ci('новаягруппа','новая','группа','group');
+    const iKntK = findCol(kH, 'контрагент', 'kontragent');
+    const iGrpK = findCol(kH, 'новаягруппа', 'новая', 'группа', 'group');
 
     groupMap = {};
     for (let i = 1; i < kRows.length; i++) {
-      const knt = String(kRows[i][iKntK]||'').trim();
-      const grp = iGrpK >= 0 ? String(kRows[i][iGrpK]||'').trim() : '';
+      const knt = String(kRows[i][iKntK] || '').trim();
+      const grp = iGrpK >= 0 ? String(kRows[i][iGrpK] || '').trim() : '';
       if (knt) groupMap[knt] = grp || '⚠️ Без группы';
     }
-    setProgress(30, `Справочник загружен: ${Object.keys(groupMap).length} контрагентов`);
+    setProgress(35, `Справочник: ${Object.keys(groupMap).length} контрагентов`);
 
-    setProgress(40, 'Загрузка реализации из ИсхРеал...');
-    const rText = await fetchCSV(csvUrl(GID_REAL));
-    const rRows = parseCSV(rText);
+    // 2. ИсхРеал
+    setProgress(45, 'Загрузка данных реализации...');
+    const rResp = await fetch(csvUrl(GID_REAL));
+    if (!rResp.ok) throw new Error(`ИсхРеал: HTTP ${rResp.status}`);
+    const rRows = parseCSV(await rResp.text());
+
+    setProgress(65, 'Обработка строк...');
     const rH = rRows[0].map(h => h.toLowerCase().replace(/\s/g,''));
+    const ri = (...ns) => findCol(rH, ...ns);
 
-    const ri = (...ns) => { for (const n of ns) { const i=rH.findIndex(h=>h.includes(n)); if(i>=0)return i; } return -1; };
+    // Маппинг столбцов ИсхРеал
     const iKnt  = ri('контрагент');
-    const iSku  = ri('номенклатура','sku','товар');
-    const iDate = ri('период','дата','date');
+    const iSku  = ri('номенклатура', 'sku', 'товар');
+    const iDate = ri('периоддень', 'период', 'дата', 'date');
     const iSkl  = ri('склад');
-    const iQtyN = ri('количествореализации(с','количествосвозвр','кол-восвоз');
-    const iSumN = ri('суммареализации(с','суммасвозвр');
+    const iQtyN = ri('количествореализации(с', 'количествосвозвр', 'кол-восвоз');
+    const iSumN = ri('суммареализации(с', 'суммасвозвр', 'суммареал');
     const iSumR = ri('суммавозвратов');
-    const iSeb  = ri('стоимость(безнд','стоимость','себест');
-    const iProf = ri('profit','прибыль');
-
-    setProgress(60, 'Обработка строк...');
+    const iSeb  = ri('стоимость(без', 'стоимость', 'себест');
+    const iProf = ri('profit', 'прибыль');
 
     rawRows = [];
-    const monthSet = new Map();
+    const monthMap = new Map();
 
     for (let i = 1; i < rRows.length; i++) {
       const r = rRows[i];
-      const knt = String(r[iKnt]||'').trim();
-      const sku = String(r[iSku]||'').trim();
+      const knt = String(r[iKnt] || '').trim();
+      const sku = String(r[iSku] || '').trim();
       if (!knt || !sku) continue;
-      const dt = parseDate(r[iDate]);
+
+      const dt = toDate(r[iDate]);
       if (!dt) continue;
 
       const mk = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
-      if (!monthSet.has(mk)) monthSet.set(mk, MO[dt.getMonth()]+' '+dt.getFullYear());
+      if (!monthMap.has(mk)) monthMap.set(mk, MO[dt.getMonth()] + ' ' + dt.getFullYear());
 
       rawRows.push({
         knt, sku,
-        sklad: String(r[iSkl]||'').trim() || '—',
+        sklad: String(r[iSkl] || '').trim() || '(склад не указан)',
         mk,
         group: groupMap[knt] || '⚠️ Без группы',
-        qtyN: num(r[iQtyN]),
-        sumN: num(r[iSumN]),
-        sumR: num(r[iSumR]),
-        seb:  num(r[iSeb]),
-        prof: num(r[iProf])
+        qtyN: toNum(r[iQtyN]),
+        sumN: toNum(r[iSumN]),
+        sumR: toNum(r[iSumR]),
+        seb:  toNum(r[iSeb]),
+        prof: toNum(r[iProf])
       });
     }
 
-    setProgress(80, 'Построение периодов...');
+    setProgress(85, 'Построение дашборда...');
 
-    // Build month pills
-    const months = [...monthSet.entries()].sort((a,b) => a[0].localeCompare(b[0]));
+    // Кнопки месяцев
+    const months = [...monthMap.entries()].sort((a,b) => a[0].localeCompare(b[0]));
     const pillsEl = document.getElementById('periodPills');
     pillsEl.innerHTML = '<button class="pill active" data-m="all">Все</button>' +
-      months.map(([k,lbl]) => `<button class="pill" data-m="${k}">${lbl.split(' ')[0]}</button>`).join('');
+      months.map(([k, lbl]) =>
+        `<button class="pill" data-m="${k}">${lbl.split(' ')[0]}</button>`
+      ).join('');
     pillsEl.addEventListener('click', e => {
       const btn = e.target.closest('.pill');
       if (!btn) return;
       pillsEl.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentMonth = btn.dataset.m;
-      expanded.clear(); render();
+      expanded.clear();
+      render();
     });
 
-    // Stats
+    // Статистика
     const uKnt = new Set(rawRows.map(r => r.knt)).size;
     const uSku = new Set(rawRows.map(r => r.sku)).size;
     const noGrp = new Set(rawRows.filter(r => r.group.startsWith('⚠️')).map(r => r.knt)).size;
 
     document.getElementById('dataInfo').textContent =
-      `ТОО | ${rawRows.length.toLocaleString('ru')} строк | ${uKnt} контрагентов | ${uSku} SKU`;
+      `ТОО | ${rawRows.length.toLocaleString('ru')} строк | ${uKnt} контрагентов | ${uSku} SKU | ${months.length} мес.`;
     document.getElementById('st-total').textContent = rawRows.length.toLocaleString('ru');
     document.getElementById('st-knt').textContent = uKnt;
     document.getElementById('st-sku').textContent = uSku;
@@ -337,39 +353,44 @@ async function loadData() {
       'Обновлено: ' + new Date().toLocaleTimeString('ru');
 
     setProgress(100, 'Готово!');
-    setTimeout(() => { document.getElementById('loadScreen').style.display = 'none'; render(); }, 300);
+    setTimeout(() => {
+      document.getElementById('loadScreen').style.display = 'none';
+      render();
+    }, 350);
 
-  } catch(err) {
+  } catch (err) {
     console.error(err);
-    const el = document.getElementById('loadError');
-    el.style.display = 'block';
-    el.innerHTML = `❌ Ошибка: ${err.message}<br><br>
-      Убедитесь что таблица опубликована:<br>
-      <b>File → Share → Publish to web → Publish</b><br><br>
-      Или откройте консоль браузера (F12) для деталей.`;
+    errEl.style.display = 'block';
+    errEl.innerHTML = `
+      ❌ Ошибка: <b>${err.message}</b><br><br>
+      Что проверить:<br>
+      1. Таблица опубликована: <b>File → Share → Publish to web → Publish</b><br>
+      2. Открой F12 → Console — посмотри детали ошибки<br>
+      3. Попробуй <a href="${csvUrl(GID_REAL)}" target="_blank" style="color:#58a6ff">открыть CSV напрямую</a>
+    `;
     document.getElementById('loadStep').textContent = 'Ошибка загрузки';
   }
 }
 
-// ── AGG ───────────────────────────────────────────────────────
+// ── АГРЕГАЦИЯ ────────────────────────────────────────────────
 function agg(rows) {
-  let q=0,r=0,ret=0,s=0,p=0;
+  let q=0, r=0, ret=0, s=0, p=0;
   for (const x of rows) { q+=x.qtyN; r+=x.sumN; ret+=x.sumR; s+=x.seb; p+=x.prof; }
   return [
-    Math.round(q*10)/10,   // 0 qty
-    Math.round(r),          // 1 revenue
-    Math.round(ret),        // 2 returns
-    r ? Math.round(ret/r*1000)/10 : 0,  // 3 ret%
-    Math.round(s),          // 4 sebest
-    Math.round(p),          // 5 profit
-    r ? Math.round(p/r*1000)/10 : 0,    // 6 margin%
-    q ? Math.round(r/q) : 0             // 7 avg price
+    Math.round(q*10)/10,
+    Math.round(r),
+    Math.round(ret),
+    r ? Math.round(ret/r*1000)/10 : 0,
+    Math.round(s),
+    Math.round(p),
+    r ? Math.round(p/r*1000)/10 : 0,
+    q ? Math.round(r/q) : 0
   ];
 }
 
 function groupBy(arr, fn) {
   const m = {};
-  for (const x of arr) { const k=fn(x); (m[k]=m[k]||[]).push(x); }
+  for (const x of arr) { const k = fn(x); (m[k] = m[k]||[]).push(x); }
   return m;
 }
 
@@ -377,89 +398,103 @@ function filtered() {
   return currentMonth === 'all' ? rawRows : rawRows.filter(r => r.mk === currentMonth);
 }
 
+function getSortFn() {
+  const sc = document.getElementById('sortSel').value;
+  const idx = sc ? parseInt(sc) : 1;
+  return (a, b) => (b.m[idx]||0) - (a.m[idx]||0);
+}
+
 function buildTree(rows) {
-  const sortF = (a,b) => {
-    const sc = document.getElementById('sortSel').value;
-    if (!sc) return (b.m[1]||0)-(a.m[1]||0);
-    return (b.m[parseInt(sc)]||0)-(a.m[parseInt(sc)]||0);
-  };
+  const sf = getSortFn();
+  const mkNode = (name, rows, noGroup=false) => ({ name, noGroup, m: agg(rows), ch: [] });
 
   if (hierarchy === 'k') {
-    return Object.entries(groupBy(rows, r=>r.group)).map(([g,gr]) => ({
-      name:g, noGroup:g.startsWith('⚠️'), m:agg(gr),
-      ch: Object.entries(groupBy(gr, r=>r.knt)).map(([k,kr]) => ({
-        name:k, m:agg(kr),
-        ch: Object.entries(groupBy(kr, r=>r.sku)).map(([s,sr]) => ({
-          name:s, m:agg(sr),
-          ch: Object.entries(groupBy(sr, r=>r.sklad)).map(([sl,slr]) => ({name:sl,m:agg(slr),ch:[]}))
-              .sort(sortF)
-        })).sort(sortF)
-      })).sort(sortF)
-    })).sort(sortF);
+    return Object.entries(groupBy(rows, r=>r.group)).map(([g, gr]) => {
+      const gNode = mkNode(g, gr, g.startsWith('⚠️'));
+      gNode.ch = Object.entries(groupBy(gr, r=>r.knt)).map(([k, kr]) => {
+        const kNode = mkNode(k, kr);
+        kNode.ch = Object.entries(groupBy(kr, r=>r.sku)).map(([s, sr]) => {
+          const sNode = mkNode(s, sr);
+          sNode.ch = Object.entries(groupBy(sr, r=>r.sklad))
+            .map(([sl, slr]) => mkNode(sl, slr)).sort(sf);
+          return sNode;
+        }).sort(sf);
+        return kNode;
+      }).sort(sf);
+      return gNode;
+    }).sort(sf);
   } else {
-    return Object.entries(groupBy(rows, r=>r.sku)).map(([s,sr]) => ({
-      name:s, m:agg(sr),
-      ch: Object.entries(groupBy(sr, r=>r.knt)).map(([k,kr]) => ({
-        name:k, m:agg(kr),
-        ch: Object.entries(groupBy(kr, r=>r.sklad)).map(([sl,slr]) => ({name:sl,m:agg(slr),ch:[]}))
-            .sort(sortF)
-      })).sort(sortF)
-    })).sort(sortF);
+    return Object.entries(groupBy(rows, r=>r.sku)).map(([s, sr]) => {
+      const sNode = mkNode(s, sr);
+      sNode.ch = Object.entries(groupBy(sr, r=>r.knt)).map(([k, kr]) => {
+        const kNode = mkNode(k, kr);
+        kNode.ch = Object.entries(groupBy(kr, r=>r.sklad))
+          .map(([sl, slr]) => mkNode(sl, slr)).sort(sf);
+        return kNode;
+      }).sort(sf);
+      return sNode;
+    }).sort(sf);
   }
 }
 
 // ── RENDER ────────────────────────────────────────────────────
 const fmt = n => {
-  if(!n&&n!==0)return'—';const a=Math.abs(n);
-  if(a>=1e9)return(n/1e9).toFixed(1)+' млрд';
-  if(a>=1e6)return(n/1e6).toFixed(1)+' млн';
-  if(a>=1e3)return(n/1e3).toFixed(0)+' тыс';
+  if (!n && n!==0) return '—';
+  const a = Math.abs(n);
+  if (a>=1e9) return (n/1e9).toFixed(1)+' млрд';
+  if (a>=1e6) return (n/1e6).toFixed(1)+' млн';
+  if (a>=1e3) return (n/1e3).toFixed(0)+' тыс';
   return Math.round(n).toLocaleString('ru');
 };
-const fF = n => n==null?'—':Math.round(n).toLocaleString('ru-RU');
-const fP = n => n==null?'—':(n>0?'+':'')+n.toFixed(1)+'%';
-const fQ = n => n==null?'—':(Math.round(n*10)/10).toLocaleString('ru-RU');
+const fF  = n => n==null ? '—' : Math.round(n).toLocaleString('ru-RU');
+const fP  = n => n==null ? '—' : (n>0?'+':'')+n.toFixed(1)+'%';
+const fQ  = n => n==null ? '—' : (Math.round(n*10)/10).toLocaleString('ru-RU');
 
 function render() {
   const rows = filtered();
   const tot = agg(rows);
   const [tq,tr,tret,trp,ts,tp,tm,ta] = tot;
-  const tRev = tr||1;
+  const tRev = tr || 1;
 
-  // KPIs
+  // KPI обновление
   document.getElementById('k-rev').textContent = fmt(tr)+' ₸';
   document.getElementById('k-qty').textContent = fQ(tq);
   document.getElementById('k-seb').textContent = fmt(ts)+' ₸';
-  const pe=document.getElementById('k-prof'); pe.textContent=fmt(tp)+' ₸'; pe.className='kpi-val '+(tp>=0?'green':'red');
-  const me=document.getElementById('k-mar');  me.textContent=fP(tm); me.className='kpi-val '+(tm>=0?'green':'red');
+  const pe = document.getElementById('k-prof');
+  pe.textContent = fmt(tp)+' ₸'; pe.className = 'kpi-val '+(tp>=0?'green':'red');
+  const me = document.getElementById('k-mar');
+  me.textContent = fP(tm); me.className = 'kpi-val '+(tm>=0?'green':'red');
   document.getElementById('k-ret').textContent = fmt(tret)+' ₸';
   document.getElementById('k-retpct').textContent = fP(trp);
   document.getElementById('k-avg').textContent = fF(ta)+' ₸';
 
   const tree = buildTree(rows);
 
-  // Flatten
+  // Flatten с учётом раскрытий и поиска
   const flat = [];
+  function anyMatch(nodes, term) {
+    return nodes.some(n =>
+      n.name.toLowerCase().includes(term) || (n.ch.length && anyMatch(n.ch, term))
+    );
+  }
   function flatten(nodes, depth) {
     for (const node of nodes) {
-      const key = node.name+'_'+depth;
-      const hasC = node.ch&&node.ch.length>0;
+      const key = node.name + '_d' + depth;
+      const hasC = node.ch.length > 0;
       const isExp = expanded.has(key);
       if (searchTerm) {
-        const m = node.name.toLowerCase().includes(searchTerm);
-        const cm = hasC && anyMatch(node.ch, searchTerm);
-        if (!m && !cm) continue;
+        const match = node.name.toLowerCase().includes(searchTerm);
+        const childMatch = hasC && anyMatch(node.ch, searchTerm);
+        if (!match && !childMatch) continue;
       }
-      flat.push({node,depth,key,hasC,isExp});
+      flat.push({node, depth, key, hasC, isExp});
       if (isExp && hasC) flatten(node.ch, depth+1);
     }
   }
-  function anyMatch(nodes,term){return nodes.some(n=>n.name.toLowerCase().includes(term)||(n.ch&&anyMatch(n.ch,term)));}
   flatten(tree, 0);
 
-  const parts = [];
-  // Total
-  parts.push(`<tr class="total-row">
+  // Строим HTML одним проходом
+  const parts = [`<tr class="total-row">
     <td><div class="cell-name"><span style="width:15px;display:inline-block"></span>
     <span class="row-name total-lbl">📊 ИТОГО</span></div></td>
     <td>${fQ(tq)}</td><td>${fF(tr)}</td>
@@ -468,30 +503,37 @@ function render() {
     <td>${fF(ts)}</td>
     <td class="${tp>=0?'pos':'neg'}">${fF(tp)}</td>
     <td class="${tm>=0?'pos':'neg'}">${fP(tm)}</td>
-    <td>${fF(ta)}</td><td>100%</td></tr>`);
+    <td>${fF(ta)}</td><td>100%</td>
+  </tr>`];
 
-  for (const {node,depth,key,hasC,isExp} of flat) {
+  for (const {node, depth, key, hasC, isExp} of flat) {
     const [nq,nr,nret,nrp,ns,np,nm,na] = node.m;
     const share = (nr/tRev*100).toFixed(1);
-    const barW = Math.max(2,Math.round(nr/tRev*54));
-    const lv = Math.min(depth,4);
-    const ind = '&nbsp;'.repeat(depth*4);
+    const barW  = Math.max(2, Math.round(nr/tRev*54));
+    const lv    = Math.min(depth, 4);
+    const ind   = '&nbsp;'.repeat(depth*4);
+    const safeKey = key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const expBtn = hasC
-      ? `<button class="expander${isExp?' open':''}" onclick="toggle('${key.replace(/'/g,"\\'")}',this)">${isExp?'▾':'▸'}</button>`
+      ? `<button class="expander${isExp?' open':''}" onclick="toggle('${safeKey}',this)">${isExp?'▾':'▸'}</button>`
       : `<span style="width:15px;display:inline-block"></span>`;
-    const nc = (node.noGroup?'row-name no-group':'row-name');
+    const nc = node.noGroup ? 'row-name no-group' : 'row-name';
 
     parts.push(`<tr class="lv${lv}">
       <td><div class="cell-name">${ind}${expBtn}
-        <span class="${nc}" title="${node.name.replace(/"/g,'&quot;')}">${node.name}</span></div></td>
-      <td>${fQ(nq)}</td><td>${fF(nr)}</td>
-      <td class="neg">${nret?fF(nret):'—'}</td>
-      <td class="${nrp<0?'neg':'neu'}">${nrp?fP(nrp):'—'}</td>
+        <span class="${nc}" title="${node.name.replace(/"/g,'&quot;')}">${node.name}</span>
+      </div></td>
+      <td>${fQ(nq)}</td>
+      <td>${fF(nr)}</td>
+      <td class="neg">${nret ? fF(nret) : '—'}</td>
+      <td class="${nrp<0?'neg':'neu'}">${nrp ? fP(nrp) : '—'}</td>
       <td>${fF(ns)}</td>
       <td class="${np>=0?'pos':'neg'}">${fF(np)}</td>
       <td class="${nm>=0?'pos':'neg'}">${fP(nm)}</td>
       <td>${fF(na)}</td>
-      <td><div class="bar-wrap"><div class="bar" style="width:${barW}px;background:${np>=0?'#3fb950':'#f85149'}"></div>${share}%</div></td>
+      <td><div class="bar-wrap">
+        <div class="bar" style="width:${barW}px;background:${np>=0?'#3fb950':'#f85149'}"></div>
+        ${share}%
+      </div></td>
     </tr>`);
   }
 
@@ -501,15 +543,18 @@ function render() {
 
 // ── CONTROLS ──────────────────────────────────────────────────
 function toggle(key, btn) {
-  if (expanded.has(key)) { expanded.delete(key); btn.classList.remove('open'); btn.textContent='▸'; }
-  else { expanded.add(key); btn.classList.add('open'); btn.textContent='▾'; }
+  if (expanded.has(key)) {
+    expanded.delete(key); btn.classList.remove('open'); btn.textContent = '▸';
+  } else {
+    expanded.add(key); btn.classList.add('open'); btn.textContent = '▾';
+  }
   render();
 }
 
 function swapHierarchy() {
-  hierarchy = hierarchy==='k'?'s':'k';
+  hierarchy = hierarchy === 'k' ? 's' : 'k';
   expanded.clear();
-  document.getElementById('swapLabel').textContent = hierarchy==='k'
+  document.getElementById('swapLabel').textContent = hierarchy === 'k'
     ? '👥 Контрагент → SKU → Склад'
     : '📦 SKU → Контрагент → Склад';
   render();
@@ -517,10 +562,13 @@ function swapHierarchy() {
 
 function expandTo(maxD) {
   function exp(nodes, d) {
-    if (d>maxD) return;
-    for (const n of nodes) if (n.ch&&n.ch.length) { expanded.add(n.name+'_'+d); exp(n.ch,d+1); }
+    if (d > maxD) return;
+    for (const n of nodes) {
+      if (n.ch.length) { expanded.add(n.name+'_d'+d); exp(n.ch, d+1); }
+    }
   }
-  exp(buildTree(filtered()), 0); render();
+  exp(buildTree(filtered()), 0);
+  render();
 }
 
 function collapseAll() { expanded.clear(); render(); }
@@ -528,17 +576,17 @@ function collapseAll() { expanded.clear(); render(); }
 function onSearch() {
   searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
   if (searchTerm) expandTo(3);
-  render();
+  else render();
 }
 
 async function reloadData() {
-  document.getElementById('loadScreen').style.display='flex';
-  document.getElementById('prog').style.width='0%';
-  document.getElementById('loadError').style.display='none';
-  rawRows=[]; expanded.clear();
+  document.getElementById('loadScreen').style.display = 'flex';
+  document.getElementById('prog').style.width = '0%';
+  rawRows = []; expanded.clear(); groupMap = {};
   await loadData();
 }
 
+// ── START ─────────────────────────────────────────────────────
 loadData();
 </script>
 </body>
