@@ -83,7 +83,7 @@ select.sel{background:var(--surface2);border:1px solid var(--border);color:var(-
 .content{display:flex;flex-direction:column;height:calc(100vh - 188px);}
 
 /* TABLE */
-.table-wrap{overflow:auto;flex:1;min-height:0;}
+.table-wrap{overflow:auto;flex:1;min-height:80px;}
 table{width:100%;border-collapse:collapse;table-layout:fixed;}
 thead{position:sticky;top:0;z-index:100;}
 th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:5px 7px;border-bottom:2px solid var(--border);border-right:1px solid var(--border);text-align:right;white-space:nowrap;cursor:pointer;user-select:none;}
@@ -118,7 +118,7 @@ tr.tot{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
 .daily-header:hover{background:var(--surface2);}
 .daily-title{font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;}
 .daily-toggle{font-size:11px;color:var(--muted);}
-.daily-body{display:none;padding:12px;}
+.daily-body{display:none;padding:12px;max-height:340px;overflow-y:auto;}
 .daily-body.open{display:block;}
 .daily-metric-tabs{display:flex;gap:4px;margin-bottom:10px;}
 .dmt{padding:3px 10px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;}
@@ -345,7 +345,16 @@ async function loadData(){
 
     document.getElementById('prog').style.width='100%';
     document.getElementById('lstep').textContent='Готово!';
-    setTimeout(()=>{document.getElementById('ls').style.display='none'; renderAll();},300);
+    setTimeout(()=>{
+      document.getElementById('ls').style.display='none';
+      render();
+      // Открываем daily panel по умолчанию
+      dailyOpen=true;
+      document.getElementById('dailyBody').classList.add('open');
+      document.getElementById('dailyArrow').textContent='▲ свернуть';
+      // Chart нужно рендерить после того как элемент станет видимым
+      requestAnimationFrame(()=>requestAnimationFrame(()=>renderDaily()));
+    },300);
   }catch(err){
     console.error(err);
     const el=document.getElementById('lerr'); el.style.display='block';
@@ -561,7 +570,10 @@ function toggleDaily(){
   dailyOpen=!dailyOpen;
   document.getElementById('dailyBody').classList.toggle('open',dailyOpen);
   document.getElementById('dailyArrow').textContent=dailyOpen?'▲ свернуть':'▼ развернуть';
-  if(dailyOpen) renderDaily();
+  if(dailyOpen){
+    // rAF дважды — чтобы display:block успел примениться до canvas resize
+    requestAnimationFrame(()=>requestAnimationFrame(()=>renderDaily()));
+  }
 }
 
 function setDailyMetric(metric,btn){
@@ -572,12 +584,17 @@ function setDailyMetric(metric,btn){
 }
 
 function renderDaily(){
-  const rows=filtered();
-  const dailyData=PF.getDailyData(rows, currentMonth==='all'?'all':currentMonth);
+  const rows=filtered();  // уже отфильтрованные строки
+  // Агрегируем по дням напрямую из отфильтрованных строк
+  const byDay=PF.groupBy(rows, r=>r.day);
+  const dailyData=Object.entries(byDay)
+    .map(([day,dr])=>({day,...PF.agg(dr)}))
+    .sort((a,b)=>a.day.localeCompare(b.day));
 
+  document.getElementById('dailyChart').style.display='block';
   if(!dailyData.length){
     document.getElementById('dailyChart').style.display='none';
-    document.getElementById('dailyTable').innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:12px">Нет данных</td></tr>';
+    document.getElementById('dailyTable').innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:12px">Нет данных для выбранного периода</td></tr>';
     return;
   }
 
@@ -654,7 +671,7 @@ function renderDaily(){
 }
 
 // ── CONTROLS ──────────────────────────────────────────────────
-function renderAll(){ render(); if(dailyOpen) renderDaily(); }
+function renderAll(){ render(); if(dailyOpen){ requestAnimationFrame(()=>requestAnimationFrame(()=>renderDaily())); } }
 
 function toggle(key,btn){
   if(expanded.has(key)){expanded.delete(key);btn.classList.remove('open');btn.textContent='▸';}
