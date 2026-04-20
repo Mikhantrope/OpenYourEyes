@@ -4,193 +4,217 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PF — Аналитика продаж</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#2f81f7;--green:#3fb950;--red:#f85149;--amber:#d29922;--purple:#bc8cff;--text:#e6edf3;--muted:#8b949e;--dim:#484f58;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;}
-#loadScreen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
-.load-logo{font-size:48px;font-weight:900;background:linear-gradient(135deg,#2f81f7,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.progress-bar{width:320px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .4s;width:0%;}
-.load-step{font-size:11px;color:var(--dim);}
-.load-error{color:var(--red);font-size:12px;max-width:440px;text-align:center;line-height:1.7;display:none;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);padding:14px;border-radius:8px;}
 
-/* NAV */
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;gap:8px;flex-wrap:wrap;}
-.hdr-left{display:flex;align-items:center;gap:10px;}
-.logo{width:34px;height:34px;background:linear-gradient(135deg,#2f81f7,#3fb950);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;}
-.hdr-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.nav-tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
-.nav-tab{padding:4px 12px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
-.nav-tab.active,.nav-tab:hover{color:var(--text);}
-.nav-tab.active{background:var(--surface2);}
-.live-badge{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--green);background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);padding:3px 9px;border-radius:12px;}
-.live-dot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
+/* LOAD */
+#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+.load-logo{font-size:48px;font-weight:900;background:linear-gradient(135deg,#2f81f7,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.pb{width:320px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.pf-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .4s;width:0%;}
+.ls{font-size:11px;color:var(--dim);}
+.lerr{color:var(--red);font-size:12px;max-width:440px;text-align:center;line-height:1.7;display:none;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);padding:14px;border-radius:8px;}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:7px 14px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;gap:6px;flex-wrap:wrap;}
+.hdr-left{display:flex;align-items:center;gap:9px;}
+.logo{width:32px;height:32px;background:linear-gradient(135deg,#2f81f7,#3fb950);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;}
+.hdr-right{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.nav{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
+.nt{padding:4px 10px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap;}
+.nt.active,.nt:hover{color:var(--text);}
+.nt.active{background:var(--surface2);}
+.live-b{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--green);background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);padding:3px 9px;border-radius:12px;}
+.ldot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.icon-btn{padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;}
-.icon-btn:hover{color:var(--text);border-color:var(--accent);}
+.ibtn{padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;}
+.ibtn:hover{color:var(--text);border-color:var(--accent);}
 .pills{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
 .pill{padding:3px 10px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;}
 .pill.active{background:var(--accent);color:#fff;}
 .pill:hover:not(.active){color:var(--text);}
 
-/* KPI */
+/* KPI BAR */
 .kpi-bar{display:flex;gap:1px;background:var(--border);border-bottom:1px solid var(--border);overflow-x:auto;}
-.kpi{background:var(--surface);padding:8px 14px;flex:1;min-width:90px;position:relative;}
-.kpi:hover .kpi-tip{display:block;}
-.kpi-label{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
-.kpi-val{font-size:14px;font-weight:700;font-family:'Consolas',monospace;}
-.kpi-delta{font-size:9px;color:var(--dim);margin-top:1px;}
-.kpi-tip{display:none;position:absolute;bottom:calc(100% + 4px);left:0;background:#1c2333;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text);white-space:nowrap;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.5);line-height:1.5;}
-.blue{color:#58a6ff;}.green{color:#3fb950;}.red{color:#f85149;}.amber{color:#d29922;}.purple{color:#bc8cff;}
+.kpi{background:var(--surface);padding:7px 12px;flex:1;min-width:85px;position:relative;}
+.kpi:hover .ktip{display:block;}
+.kpi-lbl{font-size:9px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
+.kpi-val{font-size:13px;font-weight:700;font-family:'Consolas',monospace;}
+.kpi-sub{font-size:9px;color:var(--dim);margin-top:1px;}
+.ktip{display:none;position:absolute;bottom:calc(100%+4px);left:0;background:#1c2333;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text);white-space:nowrap;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.5);line-height:1.5;}
+.blue{color:#58a6ff;}.grn{color:#3fb950;}.red{color:#f85149;}.amb{color:#d29922;}.pur{color:#bc8cff;}
 
 /* TOOLBAR */
-.toolbar{display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;}
-.tlabel{font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap;}
-.sep{width:1px;height:20px;background:var(--border);flex-shrink:0;}
-.swap-btn{display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
-.swap-btn:hover{border-color:var(--accent);color:var(--accent);}
-.exp-btns{display:flex;gap:2px;}
-.exp-btn{padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s;}
-.exp-btn:hover{color:var(--text);}
-.exp-btn.lit{border-color:var(--accent);color:var(--accent);background:rgba(47,129,247,.1);}
-.search-box{display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 9px;min-width:160px;}
-.search-box input{background:transparent;border:none;outline:none;color:var(--text);font-size:12px;width:100%;}
-.search-box input::placeholder{color:var(--dim);}
-select.sel{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;outline:none;}
-
-/* COL CHOOSER */
-.col-chooser{display:flex;gap:3px;flex-wrap:wrap;}
-.ctog{padding:2px 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--muted);font-size:10px;cursor:pointer;white-space:nowrap;}
+.toolbar{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.tlbl{font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap;}
+.sep{width:1px;height:18px;background:var(--border);flex-shrink:0;}
+.swbtn{display:flex;align-items:center;gap:4px;padding:3px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.swbtn:hover{border-color:var(--accent);color:var(--accent);}
+.expbtns{display:flex;gap:2px;}
+.ebtn{padding:2px 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s;}
+.ebtn:hover{color:var(--text);}
+.ebtn.lit{border-color:var(--accent);color:var(--accent);background:rgba(47,129,247,.1);}
+.sbox{display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 8px;min-width:140px;}
+.sbox input{background:transparent;border:none;outline:none;color:var(--text);font-size:12px;width:100%;}
+.sbox input::placeholder{color:var(--dim);}
+select.sel{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:5px;font-size:11px;outline:none;}
+.ctogs{display:flex;gap:2px;flex-wrap:wrap;}
+.ctog{padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--muted);font-size:10px;cursor:pointer;white-space:nowrap;}
 .ctog.on{background:rgba(47,129,247,.15);border-color:var(--accent);color:#58a6ff;}
 
 /* FILTER PANEL */
-.fpanel{display:none;padding:7px 12px;background:var(--surface);border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap;align-items:center;}
+.fpanel{display:none;padding:6px 10px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;align-items:center;}
 .fpanel.open{display:flex;}
-.chips{display:flex;gap:4px;flex-wrap:wrap;}
-.chip{padding:2px 8px;border:1px solid var(--border);border-radius:10px;font-size:10px;cursor:pointer;background:var(--surface2);color:var(--muted);white-space:nowrap;transition:all .15s;}
+.chips{display:flex;gap:3px;flex-wrap:wrap;}
+.chip{padding:2px 7px;border:1px solid var(--border);border-radius:10px;font-size:10px;cursor:pointer;background:var(--surface2);color:var(--muted);white-space:nowrap;}
 .chip.on{background:rgba(47,129,247,.15);border-color:var(--accent);color:#58a6ff;}
 
-/* AVG PRICE WIDGET */
-.avg-widget{position:relative;display:inline-flex;align-items:center;}
-.avg-dropdown{display:none;position:absolute;top:calc(100%+4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;z-index:500;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.4);}
-.avg-dropdown.open{display:block;}
-.avg-option{padding:5px 10px;border-radius:5px;font-size:12px;cursor:pointer;color:var(--muted);}
-.avg-option:hover,.avg-option.sel{background:rgba(47,129,247,.1);color:#58a6ff;}
+/* AVG WIDGET */
+.avgw{position:relative;}
+.avgdd{display:none;position:absolute;top:calc(100%+4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;z-index:500;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.avgdd.open{display:block;}
+.avo{padding:5px 10px;border-radius:5px;font-size:12px;cursor:pointer;color:var(--muted);}
+.avo:hover,.avo.sel{background:rgba(47,129,247,.1);color:#58a6ff;}
+
+/* MAIN AREA — split: table top, daily bottom */
+.content{display:flex;flex-direction:column;height:calc(100vh - 188px);}
 
 /* TABLE */
-.table-wrap{overflow:auto;height:calc(100vh - 215px);}
+.table-wrap{overflow:auto;flex:1;min-height:0;}
 table{width:100%;border-collapse:collapse;table-layout:fixed;}
 thead{position:sticky;top:0;z-index:100;}
-th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:6px 8px;border-bottom:2px solid var(--border);border-right:1px solid var(--border);text-align:right;white-space:nowrap;cursor:pointer;user-select:none;}
-th:first-child{text-align:left;width:270px;min-width:210px;}
+th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:5px 7px;border-bottom:2px solid var(--border);border-right:1px solid var(--border);text-align:right;white-space:nowrap;cursor:pointer;user-select:none;}
+th:first-child{text-align:left;width:260px;min-width:200px;}
 th:hover{color:var(--text);}
-th.sorted-asc::after{content:' ↑';color:var(--accent);}
-th.sorted-desc::after{content:' ↓';color:var(--accent);}
-td{padding:3px 8px;border-bottom:1px solid rgba(48,54,61,.4);border-right:1px solid rgba(48,54,61,.2);text-align:right;font-family:'Consolas',monospace;font-size:11px;white-space:nowrap;}
+th.sa::after{content:' ↑';color:var(--accent);}
+th.sd::after{content:' ↓';color:var(--accent);}
+td{padding:3px 7px;border-bottom:1px solid rgba(48,54,61,.4);border-right:1px solid rgba(48,54,61,.2);text-align:right;font-family:'Consolas',monospace;font-size:11px;white-space:nowrap;}
 td:first-child{text-align:left;font-family:'Segoe UI',sans-serif;font-size:11px;}
-
 tr.lv0{background:rgba(47,129,247,.07);}tr.lv0:hover{background:rgba(47,129,247,.12);}
 tr.lv1{background:rgba(33,38,45,.9);}tr.lv1:hover{background:rgba(48,54,61,.6);}
 tr.lv2{background:var(--surface);}tr.lv2:hover{background:var(--surface2);}
 tr.lv3{background:var(--bg);}tr.lv3:hover{background:#111620;}
-tr.total-row{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
-
-.cell-name{display:flex;align-items:center;}
-.expander{width:14px;height:14px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:3px;}
-.expander:hover{color:var(--text);background:var(--surface2);}
-.expander.open{color:var(--accent);}
-.row-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.lv0 .row-name{font-weight:700;color:#58a6ff;font-size:12px;}
-.lv1 .row-name{font-weight:600;color:var(--text);}
-.lv2 .row-name,.lv3 .row-name{color:var(--muted);font-size:11px;}
-.no-group{color:var(--amber)!important;font-style:italic;}
+tr.tot{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
+.cnm{display:flex;align-items:center;}
+.exp{width:13px;height:13px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:3px;}
+.exp:hover{color:var(--text);background:var(--surface2);}
+.exp.open{color:var(--accent);}
+.rnm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lv0 .rnm{font-weight:700;color:#58a6ff;}
+.lv1 .rnm{font-weight:600;}
+.lv2 .rnm,.lv3 .rnm{color:var(--muted);font-size:11px;}
+.nog{color:var(--amber)!important;font-style:italic;}
 .pos{color:#3fb950;}.neg{color:#f85149;}.neu{color:var(--muted);}
-.bar-wrap{display:flex;align-items:center;gap:3px;justify-content:flex-end;}
+.barw{display:flex;align-items:center;gap:3px;justify-content:flex-end;}
 .bar{height:3px;border-radius:2px;flex-shrink:0;}
-.total-lbl{font-weight:700;color:#3fb950;font-size:12px;}
-.statusbar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:3px 12px;display:flex;gap:14px;font-size:10px;color:var(--muted);}
+.totlbl{font-weight:700;color:#3fb950;}
+
+/* DAILY PANEL */
+.daily-panel{border-top:2px solid var(--border);background:var(--bg);flex-shrink:0;}
+.daily-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--surface);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+.daily-header:hover{background:var(--surface2);}
+.daily-title{font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.daily-toggle{font-size:11px;color:var(--muted);}
+.daily-body{display:none;padding:12px;}
+.daily-body.open{display:block;}
+.daily-metric-tabs{display:flex;gap:4px;margin-bottom:10px;}
+.dmt{padding:3px 10px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;}
+.dmt.active{border-color:var(--accent);color:#58a6ff;background:rgba(47,129,247,.1);}
+.daily-chart-wrap{height:160px;position:relative;}
+.daily-table-wrap{overflow-x:auto;margin-top:10px;}
+.daily-table{border-collapse:collapse;font-size:11px;white-space:nowrap;}
+.daily-table th{background:var(--surface);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:4px 10px;border-bottom:1px solid var(--border);text-align:right;cursor:pointer;}
+.daily-table th:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:5;}
+.daily-table td{padding:3px 10px;border-bottom:1px solid rgba(48,54,61,.3);text-align:right;font-family:'Consolas',monospace;}
+.daily-table td:first-child{text-align:left;position:sticky;left:0;background:var(--bg);z-index:5;font-family:'Segoe UI',sans-serif;}
+.daily-table tr:hover td{background:rgba(48,54,61,.2);}
+.daily-table tr:hover td:first-child{background:rgba(48,54,61,.3);}
+
+.statusbar{background:var(--surface);border-top:1px solid var(--border);padding:3px 10px;display:flex;gap:12px;font-size:10px;color:var(--muted);}
 .statusbar span{color:var(--text);font-weight:600;}
 </style>
 </head>
 <body>
-<div id="loadScreen">
+
+<div id="ls">
   <div class="load-logo">PF</div>
   <div style="font-size:15px;font-weight:600;color:var(--text)">Premium Food Astana</div>
   <div style="font-size:11px;color:var(--muted)">Загрузка из Google Sheets...</div>
-  <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
-  <div class="load-step" id="loadStep">Инициализация...</div>
-  <div class="load-error" id="loadError"></div>
+  <div class="pb"><div class="pf-bar" id="prog"></div></div>
+  <div class="ls" id="lstep">Инициализация...</div>
+  <div class="lerr" id="lerr"></div>
 </div>
 
+<!-- HEADER -->
 <div class="hdr">
   <div class="hdr-left">
     <div class="logo">PF</div>
     <div>
       <div style="font-size:13px;font-weight:700;">Аналитика продаж</div>
-      <div style="font-size:10px;color:var(--muted)" id="dataInfo">Загрузка...</div>
+      <div style="font-size:10px;color:var(--muted)" id="dInfo">Загрузка...</div>
     </div>
   </div>
   <div class="hdr-right">
-    <div class="nav-tabs">
-      <span class="nav-tab active">📊 Таблица</span>
-      <a class="nav-tab" href="dashboard.html">📈 Дашборд</a>
-      <a class="nav-tab" href="prikhod.html">📦 Приход</a>
-      <a class="nav-tab" href="compare.html">📅 Сравнение</a>
-      <a class="nav-tab" href="pnl.html">💰 P&L</a>
+    <div class="nav">
+      <span class="nt active">📊 Таблица</span>
+      <a class="nt" href="dashboard.html">📈 Дашборд</a>
+      <a class="nt" href="prikhod.html">📦 Приход</a>
+      <a class="nt" href="compare.html">📅 Сравнение</a>
+      <a class="nt" href="pnl.html">💰 P&L</a>
     </div>
-    <div class="live-badge"><div class="live-dot"></div>Live</div>
-    <button class="icon-btn" onclick="reloadData()">⟳</button>
+    <div class="live-b"><div class="ldot"></div>Live</div>
+    <button class="ibtn" onclick="reloadData()">⟳</button>
     <div class="pills" id="periodPills"><button class="pill active" data-m="all">Все</button></div>
   </div>
 </div>
 
-<!-- KPI -->
+<!-- KPI BAR -->
 <div class="kpi-bar">
-  <div class="kpi"><div class="kpi-label">Выручка (без НДС)</div><div class="kpi-val blue" id="k-rev">—</div><div class="kpi-delta">Сумма без налогов</div><div class="kpi-tip">«Сумма без налогов» из 1С<br>= фактическая выручка без НДС<br>Правильная база для расчёта маржи</div></div>
-  <div class="kpi"><div class="kpi-label">Кол-во (шт)</div><div class="kpi-val blue" id="k-qty">—</div><div class="kpi-delta">единиц реализовано</div><div class="kpi-tip">«Кол-во реализации (с возвратами)» из 1С</div></div>
-  <div class="kpi"><div class="kpi-label">Объём (кг)</div><div class="kpi-val blue" id="k-kg">—</div><div class="kpi-delta">кг = кол-во × вес SKU</div><div class="kpi-tip">Кол-во шт × вес из SKUСправочника<br>Физический объём продаж</div></div>
-  <div class="kpi"><div class="kpi-label">Себестоимость</div><div class="kpi-val amber" id="k-seb">—</div><div class="kpi-delta">Стоимость (без НДС)</div><div class="kpi-tip">«Стоимость (без НДС)» из 1С<br>= прямые затраты на закупку</div></div>
-  <div class="kpi"><div class="kpi-label">Прибыль</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-delta">Выручка − Себестоимость</div><div class="kpi-tip">«Profit (сумма)» из 1С<br>= Сумма без налогов − Стоимость<br>⚠️ Валовая прибыль (до косвенных затрат)</div></div>
-  <div class="kpi"><div class="kpi-label">Маржа %</div><div class="kpi-val" id="k-mar">—</div><div class="kpi-delta">Прибыль ÷ Выручка</div><div class="kpi-tip">Profit / (Сумма без налогов) × 100%</div></div>
-  <div class="kpi"><div class="kpi-label">Возвраты</div><div class="kpi-val red" id="k-ret">—</div><div class="kpi-delta">сумма возвратов ₸</div><div class="kpi-tip">«Сумма возвратов» из 1С (отрицательное)</div></div>
-  <div class="kpi"><div class="kpi-label">Возврат %</div><div class="kpi-val red" id="k-retpct">—</div><div class="kpi-delta">|Возврат| ÷ Выручка</div><div class="kpi-tip">|СуммаВозвратов| / Выручка × 100%</div></div>
+  <div class="kpi"><div class="kpi-lbl">Выручка (без НДС)</div><div class="kpi-val blue" id="k-rev">—</div><div class="kpi-sub">Сумма без налогов</div><div class="ktip">«Сумма без налогов» из 1С = выручка без НДС<br>Правильная база для расчёта маржи и прибыли</div></div>
+  <div class="kpi"><div class="kpi-lbl">Кол-во (шт)</div><div class="kpi-val blue" id="k-qty">—</div><div class="kpi-sub">целых единиц</div><div class="ktip">«Кол-во реализации с возвратами» из 1С<br>Округлено до целого числа</div></div>
+  <div class="kpi"><div class="kpi-lbl">Объём (кг)</div><div class="kpi-val blue" id="k-kg">—</div><div class="kpi-sub">кг = кол-во × вес SKU</div><div class="ktip">Кол-во шт × вес единицы (из SKUСправочника)<br>Формат: 666 583.4 кг</div></div>
+  <div class="kpi"><div class="kpi-lbl">Себестоимость</div><div class="kpi-val amb" id="k-seb">—</div><div class="kpi-sub">Стоимость (без НДС)</div><div class="ktip">«Стоимость (без НДС)» из 1С<br>= прямые затраты на закупку товара</div></div>
+  <div class="kpi"><div class="kpi-lbl">Прибыль</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">Выручка − Себестоимость</div><div class="ktip">«Profit (сумма)» из 1С<br>= Сумма без налогов − Стоимость без НДС<br>⚠️ Валовая прибыль (ДО косвенных затрат)</div></div>
+  <div class="kpi"><div class="kpi-lbl">Маржа %</div><div class="kpi-val" id="k-mar">—</div><div class="kpi-sub">Прибыль ÷ Выручка</div><div class="ktip">Profit / Выручка без НДС × 100%</div></div>
+  <div class="kpi"><div class="kpi-lbl">Возвраты</div><div class="kpi-val red" id="k-ret">—</div><div class="kpi-sub">сумма возвратов</div><div class="ktip">«Сумма возвратов» из 1С (отрицательное)</div></div>
+  <div class="kpi"><div class="kpi-lbl">Возврат %</div><div class="kpi-val red" id="k-retpct">—</div><div class="kpi-sub">|Возврат| ÷ Выручка</div><div class="ktip">|СуммаВозвратов| / Выручка × 100%</div></div>
   <!-- Средняя цена с дропдауном -->
-  <div class="kpi avg-widget" id="avgWidget">
-    <div style="width:100%">
-      <div class="kpi-label" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="toggleAvgDropdown()">
-        <span id="avgLabel">Ср. цена (SKU)</span>
-        <span style="font-size:10px;color:var(--accent)">▾</span>
-      </div>
-      <div class="kpi-val purple" id="k-avg">—</div>
-      <div class="kpi-delta" id="avgDelta">выручка ÷ кол-во</div>
+  <div class="kpi avgw" id="avgW" style="cursor:pointer;" onclick="toggleAvgDD(event)">
+    <div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;">
+      <span id="avgLbl">Ср. цена</span>
+      <span style="color:var(--accent);font-size:10px">▾</span>
     </div>
-    <div class="avg-dropdown" id="avgDropdown">
-      <div style="font-size:10px;color:var(--muted);padding:4px 10px 8px;border-bottom:1px solid var(--border);margin-bottom:4px;">Средняя цена по:</div>
-      <div class="avg-option sel" data-mode="sku" onclick="setAvgMode('sku',this)">📦 По SKU (ср. цена позиции)</div>
-      <div class="avg-option" data-mode="knt" onclick="setAvgMode('knt',this)">👤 По контрагенту</div>
-      <div class="avg-option" data-mode="grp" onclick="setAvgMode('grp',this)">🏢 По группе контрагентов</div>
+    <div class="kpi-val pur" id="k-avg">—</div>
+    <div class="kpi-sub" id="avgSub">по SKU</div>
+    <div class="avgdd" id="avgDD" onclick="event.stopPropagation()">
+      <div style="font-size:10px;color:var(--muted);padding:4px 10px 6px;border-bottom:1px solid var(--border);margin-bottom:4px;">Средняя цена по:</div>
+      <div class="avo sel" data-mode="sku"  onclick="setAvgMode('sku',this)">📦 По SKU</div>
+      <div class="avo"     data-mode="knt"  onclick="setAvgMode('knt',this)">👤 По контрагенту</div>
+      <div class="avo"     data-mode="grp"  onclick="setAvgMode('grp',this)">🏢 По группе</div>
     </div>
   </div>
 </div>
 
 <!-- TOOLBAR -->
 <div class="toolbar">
-  <span class="tlabel">Иерархия:</span>
-  <button class="swap-btn" onclick="swapHierarchy()"><span id="swapLabel">👥 Контрагент → SKU</span> ⇄</button>
+  <span class="tlbl">Иерархия:</span>
+  <button class="swbtn" onclick="swapH()"><span id="swLbl">👥 Контрагент → SKU</span> ⇄</button>
   <div class="sep"></div>
-  <span class="tlabel">Раскрыть:</span>
-  <div class="exp-btns">
-    <button class="exp-btn" id="btn-lv0" onclick="toggleLevel(0)">Группы</button>
-    <button class="exp-btn" id="btn-lv1" onclick="toggleLevel(1)">Контрагенты</button>
-    <button class="exp-btn" id="btn-lv2" onclick="toggleLevel(2)">SKU</button>
-    <button class="exp-btn" onclick="collapseAll()">Свернуть</button>
+  <span class="tlbl">Раскрыть:</span>
+  <div class="expbtns">
+    <button class="ebtn" id="btn0" onclick="toggleLv(0)">Группы</button>
+    <button class="ebtn" id="btn1" onclick="toggleLv(1)">Контрагенты</button>
+    <button class="ebtn" id="btn2" onclick="toggleLv(2)">SKU</button>
+    <button class="ebtn" onclick="collapseAll()">Свернуть</button>
   </div>
   <div class="sep"></div>
-  <button class="icon-btn" onclick="toggleFilters()" id="fBtn">🔽 Фильтры</button>
-  <div class="search-box"><span style="color:var(--muted)">🔍</span><input type="text" id="searchInput" placeholder="Поиск..." oninput="onSearch()"></div>
+  <button class="ibtn" onclick="toggleFP()" id="fBtn">🔽 Фильтры</button>
+  <div class="sbox"><span style="color:var(--muted)">🔍</span><input type="text" id="srch" placeholder="Поиск..." oninput="onSearch()"></div>
   <div class="sep"></div>
-  <span class="tlabel">Сортировка:</span>
+  <span class="tlbl">Сортировка:</span>
   <select class="sel" id="sortSel" onchange="render()">
     <option value="rev_d">Выручка ↓</option>
     <option value="prof_d">Прибыль ↓</option>
@@ -201,28 +225,55 @@ tr.total-row{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,
     <option value="rev_a">Выручка ↑</option>
   </select>
   <div class="sep"></div>
-  <span class="tlabel">Столбцы:</span>
-  <div class="col-chooser" id="colChooser"></div>
-  <div style="margin-left:auto;font-size:10px;color:var(--dim)" id="lastUpdate"></div>
+  <span class="tlbl">Столбцы:</span>
+  <div class="ctogs" id="ctogs"></div>
+  <div style="margin-left:auto;font-size:10px;color:var(--dim)" id="luTime"></div>
 </div>
 
 <!-- FILTER PANEL -->
 <div class="fpanel" id="fpanel">
-  <div style="display:flex;align-items:center;gap:6px;"><span class="tlabel">Группа конт.:</span><div class="chips" id="fGroups"></div></div>
+  <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><span class="tlbl">Группа:</span><div class="chips" id="fGrp"></div></div>
   <div class="sep"></div>
-  <div style="display:flex;align-items:center;gap:6px;"><span class="tlabel">Категория SKU:</span><div class="chips" id="fSkuGrp"></div></div>
+  <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><span class="tlbl">Категория SKU:</span><div class="chips" id="fSku"></div></div>
 </div>
 
-<!-- TABLE -->
-<div class="table-wrap">
-<table><thead id="thead"><tr></tr></thead><tbody id="tbody"></tbody></table>
+<!-- MAIN CONTENT -->
+<div class="content">
+  <div class="table-wrap">
+    <table><thead id="thead"><tr></tr></thead><tbody id="tbody"></tbody></table>
+  </div>
+
+  <!-- DAILY ANALYTICS PANEL -->
+  <div class="daily-panel">
+    <div class="daily-header" onclick="toggleDaily()">
+      <div class="daily-title">
+        📅 Аналитика по дням
+        <span style="font-size:10px;color:var(--muted);font-weight:400" id="dailyPeriodLbl"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="daily-metric-tabs" id="dailyMetricTabs" onclick="event.stopPropagation()">
+          <button class="dmt active" data-metric="rev"  onclick="setDailyMetric('rev',this)">Выручка</button>
+          <button class="dmt"        data-metric="qty"  onclick="setDailyMetric('qty',this)">Кол-во</button>
+          <button class="dmt"        data-metric="prof" onclick="setDailyMetric('prof',this)">Прибыль</button>
+          <button class="dmt"        data-metric="kg"   onclick="setDailyMetric('kg',this)">Объём кг</button>
+          <button class="dmt"        data-metric="mar"  onclick="setDailyMetric('mar',this)">Маржа %</button>
+        </div>
+        <span class="daily-toggle" id="dailyArrow">▼ развернуть</span>
+      </div>
+    </div>
+    <div class="daily-body" id="dailyBody">
+      <div class="daily-chart-wrap"><canvas id="dailyChart"></canvas></div>
+      <div class="daily-table-wrap"><table class="daily-table" id="dailyTable"></table></div>
+    </div>
+  </div>
 </div>
+
 <div class="statusbar">
-  <div>Строк: <span id="st-rows">—</span></div>
-  <div>Записей: <span id="st-total">—</span></div>
-  <div>Контрагентов: <span id="st-knt">—</span></div>
-  <div>SKU: <span id="st-sku">—</span></div>
-  <div>⚠️ Без группы: <span id="st-nogrp" style="color:var(--amber)">—</span></div>
+  <div>Строк: <span id="stRows">—</span></div>
+  <div>Записей: <span id="stTotal">—</span></div>
+  <div>Контрагентов: <span id="stKnt">—</span></div>
+  <div>SKU: <span id="stSku">—</span></div>
+  <div>⚠️ Без группы: <span id="stNogrp" style="color:var(--amber)">—</span></div>
   <div style="margin-left:auto">PF Analytics © 2026</div>
 </div>
 
@@ -230,20 +281,19 @@ tr.total-row{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,
 <script>
 // ── COLUMNS ──────────────────────────────────────────────────
 const COLS = [
-  {id:'qty',    label:'Кол-во',     key:'qty',    fmt:'qty',  tip:'Кол-во штук (с возвратами)', on:true},
-  {id:'rev',    label:'Выручка ₸',  key:'rev',    fmt:'full', tip:'Сумма без налогов из 1С',    on:true},
-  {id:'ret',    label:'Возврат ₸',  key:'ret',    fmt:'full', tip:'Сумма возвратов',            on:true},
-  {id:'retPct', label:'Возврат %',  key:'retPct', fmt:'pct',  tip:'|Возврат|÷Выручка',          on:true},
-  {id:'seb',    label:'Себест. ₸',  key:'seb',    fmt:'full', tip:'Стоимость(без НДС) из 1С',  on:true},
-  {id:'prof',   label:'Прибыль ₸',  key:'prof',   fmt:'full', tip:'Profit из 1С',               on:true},
-  {id:'mar',    label:'Маржа %',    key:'mar',    fmt:'pct',  tip:'Прибыль÷Выручка×100',       on:true},
-  {id:'avg',    label:'Ср.цена ₸',  key:'avg',    fmt:'full', tip:'Выручка÷Кол-во штук',       on:false},
-  {id:'kg',     label:'Объём кг',   key:'kg',     fmt:'kg',   tip:'Кол-во×вес SKU',             on:true},
-  {id:'retKg',  label:'Возврат кг', key:'retKg',  fmt:'kg',   tip:'КолвоВозврат×вес',          on:false},
-  {id:'retKgP', label:'Возврат%кг', key:'retKgPct',fmt:'pct', tip:'|ВозвратКг|÷ОбъёмКг',      on:false},
-  {id:'profKg', label:'Прибыль/кг', key:'profKg', fmt:'full', tip:'Прибыль÷Объём(кг)',          on:true},
-  {id:'sebKg',  label:'Затрат./кг', key:'sebKg',  fmt:'full', tip:'Себестоимость÷Объём(кг)',    on:true},
-  {id:'share',  label:'Доля %',     key:'_share', fmt:'share',tip:'Доля в общей выручке',       on:true},
+  {id:'qty',   lbl:'Кол-во',    key:'qty',    fmt:'qty',  on:true,  tip:'Кол-во штук (целое)'},
+  {id:'rev',   lbl:'Выручка ₸', key:'rev',    fmt:'full', on:true,  tip:'Сумма без налогов из 1С'},
+  {id:'ret',   lbl:'Возврат ₸', key:'ret',    fmt:'full', on:true,  tip:'Сумма возвратов'},
+  {id:'retPct',lbl:'Возврат %', key:'retPct', fmt:'pct',  on:true,  tip:'|Возврат|÷Выручка'},
+  {id:'seb',   lbl:'Себест. ₸', key:'seb',    fmt:'full', on:true,  tip:'Стоимость(без НДС)'},
+  {id:'prof',  lbl:'Прибыль ₸', key:'prof',   fmt:'full', on:true,  tip:'Profit из 1С'},
+  {id:'mar',   lbl:'Маржа %',   key:'mar',    fmt:'pct',  on:true,  tip:'Прибыль÷Выручка×100'},
+  {id:'avg',   lbl:'Ср.цена ₸', key:'avg',    fmt:'full', on:false, tip:'Выручка÷Кол-во'},
+  {id:'kg',    lbl:'Объём кг',  key:'kg',     fmt:'kg',   on:true,  tip:'Кол-во×вес SKU'},
+  {id:'retKg', lbl:'Возврат кг',key:'retKg',  fmt:'kg',   on:false, tip:'Возврат×вес'},
+  {id:'profKg',lbl:'Прибыль/кг',key:'profKg', fmt:'full', on:true,  tip:'Прибыль÷кг'},
+  {id:'sebKg', lbl:'Затрат./кг',key:'sebKg',  fmt:'full', on:true,  tip:'Себест÷кг'},
+  {id:'share', lbl:'Доля %',    key:'_sh',    fmt:'share',on:true,  tip:'Доля в выручке'},
 ];
 let colOn = {}; COLS.forEach(c => colOn[c.id] = c.on);
 
@@ -253,73 +303,73 @@ let expanded=new Set(), levelState={}, searchTerm='';
 let filterGrp=new Set(['ALL']), filterSkuGrp=new Set(['ALL']);
 let allGroups=[], allSkuGroups=[];
 let sortKey='rev_d';
-let avgMode='sku'; // sku | knt | grp
-let _avgCache={};
+let avgMode='sku';
+let dailyOpen=false, dailyMetric='rev';
+let dailyChart=null;
 
 // ── LOAD ──────────────────────────────────────────────────────
-async function loadData() {
-  const errEl=document.getElementById('loadError'); errEl.style.display='none';
-  try {
-    const {rawRows:rr, months} = await PF.loadSales((pct,step)=>{
+async function loadData(){
+  const errEl=document.getElementById('lerr'); errEl.style.display='none';
+  try{
+    const {rawRows:rr,months}=await PF.loadSales((pct,step)=>{
       document.getElementById('prog').style.width=pct+'%';
-      document.getElementById('loadStep').textContent=step;
+      document.getElementById('lstep').textContent=step;
     });
-    rawRows = rr;
+    rawRows=rr;
 
-    // Pills
-    const pillsEl=document.getElementById('periodPills');
-    pillsEl.innerHTML='<button class="pill active" data-m="all">Все</button>'+
+    // Month pills
+    const pe=document.getElementById('periodPills');
+    pe.innerHTML='<button class="pill active" data-m="all">Все</button>'+
       months.map(([k,lbl])=>`<button class="pill" data-m="${k}">${lbl.split(' ')[0]}</button>`).join('');
-    pillsEl.addEventListener('click',e=>{
-      const btn=e.target.closest('.pill'); if(!btn)return;
-      pillsEl.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
+    pe.addEventListener('click',e=>{
+      const btn=e.target.closest('.pill');if(!btn)return;
+      pe.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active'); currentMonth=btn.dataset.m;
-      expanded.clear(); levelState={}; _avgCache={}; render();
+      expanded.clear(); levelState={}; renderAll();
     });
 
     allGroups    = [...new Set(rawRows.map(r=>r.group))].sort();
     allSkuGroups = [...new Set(rawRows.map(r=>r.skuGroup))].sort();
-    buildFilterChips();
-    buildColChooser();
-    buildHeader();
+    buildFilterChips(); buildCtogs(); buildHeader();
 
-    const uKnt=new Set(rawRows.map(r=>r.knt)).size;
-    const uSku=new Set(rawRows.map(r=>r.sku)).size;
-    const noGrp=new Set(rawRows.filter(r=>r.group.startsWith('⚠️')).map(r=>r.knt)).size;
-    document.getElementById('dataInfo').textContent=
-      `ТОО | ${rawRows.length.toLocaleString('ru')} строк | ${uKnt} конт. | ${uSku} SKU | ${months.length} мес.`;
-    document.getElementById('st-total').textContent=rawRows.length.toLocaleString('ru');
-    document.getElementById('st-knt').textContent=uKnt;
-    document.getElementById('st-sku').textContent=uSku;
-    document.getElementById('st-nogrp').textContent=noGrp;
-    document.getElementById('lastUpdate').textContent='Обн.: '+new Date().toLocaleTimeString('ru');
+    const uK=new Set(rawRows.map(r=>r.knt)).size;
+    const uS=new Set(rawRows.map(r=>r.sku)).size;
+    const nG=new Set(rawRows.filter(r=>r.group.startsWith('⚠️')).map(r=>r.knt)).size;
+    document.getElementById('dInfo').textContent=
+      `ТОО | ${rawRows.length.toLocaleString('ru')} строк | ${uK} конт. | ${uS} SKU | ${months.length} мес.`;
+    document.getElementById('stTotal').textContent=rawRows.length.toLocaleString('ru');
+    document.getElementById('stKnt').textContent=uK;
+    document.getElementById('stSku').textContent=uS;
+    document.getElementById('stNogrp').textContent=nG;
+    document.getElementById('luTime').textContent='Обн.: '+new Date().toLocaleTimeString('ru');
 
     document.getElementById('prog').style.width='100%';
-    document.getElementById('loadStep').textContent='Готово!';
-    setTimeout(()=>{ document.getElementById('loadScreen').style.display='none'; render(); },300);
-  } catch(err) {
+    document.getElementById('lstep').textContent='Готово!';
+    setTimeout(()=>{document.getElementById('ls').style.display='none'; renderAll();},300);
+  }catch(err){
     console.error(err);
-    const el=document.getElementById('loadError'); el.style.display='block';
-    el.innerHTML=`❌ Ошибка: <b>${err.message}</b><br>F12 → Console для деталей<br>
+    const el=document.getElementById('lerr'); el.style.display='block';
+    el.innerHTML=`❌ Ошибка: <b>${err.message}</b><br>
+      F12 → Console для деталей<br>
       <a href="${PF.csvUrl(PF.GID_REAL)}" target="_blank" style="color:#58a6ff">Проверить CSV</a>`;
-    document.getElementById('loadStep').textContent='Ошибка!';
+    document.getElementById('lstep').textContent='Ошибка!';
   }
 }
 
 // ── FILTERS ───────────────────────────────────────────────────
-function buildFilterChips() {
-  const buildChips=(containerId,set,items,type)=>{
-    const el=document.getElementById(containerId);
-    el.innerHTML='<span class="chip on" data-v="ALL" onclick="toggleChip(\''+type+'\',\'ALL\',this)">Все</span>'+
+function buildFilterChips(){
+  const bc=(cid,set,items,type)=>{
+    const el=document.getElementById(cid);
+    el.innerHTML=`<span class="chip on" data-v="ALL" onclick="toggleChip('${type}','ALL',this)">Все</span>`+
       items.map(g=>`<span class="chip" data-v="${g.replace(/"/g,'&quot;')}" onclick="toggleChip('${type}','${g.replace(/'/g,"\\'")}',this)">${g}</span>`).join('');
   };
-  buildChips('fGroups',filterGrp,allGroups,'grp');
-  buildChips('fSkuGrp',filterSkuGrp,allSkuGroups,'sku');
+  bc('fGrp',filterGrp,allGroups,'grp');
+  bc('fSku',filterSkuGrp,allSkuGroups,'sku');
 }
 
 function toggleChip(type,val,el){
   const set=type==='grp'?filterGrp:filterSkuGrp;
-  const cid=type==='grp'?'fGroups':'fSkuGrp';
+  const cid=type==='grp'?'fGrp':'fSku';
   const chips=document.getElementById(cid).querySelectorAll('.chip');
   if(val==='ALL'){set.clear();set.add('ALL');chips.forEach(c=>c.classList.remove('on'));el.classList.add('on');}
   else{
@@ -327,84 +377,79 @@ function toggleChip(type,val,el){
     if(set.has(val)){set.delete(val);el.classList.remove('on');if(!set.size){set.add('ALL');document.getElementById(cid).querySelector('[data-v="ALL"]').classList.add('on');}}
     else{set.add(val);el.classList.add('on');}
   }
-  expanded.clear();levelState={};_avgCache={};render();
+  expanded.clear();levelState={};renderAll();
 }
 
-function toggleFilters(){
-  const p=document.getElementById('fpanel'); p.classList.toggle('open');
+function toggleFP(){
+  const p=document.getElementById('fpanel');p.classList.toggle('open');
   document.getElementById('fBtn').textContent=p.classList.contains('open')?'🔼 Фильтры':'🔽 Фильтры';
 }
 
-// ── COL CHOOSER ───────────────────────────────────────────────
-function buildColChooser(){
-  document.getElementById('colChooser').innerHTML=
+// ── COLUMN CHOOSER ────────────────────────────────────────────
+function buildCtogs(){
+  document.getElementById('ctogs').innerHTML=
     COLS.filter(c=>c.id!=='share').map(c=>
-      `<button class="ctog ${colOn[c.id]?'on':''}" title="${c.tip}" onclick="toggleCol('${c.id}',this)">${c.label}</button>`
+      `<button class="ctog ${colOn[c.id]?'on':''}" title="${c.tip}" onclick="toggleCol('${c.id}',this)">${c.lbl}</button>`
     ).join('');
 }
-function toggleCol(id,btn){ colOn[id]=!colOn[id]; btn.classList.toggle('on',colOn[id]); buildHeader(); render(); }
+function toggleCol(id,btn){colOn[id]=!colOn[id];btn.classList.toggle('on',colOn[id]);buildHeader();render();}
 
+let sortDir='d';
 function buildHeader(){
   const vis=COLS.filter(c=>colOn[c.id]||c.id==='share');
-  const sortK=sortKey.split('_')[0];
-  const sortD=sortKey.split('_')[1];
+  const [sk,sd]=sortKey.split('_');
   document.querySelector('#thead tr').innerHTML=
     `<th style="text-align:left">Наименование</th>`+
-    vis.map(c=>`<th title="${c.tip}" class="${c.key===sortK?'sorted-'+(sortD==='d'?'desc':'asc'):''}" onclick="clickSort('${c.key}')">${c.label}</th>`).join('');
+    vis.map(c=>{
+      const isSorted=c.key===sk||c.id===sk;
+      return `<th title="${c.tip}" class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}</th>`;
+    }).join('');
 }
-
 function clickSort(key){
-  sortKey = sortKey===key+'_d' ? key+'_a' : key+'_d';
+  sortKey=sortKey===key+'_d'?key+'_a':key+'_d';
   document.getElementById('sortSel').value=sortKey;
-  buildHeader(); render();
+  buildHeader();render();
 }
 
-// ── AVG PRICE MODE ────────────────────────────────────────────
-function toggleAvgDropdown(){document.getElementById('avgDropdown').classList.toggle('open');}
-document.addEventListener('click',e=>{if(!e.target.closest('#avgWidget'))document.getElementById('avgDropdown').classList.remove('open');});
+// ── AVG PRICE ─────────────────────────────────────────────────
+function toggleAvgDD(e){
+  e.stopPropagation();
+  document.getElementById('avgDD').classList.toggle('open');
+}
+document.addEventListener('click',()=>document.getElementById('avgDD').classList.remove('open'));
 
 function setAvgMode(mode,el){
   avgMode=mode;
-  document.querySelectorAll('.avg-option').forEach(o=>o.classList.remove('sel')); el.classList.add('sel');
-  const labels={sku:'Ср. цена (SKU)',knt:'Ср. цена (конт.)',grp:'Ср. цена (группа)'};
-  const deltas={sku:'выручка ÷ кол-во по SKU',knt:'выручка ÷ кол-во по контрагенту',grp:'выручка ÷ кол-во по группе'};
-  document.getElementById('avgLabel').textContent=labels[mode];
-  document.getElementById('avgDelta').textContent=deltas[mode];
-  document.getElementById('avgDropdown').classList.remove('open');
-  _avgCache={}; render();
+  document.querySelectorAll('.avo').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
+  const lbls={sku:'по SKU',knt:'по контрагенту',grp:'по группе'};
+  document.getElementById('avgLbl').textContent='Ср. цена';
+  document.getElementById('avgSub').textContent=lbls[mode];
+  document.getElementById('avgDD').classList.remove('open');
+  render();
 }
 
-function calcAvgByMode(rows){
-  // средняя цена = среднее взвешенное (выручка/кол-во) по выбранному уровню
-  let groupFn;
-  if(avgMode==='sku') groupFn=r=>r.sku;
-  else if(avgMode==='knt') groupFn=r=>r.knt;
-  else groupFn=r=>r.group;
-  const byGroup=PF.groupBy(rows,groupFn);
-  const avgs=Object.values(byGroup).map(gr=>{
-    const q=gr.reduce((s,r)=>s+r.qtyN,0);
-    const v=gr.reduce((s,r)=>s+r.sumBezNds,0);
-    return q?v/q:0;
-  }).filter(v=>v>0);
-  return avgs.length ? Math.round(avgs.reduce((s,v)=>s+v,0)/avgs.length) : 0;
+function calcAvg(rows){
+  const fn=avgMode==='sku'?r=>r.sku:avgMode==='knt'?r=>r.knt:r=>r.group;
+  const byG=PF.groupBy(rows,fn);
+  const avgs=Object.values(byG).map(g=>{const q=g.reduce((s,r)=>s+r.qtyN,0);const v=g.reduce((s,r)=>s+r.sumBezNds,0);return q?v/q:0;}).filter(v=>v>0);
+  return avgs.length?Math.round(avgs.reduce((s,v)=>s+v,0)/avgs.length):0;
 }
 
 // ── DATA ──────────────────────────────────────────────────────
 function filtered(){
   let rows=currentMonth==='all'?rawRows:rawRows.filter(r=>r.mk===currentMonth);
-  if(!filterGrp.has('ALL')) rows=rows.filter(r=>filterGrp.has(r.group));
+  if(!filterGrp.has('ALL'))    rows=rows.filter(r=>filterGrp.has(r.group));
   if(!filterSkuGrp.has('ALL')) rows=rows.filter(r=>filterSkuGrp.has(r.skuGroup));
   return rows;
 }
 
-function getSortFn(){
-  const [key,dir]=sortKey.split('_');
-  const asc=dir==='a';
+function getSF(){
+  const [key,dir]=sortKey.split('_');const asc=dir==='a';
   return(a,b)=>asc?(a.m[key]||0)-(b.m[key]||0):(b.m[key]||0)-(a.m[key]||0);
 }
 
 function buildTree(rows){
-  const sf=getSortFn();
+  const sf=getSF();
   const mk=(name,rows,ng=false)=>({name,ng,m:PF.agg(rows),ch:[]});
   if(hierarchy==='k'){
     return Object.entries(PF.groupBy(rows,r=>r.group)).map(([g,gr])=>{
@@ -429,13 +474,13 @@ function buildTree(rows){
   }
 }
 
-// ── RENDER ────────────────────────────────────────────────────
-function fmtCell(val,fmt,tRev){
-  if(fmt==='qty')   return PF.fmtQty(val);
-  if(fmt==='pct')   return PF.fmtPct(val);
-  if(fmt==='kg')    return PF.fmtKg(val)+' кг';
-  if(fmt==='share') return ((val||0)/tRev*100).toFixed(1)+'%';
-  return PF.fmtFull(val);
+// ── RENDER TABLE ──────────────────────────────────────────────
+function fmtC(v,fmt,tRev){
+  if(fmt==='qty')   return PF.fmtQty(v);
+  if(fmt==='pct')   return PF.fmtPct(v);
+  if(fmt==='kg')    return PF.fmtKg(v)+' кг';
+  if(fmt==='share') return tRev?((v/tRev)*100).toFixed(1)+'%':'—';
+  return PF.fmtFull(v);
 }
 
 function render(){
@@ -443,110 +488,209 @@ function render(){
   const tot=PF.agg(rows);
   const tRev=tot.rev||1;
 
-  // KPI
+  // KPIs
   document.getElementById('k-rev').textContent=PF.fmtRev(tot.rev)+' ₸';
   document.getElementById('k-qty').textContent=PF.fmtQty(tot.qty);
   document.getElementById('k-kg').textContent=PF.fmtKg(tot.kg)+' кг';
   document.getElementById('k-seb').textContent=PF.fmtRev(tot.seb)+' ₸';
-  const pe=document.getElementById('k-prof'); pe.textContent=PF.fmtRev(tot.prof)+' ₸'; pe.className='kpi-val '+(tot.prof>=0?'green':'red');
-  const me=document.getElementById('k-mar');  me.textContent=PF.fmtPct(tot.mar); me.className='kpi-val '+(tot.mar>=0?'green':'red');
+  const pe=document.getElementById('k-prof');pe.textContent=PF.fmtRev(tot.prof)+' ₸';pe.className='kpi-val '+(tot.prof>=0?'grn':'red');
+  const me=document.getElementById('k-mar'); me.textContent=PF.fmtPct(tot.mar); me.className='kpi-val '+(tot.mar>=0?'grn':'red');
   document.getElementById('k-ret').textContent=PF.fmtRev(tot.ret)+' ₸';
   document.getElementById('k-retpct').textContent=PF.fmtPctAbs(tot.retPct);
-  document.getElementById('k-avg').textContent=PF.fmtFull(calcAvgByMode(rows))+' ₸';
+  document.getElementById('k-avg').textContent=PF.fmtFull(calcAvg(rows))+' ₸';
 
   const tree=buildTree(rows);
   const vis=COLS.filter(c=>colOn[c.id]||c.id==='share');
 
   // Flatten
   const flat=[];
-  function anyMatch(nodes,t){return nodes.some(n=>n.name.toLowerCase().includes(t)||(n.ch.length&&anyMatch(n.ch,t)));}
-  function flatten(nodes,depth){
-    for(const node of nodes){
-      const key=node.name+'_d'+depth; const hasC=node.ch.length>0; const isExp=expanded.has(key);
-      if(searchTerm){const m=node.name.toLowerCase().includes(searchTerm);const cm=hasC&&anyMatch(node.ch,searchTerm);if(!m&&!cm)continue;}
-      flat.push({node,depth,key,hasC,isExp});
-      if(isExp&&hasC)flatten(node.ch,depth+1);
+  function anyMatch(ns,t){return ns.some(n=>n.name.toLowerCase().includes(t)||(n.ch.length&&anyMatch(n.ch,t)));}
+  function flatten(ns,d){
+    for(const n of ns){
+      const key=n.name+'_d'+d;const hasC=n.ch.length>0;const isE=expanded.has(key);
+      if(searchTerm){const m=n.name.toLowerCase().includes(searchTerm);if(!m&&!(hasC&&anyMatch(n.ch,searchTerm)))continue;}
+      flat.push({n,d,key,hasC,isE});
+      if(isE&&hasC)flatten(n.ch,d+1);
     }
   }
   flatten(tree,0);
 
-  const parts=[`<tr class="total-row"><td><div class="cell-name"><span style="width:14px;display:inline-block"></span><span class="row-name total-lbl">📊 ИТОГО</span></div></td>`+
+  const parts=[`<tr class="tot"><td><div class="cnm"><span style="width:13px;display:inline-block"></span><span class="rnm totlbl">📊 ИТОГО</span></div></td>`+
     vis.map(c=>{
-      const v=c.id==='share'?tot.rev:tot[c.key];
+      const v=c.id==='share'?tot.rev:(tot[c.key]||0);
       const cls=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profKg')?(v>=0?'pos':'neg'):'';
-      const txt=c.id==='share'?'100%':fmtCell(v,c.fmt,tRev)+(c.fmt==='full'?' ₸':'');
+      const txt=c.id==='share'?'100%':fmtC(v,c.fmt,tRev)+(c.fmt==='full'&&v?' ₸':'');
       return `<td class="${cls}">${txt}</td>`;
     }).join('')+'</tr>'];
 
-  for(const{node,depth,key,hasC,isExp}of flat){
-    const m=node.m; const lv=Math.min(depth,3); const ind='&nbsp;'.repeat(depth*3);
+  for(const{n,d,key,hasC,isE}of flat){
+    const m=n.m;const lv=Math.min(d,3);const ind='&nbsp;'.repeat(d*3);
     const sk=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const expBtn=hasC?`<button class="expander${isExp?' open':''}" onclick="toggle('${sk}',this)">${isExp?'▾':'▸'}</button>`:
-                      `<span style="width:14px;display:inline-block"></span>`;
-    const nc=node.ng?'row-name no-group':'row-name';
+    const expBtn=hasC?`<button class="exp${isE?' open':''}" onclick="toggle('${sk}',this)">${isE?'▾':'▸'}</button>`:
+                      `<span style="width:13px;display:inline-block"></span>`;
+    const nc=n.ng?'rnm nog':'rnm';
     const tds=vis.map(c=>{
       const v=c.id==='share'?m.rev:(m[c.key]||0);
       let cls='';
-      if(c.fmt==='pct') cls=v<0?'neg':v>0?'pos':'neu';
-      else if(c.key==='prof'||c.key==='profKg') cls=v>0?'pos':v<0?'neg':'';
-      else if(c.key==='ret'||c.key==='retKg') cls=v?'neg':'neu';
+      if(c.fmt==='pct')cls=v<0?'neg':v>0?'pos':'neu';
+      else if(c.key==='prof'||c.key==='profKg')cls=v>0?'pos':v<0?'neg':'';
+      else if(c.key==='ret'||c.key==='retKg')cls=v?'neg':'neu';
       let txt;
-      if(c.id==='share'){const pct=(m.rev/tRev*100).toFixed(1);const bw=Math.max(2,Math.round(m.rev/tRev*48));
-        txt=`<div class="bar-wrap"><div class="bar" style="width:${bw}px;background:${m.prof>=0?'#3fb950':'#f85149'}"></div>${pct}%</div>`;}
-      else txt=fmtCell(v,c.fmt,tRev)+(c.fmt==='full'&&v?' ₸':'');
+      if(c.id==='share'){const pct=(m.rev/tRev*100).toFixed(1);const bw=Math.max(2,Math.round(m.rev/tRev*46));
+        txt=`<div class="barw"><div class="bar" style="width:${bw}px;background:${m.prof>=0?'#3fb950':'#f85149'}"></div>${pct}%</div>`;}
+      else txt=fmtC(v,c.fmt,tRev)+(c.fmt==='full'&&v?' ₸':'');
       return `<td class="${cls}">${txt}</td>`;
     }).join('');
-    parts.push(`<tr class="lv${lv}"><td><div class="cell-name">${ind}${expBtn}<span class="${nc}" title="${node.name.replace(/"/g,'&quot;')}">${node.name}</span></div></td>${tds}</tr>`);
+    parts.push(`<tr class="lv${lv}"><td><div class="cnm">${ind}${expBtn}<span class="${nc}" title="${n.name.replace(/"/g,'&quot;')}">${n.name}</span></div></td>${tds}</tr>`);
+  }
+  document.getElementById('tbody').innerHTML=parts.join('');
+  document.getElementById('stRows').textContent=flat.length;
+  buildHeader();
+}
+
+// ── DAILY ANALYTICS ──────────────────────────────────────────
+const DAILY_METRICS={
+  rev: {lbl:'Выручка ₸',    color:'#2f81f7', fmt:v=>PF.fmtRev(v)+' ₸'},
+  qty: {lbl:'Кол-во шт',    color:'#58a6ff', fmt:v=>PF.fmtQty(v)},
+  prof:{lbl:'Прибыль ₸',    color:'#3fb950', fmt:v=>PF.fmtRev(v)+' ₸'},
+  kg:  {lbl:'Объём кг',     color:'#d29922', fmt:v=>PF.fmtKg(v)+' кг'},
+  mar: {lbl:'Маржа %',      color:'#bc8cff', fmt:v=>PF.fmtPct(v)},
+};
+
+function toggleDaily(){
+  dailyOpen=!dailyOpen;
+  document.getElementById('dailyBody').classList.toggle('open',dailyOpen);
+  document.getElementById('dailyArrow').textContent=dailyOpen?'▲ свернуть':'▼ развернуть';
+  if(dailyOpen) renderDaily();
+}
+
+function setDailyMetric(metric,btn){
+  dailyMetric=metric;
+  document.querySelectorAll('.dmt').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(dailyOpen) renderDaily();
+}
+
+function renderDaily(){
+  const rows=filtered();
+  const dailyData=PF.getDailyData(rows, currentMonth==='all'?'all':currentMonth);
+
+  if(!dailyData.length){
+    document.getElementById('dailyChart').style.display='none';
+    document.getElementById('dailyTable').innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--dim);padding:12px">Нет данных</td></tr>';
+    return;
   }
 
-  document.getElementById('tbody').innerHTML=parts.join('');
-  document.getElementById('st-rows').textContent=flat.length;
-  buildHeader(); // update sort indicators
+  // Update period label
+  const mLabel = currentMonth==='all'?'Все месяцы':
+    PF.MO[+currentMonth.split('-')[1]-1]+' '+currentMonth.split('-')[0];
+  document.getElementById('dailyPeriodLbl').textContent='— '+mLabel+' | '+dailyData.length+' дней';
+
+  const metric=DAILY_METRICS[dailyMetric];
+  const labels=dailyData.map(d=>{
+    const dt=new Date(d.day);
+    return dt.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
+  });
+  const values=dailyData.map(d=>d[dailyMetric]||0);
+
+  // Chart
+  if(dailyChart) dailyChart.destroy();
+  const ctx=document.getElementById('dailyChart').getContext('2d');
+  dailyChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:metric.lbl,
+        data:values,
+        backgroundColor:values.map(v=>v>=0?metric.color+'99':metric.color.replace('f7','49')+'99'),
+        borderColor:values.map(v=>v>=0?metric.color:'#f85149'),
+        borderWidth:1,borderRadius:3,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+               tooltip:{backgroundColor:'#1c2333',borderColor:'#30363d',borderWidth:1,
+                        titleColor:'#8b949e',bodyColor:'#e6edf3',
+                        callbacks:{label:ctx=>` ${metric.fmt(ctx.raw)}`}}},
+      scales:{
+        x:{ticks:{color:'#8b949e',font:{size:9},maxRotation:0,maxTicksLimit:currentMonth==='all'?12:31},
+           grid:{color:'rgba(48,54,61,.3)'},border:{display:false}},
+        y:{ticks:{color:'#8b949e',font:{size:9},callback:v=>metric.lbl.includes('%')?v.toFixed(1)+'%':PF.fmtRev(v)},
+           grid:{color:'rgba(48,54,61,.3)'},border:{display:false}}
+      }
+    }
+  });
+
+  // Table — горизонтальная (дни как колонки, метрики как строки)
+  const fR=v=>PF.fmtRev(v)+' ₸';
+  const fmtDay=d=>{const dt=new Date(d);return dt.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});};
+
+  const table=document.getElementById('dailyTable');
+  const metricRows=[
+    {key:'rev',  lbl:'Выручка ₸',   fn:v=>fR(v),             cls:''},
+    {key:'qty',  lbl:'Кол-во шт',   fn:v=>PF.fmtQty(v),      cls:''},
+    {key:'kg',   lbl:'Объём кг',    fn:v=>PF.fmtKg(v)+' кг', cls:''},
+    {key:'seb',  lbl:'Себест. ₸',   fn:v=>fR(v),             cls:''},
+    {key:'prof', lbl:'Прибыль ₸',   fn:v=>fR(v),             cls:v=>v>=0?'pos':'neg'},
+    {key:'mar',  lbl:'Маржа %',     fn:v=>PF.fmtPct(v),      cls:v=>v>=0?'pos':'neg'},
+    {key:'ret',  lbl:'Возврат ₸',   fn:v=>fR(v),             cls:'neg'},
+  ];
+
+  // Show last 14 days max in table to keep it readable
+  const showDays=currentMonth==='all'?dailyData.slice(-14):dailyData;
+
+  table.innerHTML=
+    `<thead><tr><th>Метрика</th>${showDays.map(d=>`<th onclick="">${fmtDay(d.day)}</th>`).join('')}</tr></thead>`+
+    `<tbody>${metricRows.map(mr=>`<tr>
+      <td style="font-weight:600;color:var(--muted);min-width:90px">${mr.lbl}</td>
+      ${showDays.map(d=>{const v=d[mr.key]||0;const c=typeof mr.cls==='function'?mr.cls(v):(mr.cls||'');return `<td class="${c}">${mr.fn(v)}</td>`;}).join('')}
+    </tr>`).join('')}</tbody>`;
+
+  if(currentMonth==='all'&&dailyData.length>14){
+    table.querySelector('thead tr').insertAdjacentHTML('beforeend',`<th colspan="1" style="color:var(--dim)">… всего ${dailyData.length} дней</th>`);
+  }
 }
 
 // ── CONTROLS ──────────────────────────────────────────────────
+function renderAll(){ render(); if(dailyOpen) renderDaily(); }
+
 function toggle(key,btn){
   if(expanded.has(key)){expanded.delete(key);btn.classList.remove('open');btn.textContent='▸';}
   else{expanded.add(key);btn.classList.add('open');btn.textContent='▾';}
   render();
 }
 
-function toggleLevel(depth){
-  const btn=document.getElementById('btn-lv'+depth);
+function toggleLv(depth){
+  const btn=document.getElementById('btn'+depth);
   const isOpen=levelState[depth]==='open';
-  function set(nodes,d){
-    if(d>depth)return;
-    for(const n of nodes){if(n.ch&&n.ch.length){
-      const k=n.name+'_d'+d;
-      if(d===depth){isOpen?expanded.delete(k):expanded.add(k);}
-      else expanded.add(k);
-      set(n.ch,d+1);
-    }}
-  }
+  function set(ns,d){if(d>depth)return;for(const n of ns){if(n.ch&&n.ch.length){isOpen?expanded.delete(n.name+'_d'+d):expanded.add(n.name+'_d'+d);set(n.ch,d+1);}}}
   set(buildTree(filtered()),0);
   levelState[depth]=isOpen?'closed':'open';
   btn.classList.toggle('lit',levelState[depth]==='open');
   render();
 }
 
-function collapseAll(){expanded.clear();levelState={};document.querySelectorAll('.exp-btn').forEach(b=>b.classList.remove('lit'));render();}
+function collapseAll(){expanded.clear();levelState={};document.querySelectorAll('.ebtn').forEach(b=>b.classList.remove('lit'));render();}
 
-function swapHierarchy(){
+function swapH(){
   hierarchy=hierarchy==='k'?'s':'k'; expanded.clear();levelState={};
-  document.getElementById('swapLabel').textContent=hierarchy==='k'?'👥 Контрагент → SKU':'📦 SKU → Контрагент';
+  document.getElementById('swLbl').textContent=hierarchy==='k'?'👥 Контрагент → SKU':'📦 SKU → Контрагент';
   render();
 }
 
 function onSearch(){
-  searchTerm=document.getElementById('searchInput').value.trim().toLowerCase();
-  if(searchTerm){function expAll(nodes,d){for(const n of nodes){if(n.ch&&n.ch.length){expanded.add(n.name+'_d'+d);expAll(n.ch,d+1);}}}expAll(buildTree(filtered()),0);}
+  searchTerm=document.getElementById('srch').value.trim().toLowerCase();
+  if(searchTerm){function expAll(ns,d){for(const n of ns){if(n.ch&&n.ch.length){expanded.add(n.name+'_d'+d);expAll(n.ch,d+1);}}}expAll(buildTree(filtered()),0);}
   render();
 }
 
 async function reloadData(){
-  document.getElementById('loadScreen').style.display='flex';
+  document.getElementById('ls').style.display='flex';
   document.getElementById('prog').style.width='0%';
-  rawRows=[];expanded.clear();levelState={};_avgCache={};
+  rawRows=[];expanded.clear();levelState={};
+  if(dailyChart){dailyChart.destroy();dailyChart=null;}
   await loadData();
 }
 

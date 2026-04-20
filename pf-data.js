@@ -1,10 +1,17 @@
-// ═══════════════════════════════════════════════════════
-// pf-data.js — общий загрузчик данных для всех страниц
+// ═══════════════════════════════════════════════════════════════
+// pf-data.js — общий загрузчик данных для всех страниц PF
 // Premium Food Astana © 2026
-// ═══════════════════════════════════════════════════════
+//
+// ПРАВИЛЬНЫЙ МАППИНГ КОЛОНОК из 1С (ИсхРеал):
+//   Выручка       = «Сумма без налогов»       (sum_bez_nds) — БЕЗ НДС!
+//   Себестоимость = «Стоимость (без НДС)»     (sebest)
+//   Прибыль       = «Profit (сумма)»           (profit) = sum_bez_nds − sebest
+//   Кол-во        = «Кол-во реализации (с возвратами)» (qty_net)
+//   Возвраты      = «Сумма возвратов»          (sum_ret) — отрицательное
+//   ВНИМАНИЕ: sum_net («Сумма реализации с возвратами») содержит НДС — не использовать как выручку!
+// ═══════════════════════════════════════════════════════════════
 
 const PF = {
-  // CONFIG
   PUB_ID:    '2PACX-1vTwyEj5Huy-avrqvCZj1rCqTBJObnOHNJ-GVdZic0J1_fwVafku2G0MpiZtGle8zOXzUUmEer26ylrO',
   GID_REAL:  '1836485982',
   GID_KONTR: '1039539700',
@@ -15,18 +22,41 @@ const PF = {
     return `https://docs.google.com/spreadsheets/d/e/${this.PUB_ID}/pub?gid=${gid}&single=true&output=csv`;
   },
 
-  // Нетоварные позиции — исключаем из анализа продаж
   NON_PRODUCT: ['услуг','аренд','дистриб','транспорт','обслуж','сервис','подписк'],
   isDairy(sku) { return !this.NON_PRODUCT.some(k => sku.toLowerCase().includes(k)); },
 
-  // Месяцы RU
   MO: ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
 
-  // ── ПАРСЕРЫ ─────────────────────────────────────────
+  // ── ФОРМАТИРОВАНИЕ ──────────────────────────────────────────
+  // Количество — целое число с пробелами: 759 963
+  fmtQty(n)  { return Math.round(n||0).toLocaleString('ru-RU'); },
+
+  // КГ — с одним знаком после запятой, пробел как разделитель тысяч: 666 583.4 кг
+  // Используем ru-RU локаль — она даёт пробел как разделитель тысяч и запятую как десятичный
+  // Но нам нужна точка, поэтому заменяем запятую на точку
+  fmtKg(n) {
+    const rounded = Math.round((n||0) * 10) / 10;
+    // ru-RU: 666583.4 → "666 583,4" → заменяем запятую на точку → "666 583.4"
+    return rounded.toLocaleString('ru-RU', {minimumFractionDigits:1, maximumFractionDigits:1}).replace(',','.');
+  },
+
+  // Выручка/суммы
+  fmtRev(n) {
+    const a = Math.abs(n||0);
+    if (a >= 1e9) return (n/1e9).toFixed(1) + ' млрд';
+    if (a >= 1e6) return (n/1e6).toFixed(1) + ' млн';
+    if (a >= 1e3) return Math.round(n).toLocaleString('ru-RU');
+    return Math.round(n||0).toLocaleString('ru-RU');
+  },
+  fmtFull(n)    { return Math.round(n||0).toLocaleString('ru-RU'); },
+  fmtPct(n)     { return n == null ? '—' : (n > 0 ? '+' : '') + n.toFixed(1) + '%'; },
+  fmtPctAbs(n)  { return n == null ? '—' : Math.abs(n).toFixed(1) + '%'; },
+
+  // ── ПАРСЕРЫ ─────────────────────────────────────────────────
   toNum(s) { return parseFloat(String(s||'').replace(/\s/g,'').replace(',','.')) || 0; },
 
   toDate(s) {
-    s = String(s||'').trim().split(' ')[0]; // убираем время если есть
+    s = String(s||'').trim().split(' ')[0];
     if (/^\d{2}\.\d{2}\.\d{4}/.test(s)) {
       const [d,m,y] = s.split('.'); return new Date(+y, +m-1, +d);
     }
@@ -56,59 +86,36 @@ const PF = {
     return -1;
   },
 
-  // ── ФОРМАТИРОВАНИЕ ───────────────────────────────────
-  fmtRev(n) {
-    // Выручка / суммы — миллионы
-    const a = Math.abs(n||0);
-    if (a >= 1e9) return (n/1e9).toFixed(1) + ' млрд';
-    if (a >= 1e6) return (n/1e6).toFixed(1) + ' млн';
-    if (a >= 1e3) return Math.round(n).toLocaleString('ru-RU');
-    return Math.round(n||0).toLocaleString('ru-RU');
-  },
-  fmtFull(n)  { return Math.round(n||0).toLocaleString('ru-RU'); },
-  fmtQty(n)   { return Math.round(n||0).toLocaleString('ru-RU'); },          // целое число
-  fmtKg(n)    { return (Math.round((n||0)*10)/10).toLocaleString('ru-RU'); }, // 1 знак после запятой
-  fmtPct(n)   { return (n==null?'—':(n>0?'+':'')+n.toFixed(1)+'%'); },
-  fmtPctAbs(n){ return (n==null?'—':Math.abs(n).toFixed(1)+'%'); },
-
-  // ── АГРЕГАЦИЯ ────────────────────────────────────────
-  // ПРАВИЛЬНЫЕ колонки:
-  // Выручка       = sumBezNds  ("Сумма без налогов" из 1С)
-  // Себестоимость = sebest     ("Стоимость (без НДС)")
-  // Прибыль       = profit     ("Profit (сумма)" — уже посчитан в 1С как sumBezNds − sebest)
-  // Возврат       = sumR       ("Сумма возвратов")
-  // Кол-во        = qtyN       ("Количество реализации (с возвратами)")
+  // ── АГРЕГАЦИЯ ────────────────────────────────────────────────
   agg(rows) {
     let qty=0, rev=0, ret=0, seb=0, prof=0, kg=0, retKg=0;
     for (const x of rows) {
-      qty  += x.qtyN;
-      rev  += x.sumBezNds;  // ← ВЫРУЧКА БЕЗ НДС (правильная)
-      ret  += x.sumR;
-      seb  += x.seb;
-      prof += x.prof;
-      kg   += x.kg;
-      retKg+= x.retKg;
+      qty   += x.qtyN;
+      rev   += x.sumBezNds;   // ВЫРУЧКА = «Сумма без налогов»
+      ret   += x.sumR;
+      seb   += x.seb;
+      prof  += x.prof;
+      kg    += x.kg;
+      retKg += x.retKg;
     }
-    const mar      = rev  ? prof/rev*100  : 0;
-    const retPct   = rev  ? ret/rev*100   : 0;
-    const avg      = qty  ? rev/qty       : 0;
-    const retKgPct = kg   ? retKg/kg*100  : 0;
-    const profKg   = kg   ? prof/kg       : 0;
-    const sebKg    = kg   ? seb/kg        : 0;
+    const mar        = rev  ? prof/rev*100   : 0;
+    const retPct     = rev  ? ret/rev*100    : 0;
+    const avg        = qty  ? rev/qty        : 0;
+    const retKgPct   = kg   ? retKg/kg*100  : 0;
     return {
-      qty:   Math.round(qty),
-      rev:   Math.round(rev),
-      ret:   Math.round(ret),
-      retPct: Math.round(retPct*10)/10,
-      seb:   Math.round(seb),
-      prof:  Math.round(prof),
-      mar:   Math.round(mar*10)/10,
-      avg:   Math.round(avg),
-      kg:    Math.round(kg*10)/10,
-      retKg: Math.round(retKg*10)/10,
+      qty:      Math.round(qty),
+      rev:      Math.round(rev),
+      ret:      Math.round(ret),
+      retPct:   Math.round(retPct*10)/10,
+      seb:      Math.round(seb),
+      prof:     Math.round(prof),
+      mar:      Math.round(mar*10)/10,
+      avg:      Math.round(avg),
+      kg:       Math.round(kg*10)/10,
+      retKg:    Math.round(retKg*10)/10,
       retKgPct: Math.round(retKgPct*10)/10,
-      profKg: kg ? Math.round(prof/kg) : 0,
-      sebKg:  kg ? Math.round(seb/kg)  : 0,
+      profKg:   kg ? Math.round(prof/kg) : 0,
+      sebKg:    kg ? Math.round(seb/kg)  : 0,
     };
   },
 
@@ -118,22 +125,28 @@ const PF = {
     return m;
   },
 
-  // ── ОСНОВНАЯ ЗАГРУЗКА ────────────────────────────────
+  // ── ОСНОВНАЯ ЗАГРУЗКА ПРОДАЖ ─────────────────────────────────
   async loadSales(onProgress) {
     const p = onProgress || (() => {});
 
-    // 1. SKU справочник
+    // 1. SKU справочник (веса + группы)
     p(10, 'SKU справочник (веса, категории)...');
     const skuRows = this.parseCSV(await (await fetch(this.csvUrl(this.GID_SKU))).text());
     const skuH    = skuRows[0].map(h => h.toLowerCase().replace(/\s/g,''));
     const si = (...ns) => this.findCol(skuH, ...ns);
-    const iSN = si('sku1с','sku1c','наим'), iSV = si('объем','обьем','вес','vol'), iSG = si('группаsku','группаs','группа');
+    const iSN = si('sku1с','sku1c','наим');
+    const iSV = si('объем','обьем','вес','vol');
+    const iSG = si('группаsku','группаs','группа');
 
     const skuWeight = {}, skuGroup = {};
     for (let i = 1; i < skuRows.length; i++) {
       const r = skuRows[i];
       const name = String(r[iSN]||'').trim();
-      if (name) { skuWeight[name] = this.toNum(r[iSV])||1; skuGroup[name] = String(r[iSG]||'').trim()||'Прочее'; }
+      if (name) {
+        const w = this.toNum(r[iSV]);
+        skuWeight[name] = w > 0 ? w : 1;
+        skuGroup[name]  = String(r[iSG]||'').trim() || 'Прочее';
+      }
     }
 
     // 2. Группы контрагентов
@@ -144,7 +157,7 @@ const PF = {
     const groupMap = {};
     for (let i = 1; i < kRows.length; i++) {
       const knt = String(kRows[i][ki('контрагент','kontragent')]||'').trim();
-      const grp = String(kRows[i][ki('новаягруппа','новая','группа','group')]||'').trim();
+      const grp = String(kRows[i][ki('новаягруппа','новая','группа')]||'').trim();
       if (knt) groupMap[knt] = grp || '⚠️ Без группы';
     }
 
@@ -154,19 +167,21 @@ const PF = {
     const rH    = rRows[0].map(h => h.toLowerCase().replace(/\s/g,''));
     const ri = (...ns) => this.findCol(rH, ...ns);
 
-    const iKnt      = ri('контрагент');
-    const iSku      = ri('номенклатура','sku','товар');
-    const iDate     = ri('периоддень','период','дата','date');
-    const iQtyN     = ri('количествореализации(с','количествосвозвр');
-    const iQtyR     = ri('количествовозвратов');
-    const iSumBezNds= ri('суммабезналогов','безналогов','безнал');  // ← ПРАВИЛЬНАЯ ВЫРУЧКА ("Сумма без налогов")
-    const iSumR     = ri('суммавозвратов');
-    const iSeb      = ri('стоимость(без','стоимость','себест');
-    const iProf     = ri('profit','прибыль');
+    const iKnt       = ri('контрагент');
+    const iSku       = ri('номенклатура','sku','товар');
+    const iDate      = ri('периоддень','период','дата','date');
+    const iQtyN      = ri('количествореализации(с','количествосвозвр');
+    const iQtyR      = ri('количествовозвратов');
+    // ВЫРУЧКА = «Сумма без налогов» (суммабезналогов)
+    const iSumBezNds = ri('суммабезналогов','безналогов');
+    const iSumR      = ri('суммавозвратов');
+    const iSeb       = ri('стоимость(без','стоимость','себест');
+    const iProf      = ri('profit','прибыль');
 
     p(65, 'Обработка строк...');
     const rawRows = [];
     const monthMap = new Map();
+    const dayMap   = new Map(); // mk → [{d, rev, qty, prof, seb, kg, ret}]
 
     for (let i = 1; i < rRows.length; i++) {
       const r   = rRows[i];
@@ -176,26 +191,30 @@ const PF = {
       const dt = this.toDate(r[iDate]);
       if (!dt) continue;
 
-      const mk = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      const mk  = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      const day = dt.toISOString().slice(0,10);
       if (!monthMap.has(mk)) monthMap.set(mk, this.MO[dt.getMonth()] + ' ' + dt.getFullYear());
 
-      const qtyN    = this.toNum(r[iQtyN]);
-      const qtyR    = Math.abs(this.toNum(r[iQtyR]));
-      const w       = skuWeight[sku] || 1;
+      const qtyN      = this.toNum(r[iQtyN]);
+      const qtyR      = Math.abs(this.toNum(r[iQtyR]));
+      const sumBezNds = this.toNum(r[iSumBezNds]);
+      const sumR      = this.toNum(r[iSumR]);
+      const seb       = this.toNum(r[iSeb]);
+      const prof      = this.toNum(r[iProf]);
+      const w         = skuWeight[sku] || 1;
 
       rawRows.push({
-        knt, sku, mk, dt,
+        knt, sku, mk, day,
         group:    groupMap[knt]  || '⚠️ Без группы',
         skuGroup: skuGroup[sku]  || 'Прочее',
         weight:   w,
         qtyN, qtyR,
-        sumNet:    this.toNum(r[ri('суммареализации(с','суммарелс')]),   // с НДС (инфо)
-        sumBezNds: this.toNum(r[iSumBezNds]),   // ← ВЫРУЧКА (без НДС)
-        sumR:      this.toNum(r[iSumR]),
-        seb:       this.toNum(r[iSeb]),
-        prof:      this.toNum(r[iProf]),
-        kg:        qtyN * w,
-        retKg:     qtyR * w,
+        sumBezNds,   // ← ВЫРУЧКА (без НДС)
+        sumR,
+        seb,
+        prof,
+        kg:    qtyN * w,
+        retKg: qtyR * w,
       });
     }
 
@@ -203,7 +222,19 @@ const PF = {
     return { rawRows, groupMap, skuWeight, skuGroup, months };
   },
 
-  // ── ЗАГРУЗКА ПРИХОДА ─────────────────────────────────
+  // ── ДНЕВНАЯ АГРЕГАЦИЯ ────────────────────────────────────────
+  getDailyData(rawRows, mk) {
+    const rows = mk === 'all' ? rawRows : rawRows.filter(r => r.mk === mk);
+    const byDay = this.groupBy(rows, r => r.day);
+    return Object.entries(byDay)
+      .map(([day, dr]) => {
+        const a = this.agg(dr);
+        return { day, ...a };
+      })
+      .sort((a,b) => a.day.localeCompare(b.day));
+  },
+
+  // ── ЗАГРУЗКА ПРИХОДА ─────────────────────────────────────────
   async loadPrikhod(onProgress) {
     const p = onProgress || (() => {});
     p(30, 'Загрузка журнала прихода...');
@@ -230,8 +261,12 @@ const PF = {
       if (!dt) continue;
       const mk = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
       if (!monthMap.has(mk)) monthMap.set(mk, this.MO[dt.getMonth()] + ' ' + dt.getFullYear());
-      pRows.push({ sku, sup, dt, mk, qty: this.toNum(r[iQty]), price: this.toNum(r[iPrice]),
-                   sum: this.toNum(r[iSum]), nds: this.toNum(r[iNDS]), ed: String(r[iEd]||'шт').trim() });
+      const qty   = this.toNum(r[iQty]);
+      const price = this.toNum(r[iPrice]);
+      const sum   = this.toNum(r[iSum]);
+      const nds   = this.toNum(r[iNDS]);
+      pRows.push({ sku, sup, dt, mk, qty, price, sum, nds, sumWithNds: sum + nds,
+                   ed: String(r[iEd]||'шт').trim() });
     }
     const months = [...monthMap.entries()].sort((a,b) => a[0].localeCompare(b[0]));
     return { pRows, months };
