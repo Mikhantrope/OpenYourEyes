@@ -4,13 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PF — Аналитика продаж</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#2f81f7;--green:#3fb950;--red:#f85149;--amber:#d29922;--purple:#bc8cff;--text:#e6edf3;--muted:#8b949e;--dim:#484f58;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;overflow:hidden;}
 
-/* LOAD */
 #ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
 .load-logo{font-size:48px;font-weight:900;background:linear-gradient(135deg,#2f81f7,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .pb{width:320px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
@@ -36,28 +34,21 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .pill.active{background:var(--accent);color:#fff;}
 .pill:hover:not(.active){color:var(--text);}
 
-/* VIEW MODE SWITCHER */
+/* VIEW MODE */
 .view-mode{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
 .vm-btn{padding:4px 12px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap;}
 .vm-btn.active{background:var(--surface2);color:var(--text);}
-.vm-btn:hover:not(.active){color:var(--text);}
-.vm-btn.day-mode.active{background:rgba(210,153,34,.2);border:1px solid rgba(210,153,34,.4);color:var(--amber);}
+.vm-btn.day-active{background:rgba(210,153,34,.2);border:1px solid rgba(210,153,34,.4);color:var(--amber);}
 
 /* KPI BAR */
 .kpi-bar{display:flex;gap:1px;background:var(--border);border-bottom:1px solid var(--border);overflow-x:auto;}
-.kpi{background:var(--surface);padding:7px 12px;flex:1;min-width:85px;position:relative;}
+.kpi{background:var(--surface);padding:7px 12px;flex:1;min-width:80px;position:relative;}
 .kpi:hover .ktip{display:block;}
 .kpi-lbl{font-size:9px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
 .kpi-val{font-size:13px;font-weight:700;font-family:'Consolas',monospace;}
 .kpi-sub{font-size:9px;color:var(--dim);margin-top:1px;}
 .ktip{display:none;position:absolute;bottom:calc(100%+4px);left:0;background:#1c2333;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text);white-space:nowrap;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.5);line-height:1.5;}
 .blue{color:#58a6ff;}.grn{color:#3fb950;}.red{color:#f85149;}.amb{color:#d29922;}.pur{color:#bc8cff;}
-
-/* DAY MODE INDICATOR BAR */
-.day-mode-bar{display:none;background:rgba(210,153,34,.08);border-bottom:2px solid rgba(210,153,34,.3);padding:5px 14px;align-items:center;gap:10px;}
-.day-mode-bar.visible{display:flex;}
-.day-mode-bar-label{font-size:11px;color:var(--amber);font-weight:600;}
-.day-mode-bar-sub{font-size:11px;color:var(--muted);}
 
 /* TOOLBAR */
 .toolbar{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;}
@@ -69,13 +60,20 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .ebtn{padding:2px 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s;}
 .ebtn:hover{color:var(--text);}
 .ebtn.lit{border-color:var(--accent);color:var(--accent);background:rgba(47,129,247,.1);}
-.sbox{display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 8px;min-width:140px;}
+.sbox{display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 8px;min-width:130px;}
 .sbox input{background:transparent;border:none;outline:none;color:var(--text);font-size:12px;width:100%;}
 .sbox input::placeholder{color:var(--dim);}
 select.sel{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:5px;font-size:11px;outline:none;}
 .ctogs{display:flex;gap:2px;flex-wrap:wrap;}
 .ctog{padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--muted);font-size:10px;cursor:pointer;white-space:nowrap;}
 .ctog.on{background:rgba(47,129,247,.15);border-color:var(--accent);color:#58a6ff;}
+
+/* AVG WIDGET */
+.avgw{position:relative;}
+.avgdd{display:none;position:absolute;top:calc(100%+4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;z-index:500;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.avgdd.open{display:block;}
+.avo{padding:5px 10px;border-radius:5px;font-size:12px;cursor:pointer;color:var(--muted);}
+.avo:hover,.avo.sel{background:rgba(47,129,247,.1);color:#58a6ff;}
 
 /* FILTER PANEL */
 .fpanel{display:none;padding:6px 10px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;align-items:center;}
@@ -84,37 +82,23 @@ select.sel{background:var(--surface2);border:1px solid var(--border);color:var(-
 .chip{padding:2px 7px;border:1px solid var(--border);border-radius:10px;font-size:10px;cursor:pointer;background:var(--surface2);color:var(--muted);white-space:nowrap;}
 .chip.on{background:rgba(47,129,247,.15);border-color:var(--accent);color:#58a6ff;}
 
-/* AVG WIDGET */
-.avgw{position:relative;}
-.avgdd{display:none;position:absolute;top:calc(100%+4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;z-index:500;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.4);}
-.avgdd.open{display:block;}
-.avo{padding:5px 10px;border-radius:5px;font-size:12px;cursor:pointer;color:var(--muted);}
-.avo:hover,.avo.sel{background:rgba(47,129,247,.1);color:#58a6ff;}
-
-/* TABLE */
-.table-wrap{overflow:auto;height:calc(100vh - 188px);}
-table{width:100%;border-collapse:collapse;table-layout:fixed;}
-thead{position:sticky;top:0;z-index:100;}
-th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:5px 7px;border-bottom:2px solid var(--border);border-right:1px solid var(--border);text-align:right;white-space:nowrap;cursor:pointer;user-select:none;}
-th:first-child{text-align:left;width:260px;min-width:200px;}
-th:hover{color:var(--text);}
-th.sa::after{content:' ↑';color:var(--accent);}
-th.sd::after{content:' ↓';color:var(--accent);}
-td{padding:3px 7px;border-bottom:1px solid rgba(48,54,61,.4);border-right:1px solid rgba(48,54,61,.2);text-align:right;font-family:'Consolas',monospace;font-size:11px;white-space:nowrap;}
-td:first-child{text-align:left;font-family:'Segoe UI',sans-serif;font-size:11px;}
-
-/* ROW LEVELS */
+/* ══════════════════════════════════════
+   MONTH MODE — обычная вертикальная таблица
+═══════════════════════════════════════ */
+#monthView{display:block;height:calc(100vh - 188px);overflow:auto;}
+#monthView table{width:100%;border-collapse:collapse;table-layout:fixed;}
+#monthView thead{position:sticky;top:0;z-index:100;}
+#monthView th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:5px 7px;border-bottom:2px solid var(--border);border-right:1px solid var(--border);text-align:right;white-space:nowrap;cursor:pointer;user-select:none;}
+#monthView th:first-child{text-align:left;width:255px;min-width:200px;}
+#monthView th:hover{color:var(--text);}
+#monthView th.sa::after{content:' ↑';color:var(--accent);}
+#monthView th.sd::after{content:' ↓';color:var(--accent);}
+#monthView td{padding:3px 7px;border-bottom:1px solid rgba(48,54,61,.4);border-right:1px solid rgba(48,54,61,.2);text-align:right;font-family:'Consolas',monospace;font-size:11px;white-space:nowrap;}
+#monthView td:first-child{text-align:left;font-family:'Segoe UI',sans-serif;font-size:11px;}
 tr.lv0{background:rgba(47,129,247,.07);}tr.lv0:hover{background:rgba(47,129,247,.12);}
 tr.lv1{background:rgba(33,38,45,.9);}tr.lv1:hover{background:rgba(48,54,61,.6);}
 tr.lv2{background:var(--surface);}tr.lv2:hover{background:var(--surface2);}
 tr.lv3{background:var(--bg);}tr.lv3:hover{background:#111620;}
-tr.lv4{background:#090c11;}tr.lv4:hover{background:#0a0e16;}
-
-/* DAY ROWS special styling */
-tr.day-row{background:rgba(210,153,34,.06);}
-tr.day-row:hover{background:rgba(210,153,34,.11);}
-tr.day-row .rnm{color:var(--amber);font-weight:700;font-size:12px;}
-
 tr.tot{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
 .cnm{display:flex;align-items:center;}
 .exp{width:13px;height:13px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:3px;}
@@ -123,14 +107,118 @@ tr.tot{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
 .rnm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .lv0 .rnm{font-weight:700;color:#58a6ff;}
 .lv1 .rnm{font-weight:600;}
-.lv2 .rnm,.lv3 .rnm,.lv4 .rnm{color:var(--muted);font-size:11px;}
+.lv2 .rnm,.lv3 .rnm{color:var(--muted);font-size:11px;}
 .nog{color:var(--amber)!important;font-style:italic;}
 .pos{color:#3fb950;}.neg{color:#f85149;}.neu{color:var(--muted);}
 .barw{display:flex;align-items:center;gap:3px;justify-content:flex-end;}
 .bar{height:3px;border-radius:2px;flex-shrink:0;}
 .totlbl{font-weight:700;color:#3fb950;}
 
-.statusbar{background:var(--surface);border-top:1px solid var(--border);padding:3px 10px;display:flex;gap:12px;font-size:10px;color:var(--muted);}
+/* ══════════════════════════════════════
+   DAY MODE — горизонтальная таблица
+   Строки = иерархия, Колонки = дни
+═══════════════════════════════════════ */
+#dayView{display:none;flex-direction:column;height:calc(100vh - 188px);}
+#dayView.active{display:flex;}
+
+/* Day filter bar */
+.day-filter-bar{padding:6px 10px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;}
+.day-filter-info{font-size:11px;color:var(--muted);}
+.day-filter-info span{color:var(--text);font-weight:600;}
+
+/* Day picker popup */
+.day-picker-wrap{position:relative;}
+.day-picker-btn{display:flex;align-items:center;gap:5px;padding:4px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;font-weight:600;cursor:pointer;}
+.day-picker-btn:hover{border-color:var(--accent);}
+.day-picker-popup{display:none;position:absolute;top:calc(100%+4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;z-index:600;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+.day-picker-popup.open{display:block;}
+.dp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.dp-title{font-size:12px;font-weight:700;}
+.dp-actions{display:flex;gap:6px;}
+.dp-action{font-size:11px;color:var(--accent);cursor:pointer;padding:2px 6px;border-radius:4px;}
+.dp-action:hover{background:rgba(47,129,247,.1);}
+.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.dp-day{padding:4px;border-radius:5px;font-size:11px;font-family:'Consolas',monospace;text-align:center;cursor:pointer;background:var(--surface2);color:var(--muted);border:1px solid transparent;transition:all .1s;}
+.dp-day:hover{border-color:var(--accent);color:var(--text);}
+.dp-day.selected{background:rgba(47,129,247,.2);border-color:var(--accent);color:#58a6ff;font-weight:700;}
+.dp-day.has-data{color:var(--text);}
+.dp-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
+.dp-wd{font-size:9px;font-weight:700;text-align:center;color:var(--dim);padding:2px;}
+
+/* Metric rows chooser */
+.metric-chooser{display:flex;gap:3px;flex-wrap:wrap;}
+.mchip{padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--muted);font-size:10px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.mchip.on{background:rgba(47,129,247,.15);border-color:var(--accent);color:#58a6ff;}
+
+/* Horizontal day table */
+.day-table-outer{flex:1;overflow:auto;position:relative;}
+.day-table-container{min-width:100%;}
+
+table.dtable{border-collapse:collapse;table-layout:auto;width:max-content;min-width:100%;}
+table.dtable thead{position:sticky;top:0;z-index:100;}
+
+/* Frozen left column */
+table.dtable th.row-hdr,table.dtable td.row-hdr{
+  position:sticky;left:0;z-index:50;
+  background:var(--surface2);
+  min-width:200px;width:200px;max-width:240px;
+  text-align:left;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+table.dtable td.row-hdr{background:var(--surface);font-size:11px;}
+table.dtable tr.dt-lv0 td.row-hdr{background:rgba(47,129,247,.1);}
+table.dtable tr.dt-lv1 td.row-hdr{background:rgba(33,38,45,.95);}
+table.dtable tr.dt-lv2 td.row-hdr{background:var(--surface);}
+table.dtable tr.dt-lv3 td.row-hdr{background:var(--bg);}
+table.dtable tr.dt-tot td.row-hdr{background:rgba(63,185,80,.1);}
+
+/* Day column group headers */
+table.dtable th.day-hdr-top{
+  background:var(--surface2);color:var(--text);font-size:11px;font-weight:700;
+  text-align:center;border-bottom:1px solid var(--border);border-right:2px solid var(--border);
+  padding:5px 8px;white-space:nowrap;min-width:80px;
+}
+table.dtable th.day-hdr-top.weekend{color:var(--amber);}
+table.dtable th.metric-hdr{
+  background:var(--surface);color:var(--muted);font-size:9px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;text-align:right;
+  padding:4px 6px;border-bottom:2px solid var(--border);border-right:1px solid rgba(48,54,61,.4);
+  white-space:nowrap;cursor:pointer;
+}
+table.dtable th.metric-hdr:hover{color:var(--text);}
+
+/* Data cells */
+table.dtable td.dcell{
+  padding:3px 6px;border-bottom:1px solid rgba(48,54,61,.35);border-right:1px solid rgba(48,54,61,.2);
+  text-align:right;font-family:'Consolas',monospace;font-size:11px;white-space:nowrap;
+}
+table.dtable td.dcell-last{border-right:2px solid var(--border);}
+
+/* Row styling */
+table.dtable tr.dt-tot{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
+table.dtable tr.dt-lv0{background:rgba(47,129,247,.06);}
+table.dtable tr.dt-lv0:hover{background:rgba(47,129,247,.11);}
+table.dtable tr.dt-lv1{background:rgba(33,38,45,.9);}
+table.dtable tr.dt-lv1:hover{background:rgba(48,54,61,.6);}
+table.dtable tr.dt-lv2{background:var(--surface);}
+table.dtable tr.dt-lv2:hover{background:var(--surface2);}
+table.dtable tr.dt-lv3{background:var(--bg);}
+table.dtable tr.dt-lv3:hover{background:#111620;}
+
+.dt-rnm{display:flex;align-items:center;}
+.dt-exp{width:13px;height:13px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:3px;}
+.dt-exp:hover{color:var(--text);background:var(--surface2);}
+.dt-exp.open{color:var(--accent);}
+.dt-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;}
+.dt-lv0 .dt-name{font-weight:700;color:#58a6ff;font-size:12px;}
+.dt-lv1 .dt-name{font-weight:600;color:var(--text);}
+.dt-lv2 .dt-name,.dt-lv3 .dt-name{color:var(--muted);}
+.dt-nog{color:var(--amber)!important;font-style:italic;}
+.dt-totname{font-weight:700;color:#3fb950;}
+.empty-cell{color:var(--dim);}
+
+/* STATUS */
+.statusbar{background:var(--surface);border-top:1px solid var(--border);padding:3px 10px;display:flex;gap:12px;font-size:10px;color:var(--muted);flex-shrink:0;}
 .statusbar span{color:var(--text);font-weight:600;}
 </style>
 </head>
@@ -162,13 +250,10 @@ tr.tot{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
       <a class="nt" href="compare.html">📅 Сравнение</a>
       <a class="nt" href="pnl.html">💰 P&L</a>
     </div>
-
-    <!-- VIEW MODE SWITCHER — главная новая кнопка -->
     <div class="view-mode">
       <button class="vm-btn active" id="vmMonth" onclick="setViewMode('month')">📅 По месяцам</button>
-      <button class="vm-btn day-mode" id="vmDay"   onclick="setViewMode('day')">📆 По дням</button>
+      <button class="vm-btn" id="vmDay" onclick="setViewMode('day')">📆 По дням</button>
     </div>
-
     <div class="live-b"><div class="ldot"></div>Live</div>
     <button class="ibtn" onclick="reloadData()">⟳</button>
     <div class="pills" id="periodPills"><button class="pill active" data-m="all">Все</button></div>
@@ -178,12 +263,12 @@ tr.tot{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
 <!-- KPI BAR -->
 <div class="kpi-bar">
   <div class="kpi"><div class="kpi-lbl">Выручка (без НДС)</div><div class="kpi-val blue" id="k-rev">—</div><div class="kpi-sub">Сумма без налогов</div><div class="ktip">«Сумма без налогов» из 1С = выручка без НДС</div></div>
-  <div class="kpi"><div class="kpi-lbl">Кол-во (шт)</div><div class="kpi-val blue" id="k-qty">—</div><div class="kpi-sub">целых единиц</div><div class="ktip">«Кол-во реализации с возвратами» из 1С</div></div>
-  <div class="kpi"><div class="kpi-lbl">Объём (кг)</div><div class="kpi-val blue" id="k-kg">—</div><div class="kpi-sub">кг = кол-во × вес SKU</div><div class="ktip">Кол-во × вес единицы из SKUСправочника</div></div>
+  <div class="kpi"><div class="kpi-lbl">Кол-во (шт)</div><div class="kpi-val blue" id="k-qty">—</div><div class="kpi-sub">целых единиц</div></div>
+  <div class="kpi"><div class="kpi-lbl">Объём (кг)</div><div class="kpi-val blue" id="k-kg">—</div><div class="kpi-sub">кг = кол-во × вес</div></div>
   <div class="kpi"><div class="kpi-lbl">Себестоимость</div><div class="kpi-val amb" id="k-seb">—</div><div class="kpi-sub">Стоимость (без НДС)</div><div class="ktip">«Стоимость (без НДС)» из 1С = прямые затраты</div></div>
-  <div class="kpi"><div class="kpi-lbl">Прибыль</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">Выручка − Себестоимость</div><div class="ktip">«Profit» из 1С = Сумма без НДС − Себестоимость<br>⚠️ Валовая прибыль, ДО косвенных затрат</div></div>
-  <div class="kpi"><div class="kpi-lbl">Маржа %</div><div class="kpi-val" id="k-mar">—</div><div class="kpi-sub">Прибыль ÷ Выручка</div><div class="ktip">Profit / Выручка без НДС × 100%</div></div>
-  <div class="kpi"><div class="kpi-lbl">Возвраты</div><div class="kpi-val red" id="k-ret">—</div><div class="kpi-sub">сумма возвратов</div><div class="ktip">«Сумма возвратов» из 1С (отрицательное)</div></div>
+  <div class="kpi"><div class="kpi-lbl">Прибыль</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">Выручка − Себест.</div><div class="ktip">«Profit» из 1С = Выручка без НДС − Себестоимость<br>⚠️ Валовая прибыль, ДО косвенных затрат</div></div>
+  <div class="kpi"><div class="kpi-lbl">Маржа %</div><div class="kpi-val" id="k-mar">—</div><div class="kpi-sub">Прибыль ÷ Выручка</div></div>
+  <div class="kpi"><div class="kpi-lbl">Возвраты</div><div class="kpi-val red" id="k-ret">—</div><div class="kpi-sub">сумма возвратов</div></div>
   <div class="kpi"><div class="kpi-lbl">Возврат %</div><div class="kpi-val red" id="k-retpct">—</div><div class="kpi-sub">|Возврат| ÷ Выручка</div></div>
   <div class="kpi avgw" id="avgW" onclick="toggleAvgDD(event)">
     <div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
@@ -193,66 +278,111 @@ tr.tot{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
     <div class="kpi-sub" id="avgSub">по SKU</div>
     <div class="avgdd" id="avgDD" onclick="event.stopPropagation()">
       <div style="font-size:10px;color:var(--muted);padding:4px 10px 6px;border-bottom:1px solid var(--border);margin-bottom:4px;">Средняя цена по:</div>
-      <div class="avo sel" data-mode="sku" onclick="setAvgMode('sku',this)">📦 По SKU</div>
-      <div class="avo" data-mode="knt"     onclick="setAvgMode('knt',this)">👤 По контрагенту</div>
-      <div class="avo" data-mode="grp"     onclick="setAvgMode('grp',this)">🏢 По группе</div>
+      <div class="avo sel" onclick="setAvgMode('sku',this)">📦 По SKU</div>
+      <div class="avo" onclick="setAvgMode('knt',this)">👤 По контрагенту</div>
+      <div class="avo" onclick="setAvgMode('grp',this)">🏢 По группе</div>
     </div>
   </div>
 </div>
 
-<!-- DAY MODE INDICATOR -->
-<div class="day-mode-bar" id="dayModeBar">
-  <span style="font-size:14px">📆</span>
-  <span class="day-mode-bar-label">Режим «По дням»</span>
-  <span class="day-mode-bar-sub">— каждый день раскрывается до групп → контрагентов → SKU</span>
-  <span style="margin-left:auto;font-size:10px;color:var(--dim)" id="dayModeInfo"></span>
-</div>
-
-<!-- TOOLBAR -->
+<!-- TOOLBAR (shared) -->
 <div class="toolbar">
-  <span class="tlbl" id="hierarchyLabel">Иерархия:</span>
-  <button class="swbtn" onclick="swapH()" id="swapBtn"><span id="swLbl">👥 Контрагент → SKU</span> ⇄</button>
+  <span class="tlbl">Иерархия:</span>
+  <button class="swbtn" onclick="swapH()"><span id="swLbl">👥 Контрагент → SKU</span> ⇄</button>
   <div class="sep"></div>
-  <span class="tlbl">Раскрыть:</span>
-  <div class="expbtns" id="expandBtns">
-    <button class="ebtn" id="btn0" onclick="toggleLv(0)">Уровень 1</button>
-    <button class="ebtn" id="btn1" onclick="toggleLv(1)">Уровень 2</button>
-    <button class="ebtn" id="btn2" onclick="toggleLv(2)">Уровень 3</button>
-    <button class="ebtn" id="btn3" onclick="toggleLv(3)">Уровень 4</button>
-    <button class="ebtn" onclick="collapseAll()">Свернуть</button>
+  <!-- Month mode expand buttons -->
+  <div id="monthExpand" style="display:flex;align-items:center;gap:5px;">
+    <span class="tlbl">Раскрыть:</span>
+    <div class="expbtns">
+      <button class="ebtn" id="btn0" onclick="toggleLv(0)">Группы</button>
+      <button class="ebtn" id="btn1" onclick="toggleLv(1)">Контрагенты</button>
+      <button class="ebtn" id="btn2" onclick="toggleLv(2)">SKU</button>
+      <button class="ebtn" onclick="collapseAll()">Свернуть</button>
+    </div>
+  </div>
+  <!-- Day mode expand buttons -->
+  <div id="dayExpand" style="display:none;align-items:center;gap:5px;">
+    <span class="tlbl">Раскрыть:</span>
+    <div class="expbtns">
+      <button class="ebtn" id="dbtn0" onclick="toggleDayLv(0)">Группы</button>
+      <button class="ebtn" id="dbtn1" onclick="toggleDayLv(1)">Контрагенты</button>
+      <button class="ebtn" id="dbtn2" onclick="toggleDayLv(2)">SKU</button>
+      <button class="ebtn" onclick="collapseAllDay()">Свернуть</button>
+    </div>
   </div>
   <div class="sep"></div>
   <button class="ibtn" onclick="toggleFP()" id="fBtn">🔽 Фильтры</button>
   <div class="sbox"><span style="color:var(--muted)">🔍</span><input type="text" id="srch" placeholder="Поиск..." oninput="onSearch()"></div>
-  <div class="sep"></div>
-  <span class="tlbl">Сортировка:</span>
-  <select class="sel" id="sortSel" onchange="render()">
-    <option value="rev_d">Выручка ↓</option>
-    <option value="prof_d">Прибыль ↓</option>
-    <option value="qty_d">Кол-во ↓</option>
-    <option value="kg_d">Объём кг ↓</option>
-    <option value="mar_d">Маржа ↓</option>
-    <option value="retPct_d">Возврат% ↓</option>
-    <option value="rev_a">Выручка ↑</option>
-    <option value="day_a" id="sortDayAsc">Дата ↑ (старые сначала)</option>
-    <option value="day_d" id="sortDayDesc">Дата ↓ (новые сначала)</option>
-  </select>
-  <div class="sep"></div>
-  <span class="tlbl">Столбцы:</span>
-  <div class="ctogs" id="ctogs"></div>
+  <!-- Month sort -->
+  <div id="monthSort" style="display:flex;align-items:center;gap:5px;">
+    <div class="sep"></div>
+    <span class="tlbl">Сортировка:</span>
+    <select class="sel" id="sortSel" onchange="renderMonth()">
+      <option value="rev_d">Выручка ↓</option>
+      <option value="prof_d">Прибыль ↓</option>
+      <option value="qty_d">Кол-во ↓</option>
+      <option value="kg_d">Объём кг ↓</option>
+      <option value="mar_d">Маржа ↓</option>
+      <option value="rev_a">Выручка ↑</option>
+    </select>
+    <div class="sep"></div>
+    <span class="tlbl">Столбцы:</span>
+    <div class="ctogs" id="ctogs"></div>
+  </div>
+  <!-- Day metric chooser -->
+  <div id="dayMetrics" style="display:none;align-items:center;gap:5px;flex-wrap:wrap;">
+    <div class="sep"></div>
+    <span class="tlbl">Метрики в колонках:</span>
+    <div class="metric-chooser" id="metricChooser"></div>
+  </div>
   <div style="margin-left:auto;font-size:10px;color:var(--dim)" id="luTime"></div>
 </div>
 
 <!-- FILTER PANEL -->
 <div class="fpanel" id="fpanel">
-  <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><span class="tlbl">Группа:</span><div class="chips" id="fGrp"></div></div>
+  <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><span class="tlbl">Группа контр.:</span><div class="chips" id="fGrp"></div></div>
   <div class="sep"></div>
   <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><span class="tlbl">Категория SKU:</span><div class="chips" id="fSku"></div></div>
 </div>
 
-<!-- TABLE -->
-<div class="table-wrap">
-  <table><thead id="thead"><tr></tr></thead><tbody id="tbody"></tbody></table>
+<!-- MONTH VIEW -->
+<div id="monthView">
+  <table><thead id="mThead"><tr></tr></thead><tbody id="mTbody"></tbody></table>
+</div>
+
+<!-- DAY VIEW -->
+<div id="dayView">
+  <!-- Day filter bar -->
+  <div class="day-filter-bar">
+    <div class="day-picker-wrap">
+      <button class="day-picker-btn" id="dpBtn" onclick="toggleDayPicker()">
+        📆 Выбрать дни <span id="dpBtnInfo" style="color:var(--muted)"></span> ▾
+      </button>
+      <div class="day-picker-popup" id="dpPopup">
+        <div class="dp-header">
+          <span class="dp-title" id="dpTitle">Выберите дни</span>
+          <div class="dp-actions">
+            <span class="dp-action" onclick="selectAllDays()">Все</span>
+            <span class="dp-action" onclick="clearAllDays()">Очистить</span>
+            <span class="dp-action" onclick="selectWorkdays()">Рабочие</span>
+          </div>
+        </div>
+        <div class="dp-weekdays"><div class="dp-wd">Пн</div><div class="dp-wd">Вт</div><div class="dp-wd">Ср</div><div class="dp-wd">Чт</div><div class="dp-wd">Пт</div><div class="dp-wd" style="color:var(--amber)">Сб</div><div class="dp-wd" style="color:var(--amber)">Вс</div></div>
+        <div class="dp-grid" id="dpGrid"></div>
+      </div>
+    </div>
+    <div class="day-filter-info">Показано: <span id="dayShowCount">—</span> дн. из <span id="dayTotalCount">—</span></div>
+    <div style="margin-left:auto;font-size:10px;color:var(--dim)">← Листайте таблицу вправо →</div>
+  </div>
+  <!-- Horizontal scrollable table -->
+  <div class="day-table-outer" id="dayTableOuter">
+    <div class="day-table-container">
+      <table class="dtable" id="dTable">
+        <thead id="dThead"></thead>
+        <tbody id="dTbody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <div class="statusbar">
@@ -261,42 +391,56 @@ tr.tot{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
   <div>Контрагентов: <span id="stKnt">—</span></div>
   <div>SKU: <span id="stSku">—</span></div>
   <div>⚠️ Без группы: <span id="stNogrp" style="color:var(--amber)">—</span></div>
-  <div id="stMode" style="color:var(--amber);font-weight:600"></div>
   <div style="margin-left:auto">PF Analytics © 2026</div>
 </div>
 
 <script src="pf-data.js"></script>
 <script>
-// ── COLUMNS ──────────────────────────────────────────────────
-const COLS = [
-  {id:'qty',   lbl:'Кол-во',    key:'qty',    fmt:'qty',  on:true,  tip:'Кол-во штук'},
-  {id:'rev',   lbl:'Выручка ₸', key:'rev',    fmt:'full', on:true,  tip:'Сумма без налогов'},
-  {id:'ret',   lbl:'Возврат ₸', key:'ret',    fmt:'full', on:true,  tip:'Сумма возвратов'},
-  {id:'retPct',lbl:'Возврат %', key:'retPct', fmt:'pct',  on:true,  tip:'|Возврат|÷Выручка'},
-  {id:'seb',   lbl:'Себест. ₸', key:'seb',    fmt:'full', on:true,  tip:'Стоимость(без НДС)'},
-  {id:'prof',  lbl:'Прибыль ₸', key:'prof',   fmt:'full', on:true,  tip:'Profit из 1С'},
-  {id:'mar',   lbl:'Маржа %',   key:'mar',    fmt:'pct',  on:true,  tip:'Прибыль÷Выручка×100'},
-  {id:'avg',   lbl:'Ср.цена ₸', key:'avg',    fmt:'full', on:false, tip:'Выручка÷Кол-во'},
-  {id:'kg',    lbl:'Объём кг',  key:'kg',     fmt:'kg',   on:true,  tip:'Кол-во×вес SKU'},
-  {id:'retKg', lbl:'Возврат кг',key:'retKg',  fmt:'kg',   on:false, tip:'Возврат×вес'},
-  {id:'profKg',lbl:'Приб./кг',  key:'profKg', fmt:'full', on:true,  tip:'Прибыль÷кг'},
-  {id:'sebKg', lbl:'Затр./кг',  key:'sebKg',  fmt:'full', on:true,  tip:'Себест÷кг'},
-  {id:'share', lbl:'Доля %',    key:'_sh',    fmt:'share',on:true,  tip:'Доля в выручке'},
+// ── MONTH MODE COLUMNS ──────────────────────────────────────
+const MCOLS=[
+  {id:'qty',  lbl:'Кол-во',   key:'qty',   fmt:'qty', on:true, tip:'Кол-во штук'},
+  {id:'rev',  lbl:'Выручка ₸',key:'rev',   fmt:'full',on:true, tip:'Сумма без налогов'},
+  {id:'ret',  lbl:'Возврат ₸',key:'ret',   fmt:'full',on:true, tip:'Сумма возвратов'},
+  {id:'retPct',lbl:'Возврат%',key:'retPct',fmt:'pct', on:true, tip:'|Возврат|÷Выручка'},
+  {id:'seb',  lbl:'Себест. ₸',key:'seb',   fmt:'full',on:true, tip:'Стоимость(без НДС)'},
+  {id:'prof', lbl:'Прибыль ₸',key:'prof',  fmt:'full',on:true, tip:'Profit из 1С'},
+  {id:'mar',  lbl:'Маржа %',  key:'mar',   fmt:'pct', on:true, tip:'Прибыль÷Выручка'},
+  {id:'avg',  lbl:'Ср.цена ₸',key:'avg',   fmt:'full',on:false,tip:'Выручка÷Кол-во'},
+  {id:'kg',   lbl:'Объём кг', key:'kg',    fmt:'kg',  on:true, tip:'Кол-во×вес'},
+  {id:'profKg',lbl:'Приб./кг',key:'profKg',fmt:'full',on:true, tip:'Прибыль÷кг'},
+  {id:'sebKg', lbl:'Затр./кг',key:'sebKg', fmt:'full',on:true, tip:'Себест÷кг'},
+  {id:'share', lbl:'Доля %',  key:'_sh',   fmt:'share',on:true,tip:'Доля в выручке'},
 ];
-let colOn = {}; COLS.forEach(c => colOn[c.id] = c.on);
+let mColOn={}; MCOLS.forEach(c=>mColOn[c.id]=c.on);
 
-// ── STATE ─────────────────────────────────────────────────────
-let rawRows=[], hierarchy='k', currentMonth='all';
-let viewMode='month'; // 'month' | 'day'
-let expanded=new Set(), levelState={}, searchTerm='';
-let filterGrp=new Set(['ALL']), filterSkuGrp=new Set(['ALL']);
-let allGroups=[], allSkuGroups=[];
-let sortKey='rev_d';
-let avgMode='sku';
+// Day mode metrics
+const DAY_METRICS=[
+  {id:'qty',  lbl:'Кол-во',  key:'qty',   fmt:'qty', on:true},
+  {id:'rev',  lbl:'Выручка', key:'rev',   fmt:'rev', on:true},
+  {id:'prof', lbl:'Прибыль', key:'prof',  fmt:'rev', on:true},
+  {id:'mar',  lbl:'Маржа %', key:'mar',   fmt:'pct', on:true},
+  {id:'kg',   lbl:'Объём кг',key:'kg',    fmt:'kg',  on:false},
+  {id:'seb',  lbl:'Себест.',  key:'seb',   fmt:'rev', on:false},
+  {id:'ret',  lbl:'Возврат', key:'ret',   fmt:'rev', on:false},
+  {id:'retPct',lbl:'Возврат%',key:'retPct',fmt:'pct',on:false},
+];
+let dmOn={}; DAY_METRICS.forEach(m=>dmOn[m.id]=m.on);
 
-// ── LOAD ──────────────────────────────────────────────────────
+// ── STATE ──────────────────────────────────────────────────
+let rawRows=[],hierarchy='k',currentMonth='all',viewMode='month';
+let expanded=new Set(),levelState={},searchTerm='';
+let filterGrp=new Set(['ALL']),filterSkuGrp=new Set(['ALL']);
+let allGroups=[],allSkuGroups=[],allDays=[];
+let selectedDays=new Set();
+let sortKey='rev_d',avgMode='sku';
+let dayExpanded=new Set(),dayLevelState={};
+
+const WD=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const MO_SHORT=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+
+// ── LOAD ──────────────────────────────────────────────────
 async function loadData(){
-  const errEl=document.getElementById('lerr'); errEl.style.display='none';
+  const errEl=document.getElementById('lerr');errEl.style.display='none';
   try{
     const {rawRows:rr,months}=await PF.loadSales((pct,step)=>{
       document.getElementById('prog').style.width=pct+'%';
@@ -310,13 +454,15 @@ async function loadData(){
     pe.addEventListener('click',e=>{
       const btn=e.target.closest('.pill');if(!btn)return;
       pe.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active'); currentMonth=btn.dataset.m;
-      expanded.clear(); levelState={}; render();
+      btn.classList.add('active');currentMonth=btn.dataset.m;
+      expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};
+      updateAvailableDays();render();
     });
 
-    allGroups    = [...new Set(rawRows.map(r=>r.group))].sort();
-    allSkuGroups = [...new Set(rawRows.map(r=>r.skuGroup))].sort();
-    buildFilterChips(); buildCtogs(); buildHeader();
+    allGroups=[...new Set(rawRows.map(r=>r.group))].sort();
+    allSkuGroups=[...new Set(rawRows.map(r=>r.skuGroup))].sort();
+    buildFilterChips();buildCtogs();buildMetricChooser();buildMHeader();
+    updateAvailableDays();
 
     const uK=new Set(rawRows.map(r=>r.knt)).size;
     const uS=new Set(rawRows.map(r=>r.sku)).size;
@@ -329,65 +475,72 @@ async function loadData(){
     document.getElementById('luTime').textContent='Обн.: '+new Date().toLocaleTimeString('ru');
     document.getElementById('prog').style.width='100%';
     document.getElementById('lstep').textContent='Готово!';
-    setTimeout(()=>{document.getElementById('ls').style.display='none'; render();},300);
+    setTimeout(()=>{document.getElementById('ls').style.display='none';render();},300);
   }catch(err){
     console.error(err);
-    const el=document.getElementById('lerr'); el.style.display='block';
+    const el=document.getElementById('lerr');el.style.display='block';
     el.innerHTML=`❌ Ошибка: <b>${err.message}</b><br>F12 → Console<br>
       <a href="${PF.csvUrl(PF.GID_REAL)}" target="_blank" style="color:#58a6ff">Проверить CSV</a>`;
     document.getElementById('lstep').textContent='Ошибка!';
   }
 }
 
-// ── VIEW MODE ─────────────────────────────────────────────────
+function updateAvailableDays(){
+  const rows=currentMonth==='all'?rawRows:rawRows.filter(r=>r.mk===currentMonth);
+  allDays=[...new Set(rows.map(r=>r.day))].sort();
+  selectedDays=new Set(allDays);
+  buildDayPicker();
+}
+
+// ── VIEW MODE ─────────────────────────────────────────────
 function setViewMode(mode){
   viewMode=mode;
-  expanded.clear(); levelState={};
-
-  // Toggle buttons
-  document.getElementById('vmMonth').classList.toggle('active', mode==='month');
-  document.getElementById('vmDay').classList.toggle('active', mode==='day');
-
-  // Show/hide day mode bar
-  document.getElementById('dayModeBar').classList.toggle('visible', mode==='day');
-  document.getElementById('stMode').textContent = mode==='day' ? '📆 Режим: по дням' : '';
-
-  // Update expand button labels
-  const btnLabels = mode==='day'
-    ? ['Дни','Уровень 2','Уровень 3','Уровень 4']
-    : ['Группы','Контрагенты','SKU','—'];
-  for(let i=0;i<4;i++){
-    const btn=document.getElementById('btn'+i);
-    if(btn) btn.textContent=btnLabels[i];
-  }
-  document.getElementById('btn3').style.display = mode==='day' ? '' : 'none';
-
-  // In day mode, swap button changes inner hierarchy (not day level)
-  updateSwapLabel();
-
-  // Update sort options
-  document.getElementById('sortDayAsc').style.display = mode==='day' ? '' : 'none';
-  document.getElementById('sortDayDesc').style.display = mode==='day' ? '' : 'none';
-  if(mode==='day' && !sortKey.startsWith('day')) sortKey='day_a'; // default: дата по возрастанию
-  if(mode==='month' && sortKey.startsWith('day')) sortKey='rev_d';
-  document.getElementById('sortSel').value = sortKey;
-
+  document.getElementById('vmMonth').classList.toggle('active',mode==='month');
+  document.getElementById('vmDay').classList.toggle('active',false);
+  document.getElementById('vmDay').classList.toggle('day-active',mode==='day');
+  document.getElementById('monthView').style.display=mode==='month'?'block':'none';
+  document.getElementById('dayView').classList.toggle('active',mode==='day');
+  document.getElementById('monthExpand').style.display=mode==='month'?'flex':'none';
+  document.getElementById('dayExpand').style.display=mode==='day'?'flex':'none';
+  document.getElementById('monthSort').style.display=mode==='month'?'flex':'none';
+  document.getElementById('dayMetrics').style.display=mode==='day'?'flex':'none';
   render();
 }
 
-function updateSwapLabel(){
-  const lbl = viewMode==='day'
-    ? (hierarchy==='k' ? '📆 → 👥 Контрагент → SKU' : '📆 → 📦 SKU → Контрагент')
-    : (hierarchy==='k' ? '👥 Контрагент → SKU' : '📦 SKU → Контрагент');
-  document.getElementById('swLbl').textContent = lbl;
+function render(){
+  updateKPIs();
+  if(viewMode==='month') renderMonth();
+  else renderDay();
 }
 
-// ── FILTERS ───────────────────────────────────────────────────
+// ── KPIs ──────────────────────────────────────────────────
+function updateKPIs(){
+  const rows=filtered();
+  const tot=PF.agg(rows);
+  document.getElementById('k-rev').textContent=PF.fmtRev(tot.rev)+' ₸';
+  document.getElementById('k-qty').textContent=PF.fmtQty(tot.qty);
+  document.getElementById('k-kg').textContent=PF.fmtKg(tot.kg)+' кг';
+  document.getElementById('k-seb').textContent=PF.fmtRev(tot.seb)+' ₸';
+  const pe=document.getElementById('k-prof');pe.textContent=PF.fmtRev(tot.prof)+' ₸';pe.className='kpi-val '+(tot.prof>=0?'grn':'red');
+  const me=document.getElementById('k-mar');me.textContent=PF.fmtPct(tot.mar);me.className='kpi-val '+(tot.mar>=0?'grn':'red');
+  document.getElementById('k-ret').textContent=PF.fmtRev(tot.ret)+' ₸';
+  document.getElementById('k-retpct').textContent=PF.fmtPctAbs(tot.retPct);
+  document.getElementById('k-avg').textContent=PF.fmtFull(calcAvg(rows))+' ₸';
+}
+
+// ── FILTERS ───────────────────────────────────────────────
+function filtered(){
+  let rows=currentMonth==='all'?rawRows:rawRows.filter(r=>r.mk===currentMonth);
+  if(!filterGrp.has('ALL'))    rows=rows.filter(r=>filterGrp.has(r.group));
+  if(!filterSkuGrp.has('ALL')) rows=rows.filter(r=>filterSkuGrp.has(r.skuGroup));
+  return rows;
+}
+
 function buildFilterChips(){
   const bc=(cid,items,type)=>{
-    const el=document.getElementById(cid);
-    el.innerHTML=`<span class="chip on" data-v="ALL" onclick="toggleChip('${type}','ALL',this)">Все</span>`+
-      items.map(g=>`<span class="chip" data-v="${g.replace(/"/g,'&quot;')}" onclick="toggleChip('${type}','${g.replace(/'/g,"\\'")}',this)">${g}</span>`).join('');
+    document.getElementById(cid).innerHTML=
+      `<span class="chip on" data-v="ALL" onclick="toggleChip('${type}','ALL',this)">Все</span>`+
+      items.map(g=>`<span class="chip" onclick="toggleChip('${type}','${g.replace(/'/g,"\\'")}',this)">${g}</span>`).join('');
   };
   bc('fGrp',allGroups,'grp');
   bc('fSku',allSkuGroups,'sku');
@@ -403,7 +556,7 @@ function toggleChip(type,val,el){
     if(set.has(val)){set.delete(val);el.classList.remove('on');if(!set.size){set.add('ALL');document.getElementById(cid).querySelector('[data-v="ALL"]').classList.add('on');}}
     else{set.add(val);el.classList.add('on');}
   }
-  expanded.clear();levelState={};render();
+  expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};render();
 }
 
 function toggleFP(){
@@ -411,41 +564,30 @@ function toggleFP(){
   document.getElementById('fBtn').textContent=document.getElementById('fpanel').classList.contains('open')?'🔼 Фильтры':'🔽 Фильтры';
 }
 
-// ── COLUMNS ───────────────────────────────────────────────────
+// ── COLUMNS / METRICS ─────────────────────────────────────
 function buildCtogs(){
   document.getElementById('ctogs').innerHTML=
-    COLS.filter(c=>c.id!=='share').map(c=>
-      `<button class="ctog ${colOn[c.id]?'on':''}" title="${c.tip}" onclick="toggleCol('${c.id}',this)">${c.lbl}</button>`
+    MCOLS.filter(c=>c.id!=='share').map(c=>
+      `<button class="ctog ${mColOn[c.id]?'on':''}" title="${c.tip}" onclick="toggleMCol('${c.id}',this)">${c.lbl}</button>`
     ).join('');
 }
-function toggleCol(id,btn){colOn[id]=!colOn[id];btn.classList.toggle('on',colOn[id]);buildHeader();render();}
+function toggleMCol(id,btn){mColOn[id]=!mColOn[id];btn.classList.toggle('on',mColOn[id]);buildMHeader();renderMonth();}
 
-function buildHeader(){
-  const vis=COLS.filter(c=>colOn[c.id]||c.id==='share');
-  const [sk,sd]=sortKey.split('_');
-  const nameHdr = viewMode==='day' ? 'День / Наименование' : 'Наименование';
-  document.querySelector('#thead tr').innerHTML=
-    `<th style="text-align:left" onclick="clickSort('day')">${nameHdr}</th>`+
-    vis.map(c=>{
-      const isSorted=c.key===sk||c.id===sk;
-      return `<th title="${c.tip}" class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}</th>`;
-    }).join('');
+function buildMetricChooser(){
+  document.getElementById('metricChooser').innerHTML=
+    DAY_METRICS.map(m=>
+      `<button class="mchip ${dmOn[m.id]?'on':''}" onclick="toggleDayMetric('${m.id}',this)">${m.lbl}</button>`
+    ).join('');
 }
-function clickSort(key){
-  sortKey=sortKey===key+'_d'?key+'_a':key+'_d';
-  document.getElementById('sortSel').value=sortKey;
-  buildHeader();render();
-}
+function toggleDayMetric(id,btn){dmOn[id]=!dmOn[id];btn.classList.toggle('on',dmOn[id]);if(viewMode==='day')renderDay();}
 
-// ── AVG PRICE ─────────────────────────────────────────────────
+// ── AVG ───────────────────────────────────────────────────
 function toggleAvgDD(e){e.stopPropagation();document.getElementById('avgDD').classList.toggle('open');}
 document.addEventListener('click',()=>document.getElementById('avgDD').classList.remove('open'));
 function setAvgMode(mode,el){
-  avgMode=mode;
-  document.querySelectorAll('.avo').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
+  avgMode=mode;document.querySelectorAll('.avo').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
   document.getElementById('avgSub').textContent={sku:'по SKU',knt:'по контрагенту',grp:'по группе'}[mode];
-  document.getElementById('avgDD').classList.remove('open');
-  render();
+  document.getElementById('avgDD').classList.remove('open');render();
 }
 function calcAvg(rows){
   const fn=avgMode==='sku'?r=>r.sku:avgMode==='knt'?r=>r.knt:r=>r.group;
@@ -454,42 +596,115 @@ function calcAvg(rows){
   return avgs.length?Math.round(avgs.reduce((s,v)=>s+v,0)/avgs.length):0;
 }
 
-// ── DATA ──────────────────────────────────────────────────────
-function filtered(){
-  let rows=currentMonth==='all'?rawRows:rawRows.filter(r=>r.mk===currentMonth);
-  if(!filterGrp.has('ALL'))    rows=rows.filter(r=>filterGrp.has(r.group));
-  if(!filterSkuGrp.has('ALL')) rows=rows.filter(r=>filterSkuGrp.has(r.skuGroup));
-  return rows;
+// ── DAY PICKER ────────────────────────────────────────────
+function buildDayPicker(){
+  if(!allDays.length)return;
+  const firstDt=new Date(allDays[0]);
+  const lastDt=new Date(allDays[allDays.length-1]);
+  document.getElementById('dpTitle').textContent=
+    MO_SHORT[firstDt.getMonth()]+' '+firstDt.getFullYear()+
+    (firstDt.getMonth()!==lastDt.getMonth()||firstDt.getFullYear()!==lastDt.getFullYear()?
+      ' – '+MO_SHORT[lastDt.getMonth()]+' '+lastDt.getFullYear():'');
+
+  // Build calendar grid
+  const daySet=new Set(allDays);
+  const grid=document.getElementById('dpGrid');
+  grid.innerHTML='';
+
+  // Group by month for nicer display
+  const byMonth=PF.groupBy(allDays,d=>d.slice(0,7));
+  Object.entries(byMonth).forEach(([mk,days])=>{
+    // Month label
+    const [y,m]=mk.split('-');
+    const monthLbl=document.createElement('div');
+    monthLbl.style.cssText='grid-column:1/-1;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0 2px;';
+    monthLbl.textContent=MO_SHORT[+m-1]+' '+y;
+    grid.appendChild(monthLbl);
+
+    // Padding
+    const firstDay=new Date(days[0]);
+    const dow=(firstDay.getDay()+6)%7; // Mon=0
+    for(let i=0;i<dow;i++){const blank=document.createElement('div');grid.appendChild(blank);}
+
+    days.forEach(d=>{
+      const dt=new Date(d);
+      const dayN=dt.getDate();
+      const el=document.createElement('div');
+      el.className='dp-day has-data'+(selectedDays.has(d)?' selected':'');
+      const isWeekend=dt.getDay()===0||dt.getDay()===6;
+      if(isWeekend)el.style.color='var(--amber)';
+      el.textContent=dayN;
+      el.title=d;
+      el.onclick=()=>{
+        if(selectedDays.has(d)){if(selectedDays.size>1)selectedDays.delete(d);}
+        else selectedDays.add(d);
+        el.classList.toggle('selected',selectedDays.has(d));
+        updateDpBtnInfo();renderDay();
+      };
+      grid.appendChild(el);
+    });
+  });
+  updateDpBtnInfo();
 }
 
+function updateDpBtnInfo(){
+  const total=allDays.length;const sel=selectedDays.size;
+  document.getElementById('dpBtnInfo').textContent=sel===total?`(все ${total})`:`(${sel} из ${total})`;
+  document.getElementById('dayShowCount').textContent=sel;
+  document.getElementById('dayTotalCount').textContent=total;
+}
+
+function toggleDayPicker(){document.getElementById('dpPopup').classList.toggle('open');}
+document.addEventListener('click',e=>{if(!e.target.closest('.day-picker-wrap'))document.getElementById('dpPopup').classList.remove('open');});
+function selectAllDays(){allDays.forEach(d=>selectedDays.add(d));buildDayPicker();renderDay();}
+function clearAllDays(){if(allDays.length){selectedDays.clear();selectedDays.add(allDays[0]);}buildDayPicker();renderDay();}
+function selectWorkdays(){
+  selectedDays.clear();
+  allDays.forEach(d=>{const dow=new Date(d).getDay();if(dow!==0&&dow!==6)selectedDays.add(d);});
+  if(!selectedDays.size&&allDays.length)selectedDays.add(allDays[0]);
+  buildDayPicker();renderDay();
+}
+
+// ── FORMAT HELPERS ────────────────────────────────────────
+const fmtCell=(v,fmt,tRev)=>{
+  if(fmt==='qty')  return PF.fmtQty(v);
+  if(fmt==='pct')  return PF.fmtPct(v);
+  if(fmt==='kg')   return PF.fmtKg(v)+' кг';
+  if(fmt==='share')return tRev?((v/tRev)*100).toFixed(1)+'%':'—';
+  if(fmt==='rev')  return PF.fmtRev(v)+' ₸';
+  return PF.fmtFull(v)+(v?' ₸':'');
+};
+const cls=(v,key)=>{
+  if(key==='retPct'||key==='mar')return v<0?'neg':v>0?'pos':'neu';
+  if(key==='prof'||key==='profKg')return v>0?'pos':v<0?'neg':'';
+  if(key==='ret'||key==='retKg') return v?'neg':'neu';
+  return '';
+};
+
+// ── TREE BUILDERS ─────────────────────────────────────────
 function getSF(){
-  const [key,dir]=sortKey.split('_');
-  const asc=dir==='a';
-  if(key==='day') return (a,b)=>asc?a.day.localeCompare(b.day):b.day.localeCompare(a.day);
+  const [key,dir]=sortKey.split('_');const asc=dir==='a';
   return(a,b)=>asc?(a.m[key]||0)-(b.m[key]||0):(b.m[key]||0)-(a.m[key]||0);
 }
 
-// ── BUILD TREES ───────────────────────────────────────────────
-function mkNode(name,rows,ng=false,day=null){return {name,ng,day,m:PF.agg(rows),ch:[]};}
-
-// Внутренняя иерархия (группа → контрагент → SKU или SKU → контрагент)
-function buildInnerTree(rows, sf){
+function buildInnerTree(rows,sf,expSet,prefix=''){
+  const mk=(name,rows,ng=false)=>({name,ng,m:PF.agg(rows),ch:[]});
   if(hierarchy==='k'){
     return Object.entries(PF.groupBy(rows,r=>r.group)).map(([g,gr])=>{
-      const n=mkNode(g,gr,g.startsWith('⚠️'));
+      const n=mk(g,gr,g.startsWith('⚠️'));
       n.ch=Object.entries(PF.groupBy(gr,r=>r.knt)).map(([k,kr])=>{
-        const kn=mkNode(k,kr);
-        kn.ch=Object.entries(PF.groupBy(kr,r=>r.sku)).map(([s,sr])=>mkNode(s,sr)).sort(sf);
+        const kn=mk(k,kr);
+        kn.ch=Object.entries(PF.groupBy(kr,r=>r.sku)).map(([s,sr])=>mk(s,sr)).sort(sf);
         return kn;
       }).sort(sf);
       return n;
     }).sort(sf);
   } else {
     return Object.entries(PF.groupBy(rows,r=>r.skuGroup)).map(([sg,sgr])=>{
-      const n=mkNode(sg,sgr);
+      const n=mk(sg,sgr);
       n.ch=Object.entries(PF.groupBy(sgr,r=>r.sku)).map(([s,sr])=>{
-        const sn=mkNode(s,sr);
-        sn.ch=Object.entries(PF.groupBy(sr,r=>r.knt)).map(([k,kr])=>mkNode(k,kr)).sort(sf);
+        const sn=mk(s,sr);
+        sn.ch=Object.entries(PF.groupBy(sr,r=>r.knt)).map(([k,kr])=>mk(k,kr)).sort(sf);
         return sn;
       }).sort(sf);
       return n;
@@ -497,172 +712,285 @@ function buildInnerTree(rows, sf){
   }
 }
 
-// Режим "по дням": день → внутренняя иерархия
-function buildDayTree(rows){
-  const byDay=PF.groupBy(rows,r=>r.day);
-  const sf=getSF();
-  const metricSF=(a,b)=>{
-    const [key,dir]=sortKey.split('_');
-    if(key==='day') return dir==='a'?a.day.localeCompare(b.day):b.day.localeCompare(a.day);
-    return dir==='a'?(a.m[key]||0)-(b.m[key]||0):(b.m[key]||0)-(a.m[key]||0);
-  };
-  return Object.entries(byDay).map(([day,dayRows])=>{
-    const dt=new Date(day);
-    const dayLabel=dt.toLocaleDateString('ru-RU',{weekday:'short',day:'2-digit',month:'2-digit',year:'2-digit'})
-                     .replace(',','');
-    const n=mkNode(dayLabel,dayRows,false,day);
-    n.ch=buildInnerTree(dayRows,sf);
-    return n;
-  }).sort(metricSF);
+// ══════════════════════════════════════════════════════════
+// MONTH MODE RENDER
+// ══════════════════════════════════════════════════════════
+function buildMHeader(){
+  const vis=MCOLS.filter(c=>mColOn[c.id]||c.id==='share');
+  const [sk,sd]=sortKey.split('_');
+  document.querySelector('#mThead tr').innerHTML=
+    `<th style="text-align:left" onclick="clickSort('rev')">Наименование</th>`+
+    vis.map(c=>{
+      const isSorted=c.key===sk||c.id===sk;
+      return `<th title="${c.tip}" class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}</th>`;
+    }).join('');
 }
 
-// Режим "по месяцам": обычная иерархия
-function buildMonthTree(rows){
-  const sf=getSF();
-  return buildInnerTree(rows,sf);
+function clickSort(key){
+  sortKey=sortKey===key+'_d'?key+'_a':key+'_d';
+  document.getElementById('sortSel').value=sortKey;
+  buildMHeader();renderMonth();
 }
 
-// ── RENDER ────────────────────────────────────────────────────
-function fmtC(v,fmt,tRev){
-  if(fmt==='qty')   return PF.fmtQty(v);
-  if(fmt==='pct')   return PF.fmtPct(v);
-  if(fmt==='kg')    return PF.fmtKg(v)+' кг';
-  if(fmt==='share') return tRev?((v/tRev)*100).toFixed(1)+'%':'—';
-  return PF.fmtFull(v);
-}
-
-function render(){
+function renderMonth(){
   const rows=filtered();
   const tot=PF.agg(rows);
   const tRev=tot.rev||1;
+  const sf=getSF();
+  const tree=buildInnerTree(rows,sf,expanded);
+  const vis=MCOLS.filter(c=>mColOn[c.id]||c.id==='share');
 
-  // KPIs
-  document.getElementById('k-rev').textContent=PF.fmtRev(tot.rev)+' ₸';
-  document.getElementById('k-qty').textContent=PF.fmtQty(tot.qty);
-  document.getElementById('k-kg').textContent=PF.fmtKg(tot.kg)+' кг';
-  document.getElementById('k-seb').textContent=PF.fmtRev(tot.seb)+' ₸';
-  const pe=document.getElementById('k-prof');pe.textContent=PF.fmtRev(tot.prof)+' ₸';pe.className='kpi-val '+(tot.prof>=0?'grn':'red');
-  const me=document.getElementById('k-mar'); me.textContent=PF.fmtPct(tot.mar); me.className='kpi-val '+(tot.mar>=0?'grn':'red');
-  document.getElementById('k-ret').textContent=PF.fmtRev(tot.ret)+' ₸';
-  document.getElementById('k-retpct').textContent=PF.fmtPctAbs(tot.retPct);
-  document.getElementById('k-avg').textContent=PF.fmtFull(calcAvg(rows))+' ₸';
-
-  // Build tree based on view mode
-  const tree = viewMode==='day' ? buildDayTree(rows) : buildMonthTree(rows);
-
-  // Update day mode info
-  if(viewMode==='day'){
-    const uniqueDays=new Set(rows.map(r=>r.day)).size;
-    document.getElementById('dayModeInfo').textContent=`${uniqueDays} дней`;
-  }
-
-  const vis=COLS.filter(c=>colOn[c.id]||c.id==='share');
-
-  // Flatten with search
   const flat=[];
   function anyMatch(ns,t){return ns.some(n=>n.name.toLowerCase().includes(t)||(n.ch.length&&anyMatch(n.ch,t)));}
   function flatten(ns,d){
     for(const n of ns){
-      const key=n.name+'_d'+d; const hasC=n.ch.length>0; const isE=expanded.has(key);
+      const key=n.name+'_d'+d;const hasC=n.ch.length>0;const isE=expanded.has(key);
       if(searchTerm){const m=n.name.toLowerCase().includes(searchTerm);if(!m&&!(hasC&&anyMatch(n.ch,searchTerm)))continue;}
-      const isDayRow = viewMode==='day' && d===0;
-      flat.push({n,d,key,hasC,isE,isDayRow});
-      if(isE&&hasC) flatten(n.ch,d+1);
+      flat.push({n,d,key,hasC,isE});
+      if(isE&&hasC)flatten(n.ch,d+1);
     }
   }
   flatten(tree,0);
 
-  // Build HTML
-  const parts=[`<tr class="tot">
-    <td><div class="cnm"><span style="width:13px;display:inline-block"></span><span class="rnm totlbl">📊 ИТОГО</span></div></td>`+
+  const parts=[`<tr class="tot"><td><div class="cnm"><span style="width:13px;display:inline-block"></span><span class="rnm totlbl">📊 ИТОГО</span></div></td>`+
     vis.map(c=>{
       const v=c.id==='share'?tot.rev:(tot[c.key]||0);
-      const cls=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profKg')?(v>=0?'pos':'neg'):'';
-      const txt=c.id==='share'?'100%':fmtC(v,c.fmt,tRev)+(c.fmt==='full'&&v?' ₸':'');
-      return `<td class="${cls}">${txt}</td>`;
+      const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profKg')?(v>=0?'pos':'neg'):'';
+      const txt=c.id==='share'?'100%':fmtCell(v,c.fmt,tRev);
+      return `<td class="${c2}">${txt}</td>`;
     }).join('')+'</tr>'];
 
-  for(const{n,d,key,hasC,isE,isDayRow}of flat){
-    const m=n.m; const lv=Math.min(d,4);
-    const ind='&nbsp;'.repeat(d*3);
-    const sk=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const expBtn=hasC?`<button class="exp${isE?' open':''}" onclick="toggle('${sk}',this)">${isE?'▾':'▸'}</button>`:
+  for(const{n,d,key,hasC,isE}of flat){
+    const m=n.m;const lv=Math.min(d,3);const ind='&nbsp;'.repeat(d*3);
+    const sk2=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const expBtn=hasC?`<button class="exp${isE?' open':''}" onclick="mtoggle('${sk2}',this)">${isE?'▾':'▸'}</button>`:
                       `<span style="width:13px;display:inline-block"></span>`;
-    const rowCls=isDayRow?'day-row':('lv'+lv);
     const nc=n.ng?'rnm nog':'rnm';
-
     const tds=vis.map(c=>{
       const v=c.id==='share'?m.rev:(m[c.key]||0);
-      let cls='';
-      if(c.fmt==='pct')cls=v<0?'neg':v>0?'pos':'neu';
-      else if(c.key==='prof'||c.key==='profKg')cls=v>0?'pos':v<0?'neg':'';
-      else if(c.key==='ret'||c.key==='retKg')cls=v?'neg':'neu';
+      const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profKg')?(v>0?'pos':v<0?'neg':''):(c.key==='ret'||c.key==='retKg')?v?'neg':'neu':'';
       let txt;
       if(c.id==='share'){const pct=(m.rev/tRev*100).toFixed(1);const bw=Math.max(2,Math.round(m.rev/tRev*46));
         txt=`<div class="barw"><div class="bar" style="width:${bw}px;background:${m.prof>=0?'#3fb950':'#f85149'}"></div>${pct}%</div>`;}
-      else txt=fmtC(v,c.fmt,tRev)+(c.fmt==='full'&&v?' ₸':'');
-      return `<td class="${cls}">${txt}</td>`;
+      else txt=fmtCell(v,c.fmt,tRev);
+      return `<td class="${c2}">${txt}</td>`;
     }).join('');
-
-    parts.push(`<tr class="${rowCls}"><td><div class="cnm">${ind}${expBtn}<span class="${nc}" title="${n.name.replace(/"/g,'&quot;')}">${n.name}</span></div></td>${tds}</tr>`);
+    parts.push(`<tr class="lv${lv}"><td><div class="cnm">${ind}${expBtn}<span class="${nc}" title="${n.name.replace(/"/g,'&quot;')}">${n.name}</span></div></td>${tds}</tr>`);
   }
-
-  document.getElementById('tbody').innerHTML=parts.join('');
+  document.getElementById('mTbody').innerHTML=parts.join('');
   document.getElementById('stRows').textContent=flat.length;
-  buildHeader();
+  buildMHeader();
 }
 
-// ── CONTROLS ──────────────────────────────────────────────────
-function toggle(key,btn){
+function mtoggle(key,btn){
   if(expanded.has(key)){expanded.delete(key);btn.classList.remove('open');btn.textContent='▸';}
   else{expanded.add(key);btn.classList.add('open');btn.textContent='▾';}
-  render();
+  renderMonth();
 }
 
+// ══════════════════════════════════════════════════════════
+// DAY MODE RENDER — горизонтальная таблица
+// Строки = иерархия (группа/контрагент/SKU)
+// Колонки = дни, внутри каждого дня — выбранные метрики
+// ══════════════════════════════════════════════════════════
+function renderDay(){
+  const rows=filtered();
+  const visMetrics=DAY_METRICS.filter(m=>dmOn[m.id]);
+  if(!visMetrics.length){
+    document.getElementById('dThead').innerHTML='';
+    document.getElementById('dTbody').innerHTML='<tr><td class="row-hdr" style="padding:12px;color:var(--dim)">Выберите хотя бы одну метрику ↑</td></tr>';
+    return;
+  }
+
+  // Get visible days
+  const visDays=allDays.filter(d=>selectedDays.has(d));
+  if(!visDays.length){
+    document.getElementById('dTbody').innerHTML='<tr><td class="row-hdr" style="padding:12px;color:var(--dim)">Нет дней для отображения</td></tr>';
+    return;
+  }
+
+  // Aggregate by day for quick lookup: day -> {allRows}
+  const byDay=PF.groupBy(rows,r=>r.day);
+
+  // Build row tree (ITOGO + hierarchy)
+  const sf=getSF();
+  const tree=buildInnerTree(rows,sf,dayExpanded);
+
+  // Flatten tree for rows
+  const flat=[];
+  function anyMatch(ns,t){return ns.some(n=>n.name.toLowerCase().includes(t)||(n.ch.length&&anyMatch(n.ch,t)));}
+  function flatten(ns,d){
+    for(const n of ns){
+      const key='d_'+n.name+'_d'+d;const hasC=n.ch.length>0;const isE=dayExpanded.has(key);
+      if(searchTerm){const m=n.name.toLowerCase().includes(searchTerm);if(!m&&!(hasC&&anyMatch(n.ch,searchTerm)))continue;}
+      flat.push({n,d,key,hasC,isE});
+      if(isE&&hasC)flatten(n.ch,d+1);
+    }
+  }
+  flatten(tree,0);
+
+  // Pre-aggregate: for each flat node + each day, get metrics
+  // We need to filter rows by node (its full name path)
+  // Simpler: aggregate the rows that belong to each node by day
+  // We'll do a smarter approach: for each row store group/knt/sku so we can match nodes
+
+  // Build node row data
+  function getNodeRows(node, depth, parentRows){
+    // Root nodes come from full `rows`
+    if(hierarchy==='k'){
+      if(depth===0) return rows.filter(r=>r.group===node.name);
+      if(depth===1) return parentRows.filter(r=>r.knt===node.name);
+      if(depth===2) return parentRows.filter(r=>r.sku===node.name);
+    } else {
+      if(depth===0) return rows.filter(r=>r.skuGroup===node.name);
+      if(depth===1) return parentRows.filter(r=>r.sku===node.name);
+      if(depth===2) return parentRows.filter(r=>r.knt===node.name);
+    }
+    return parentRows;
+  }
+
+  // Pre-compute node->day->agg
+  // For efficiency, store nodeRows in flat items
+  const flatWithRows=[];
+  function flattenWithRows(ns,d,parentR){
+    for(const n of ns){
+      const key='d_'+n.name+'_d'+d;const hasC=n.ch.length>0;const isE=dayExpanded.has(key);
+      if(searchTerm){const m=n.name.toLowerCase().includes(searchTerm);if(!m&&!(hasC&&anyMatch(n.ch,searchTerm)))continue;}
+      const nodeR=getNodeRows(n,d,parentR);
+      flatWithRows.push({n,d,key,hasC,isE,nodeR});
+      if(isE&&hasC)flattenWithRows(n.ch,d+1,nodeR);
+    }
+  }
+  flattenWithRows(tree,0,rows);
+
+  // THEAD — two rows: [row header | day1 colspan=metrics | day2 colspan=metrics ...]
+  // Row 1: blank + day headers
+  // Row 2: "Наименование" + metric sub-headers per day
+  const numM=visMetrics.length;
+
+  let thead1=`<th class="row-hdr" rowspan="2">Наименование</th>`;
+  let thead2=``;
+  visDays.forEach((day,di)=>{
+    const dt=new Date(day);
+    const isWeekend=dt.getDay()===0||dt.getDay()===6;
+    const dayLbl=dt.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
+    const wdLbl=WD[(dt.getDay()+6)%7];
+    thead1+=`<th class="day-hdr-top${isWeekend?' weekend':''}" colspan="${numM}" style="border-left:2px solid var(--border)">${dayLbl} <span style="font-size:9px;opacity:.6">${wdLbl}</span></th>`;
+    visMetrics.forEach((m,mi)=>{
+      const isLast=mi===numM-1;
+      thead2+=`<th class="metric-hdr" style="${di>0&&mi===0?'border-left:2px solid var(--border)':''}">${m.lbl}</th>`;
+    });
+  });
+  document.getElementById('dThead').innerHTML=`<tr>${thead1}</tr><tr>${thead2}</tr>`;
+
+  // TBODY
+  const totRows=rows;
+  const totAgg=PF.agg(totRows);
+  const tRev=totAgg.rev||1;
+
+  const parts=[];
+
+  // ИТОГО row
+  let totTds='';
+  visDays.forEach((day,di)=>{
+    const dayR=(byDay[day]||[]);
+    const da=PF.agg(dayR);
+    visMetrics.forEach((m,mi)=>{
+      const v=da[m.key]||0;
+      const c2=m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):(m.key==='ret'?v?'neg':'neu':'');
+      const isFirst=mi===0;const isLast=mi===numM-1;
+      const bLeft=di>0&&isFirst?'border-left:2px solid var(--border);':'';
+      const bRight=isLast?'border-right:2px solid var(--border);':'';
+      totTds+=`<td class="dcell ${c2}" style="${bLeft}${bRight}">${v?fmtCell(v,m.fmt,tRev):'<span class="empty-cell">—</span>'}</td>`;
+    });
+  });
+  parts.push(`<tr class="dt-tot"><td class="row-hdr"><div class="dt-rnm"><span style="width:13px;display:inline-block"></span><span class="dt-totname">📊 ИТОГО</span></div></td>${totTds}</tr>`);
+
+  // Data rows
+  for(const{n,d,key,hasC,isE,nodeR}of flatWithRows){
+    const lv=Math.min(d,3);
+    const ind='&nbsp;'.repeat(d*3);
+    const sk2=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const expBtn=hasC?`<button class="dt-exp${isE?' open':''}" onclick="dayToggle('${sk2}',this)">${isE?'▾':'▸'}</button>`:
+                      `<span style="width:13px;display:inline-block"></span>`;
+    const nc=n.ng?'dt-name dt-nog':'dt-name';
+
+    // Day cells for this node
+    const nodeByDay=PF.groupBy(nodeR,r=>r.day);
+    let tds='';
+    visDays.forEach((day,di)=>{
+      const dayNodeRows=nodeByDay[day]||[];
+      const da=dayNodeRows.length?PF.agg(dayNodeRows):null;
+      visMetrics.forEach((m,mi)=>{
+        const v=da?da[m.key]||0:null;
+        const hasVal=da&&dayNodeRows.length>0;
+        const c2=hasVal?(m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):(m.key==='ret'?v?'neg':'neu':'')):'';
+        const isFirst=mi===0;const isLast=mi===numM-1;
+        const bLeft=di>0&&isFirst?'border-left:2px solid var(--border);':'';
+        const bRight=isLast?'border-right:2px solid var(--border);':'';
+        const txt=hasVal&&v!==0?fmtCell(v,m.fmt,tRev):'<span class="empty-cell">—</span>';
+        tds+=`<td class="dcell ${c2}" style="${bLeft}${bRight}">${txt}</td>`;
+      });
+    });
+
+    parts.push(`<tr class="dt-lv${lv}"><td class="row-hdr"><div class="dt-rnm">${ind}${expBtn}<span class="${nc}" title="${n.name.replace(/"/g,'&quot;')}">${n.name}</span></div></td>${tds}</tr>`);
+  }
+
+  document.getElementById('dTbody').innerHTML=parts.join('');
+  document.getElementById('stRows').textContent=flatWithRows.length;
+}
+
+function dayToggle(key,btn){
+  if(dayExpanded.has(key)){dayExpanded.delete(key);btn.classList.remove('open');btn.textContent='▸';}
+  else{dayExpanded.add(key);btn.classList.add('open');btn.textContent='▾';}
+  renderDay();
+}
+
+// ── CONTROLS ──────────────────────────────────────────────
 function toggleLv(depth){
   const btn=document.getElementById('btn'+depth);
   const isOpen=levelState[depth]==='open';
+  const tree=buildInnerTree(filtered(),getSF(),expanded);
   function set(ns,d){if(d>depth)return;for(const n of ns){if(n.ch&&n.ch.length){isOpen?expanded.delete(n.name+'_d'+d):expanded.add(n.name+'_d'+d);set(n.ch,d+1);}}}
-  const rows=filtered();
-  const tree=viewMode==='day'?buildDayTree(rows):buildMonthTree(rows);
   set(tree,0);
   levelState[depth]=isOpen?'closed':'open';
   btn.classList.toggle('lit',levelState[depth]==='open');
-  render();
+  renderMonth();
 }
 
-function collapseAll(){
-  expanded.clear();levelState={};
-  document.querySelectorAll('.ebtn').forEach(b=>b.classList.remove('lit'));
-  render();
+function collapseAll(){expanded.clear();levelState={};document.querySelectorAll('#btn0,#btn1,#btn2').forEach(b=>b.classList.remove('lit'));renderMonth();}
+
+function toggleDayLv(depth){
+  const btn=document.getElementById('dbtn'+depth);
+  const isOpen=dayLevelState[depth]==='open';
+  const tree=buildInnerTree(filtered(),getSF(),dayExpanded);
+  function set(ns,d){if(d>depth)return;for(const n of ns){if(n.ch&&n.ch.length){const k='d_'+n.name+'_d'+d;isOpen?dayExpanded.delete(k):dayExpanded.add(k);set(n.ch,d+1);}}}
+  set(tree,0);
+  dayLevelState[depth]=isOpen?'closed':'open';
+  btn.classList.toggle('lit',dayLevelState[depth]==='open');
+  renderDay();
 }
+
+function collapseAllDay(){dayExpanded.clear();dayLevelState={};document.querySelectorAll('#dbtn0,#dbtn1,#dbtn2').forEach(b=>b.classList.remove('lit'));renderDay();}
 
 function swapH(){
-  hierarchy=hierarchy==='k'?'s':'k';
-  expanded.clear();levelState={};
-  updateSwapLabel();
+  hierarchy=hierarchy==='k'?'s':'k';expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};
+  document.getElementById('swLbl').textContent=hierarchy==='k'?'👥 Контрагент → SKU':'📦 SKU → Контрагент';
   render();
 }
 
 function onSearch(){
   searchTerm=document.getElementById('srch').value.trim().toLowerCase();
-  if(searchTerm){
-    const rows=filtered();
-    const tree=viewMode==='day'?buildDayTree(rows):buildMonthTree(rows);
-    function expAll(ns,d){for(const n of ns){if(n.ch&&n.ch.length){expanded.add(n.name+'_d'+d);expAll(n.ch,d+1);}}}
-    expAll(tree,0);
-  }
   render();
 }
 
 async function reloadData(){
   document.getElementById('ls').style.display='flex';
   document.getElementById('prog').style.width='0%';
-  rawRows=[];expanded.clear();levelState={};
+  rawRows=[];expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};
   await loadData();
 }
 
-// Init
 setViewMode('month');
 loadData();
 </script>
