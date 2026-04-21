@@ -88,17 +88,33 @@ const PF = {
 
   // ── АГРЕГАЦИЯ ────────────────────────────────────────────────
   agg(rows) {
-    let qty=0, rev=0, ret=0, seb=0, prof=0, kg=0, retKg=0;
+    let qty=0, rev=0, ret=0, seb=0, prof=0, kg=0, retKg=0, qtyReal=0, sumReal=0;
     for (const x of rows) {
-      qty   += x.qtyN;
-      rev   += x.sumBezNds;   // ВЫРУЧКА = «Сумма без налогов»
-      ret   += x.sumR;
-      seb   += x.seb;
-      prof  += x.prof;
-      kg    += x.kg;
-      retKg += x.retKg;
+      qty        += x.qtyN;
+      rev        += x.sumBezNds;   // ВЫРУЧКА = «Сумма без налогов»
+      ret        += x.sumR;
+      seb        += x.seb;
+      prof       += x.prof;
+      kg         += x.kg;
+      retKg      += x.retKg;
+      qtyRealSum += (x.qtyReal || x.qtyN);
+      sumRealSum += (x.sumReal || 0);
     }
     const mar        = rev  ? prof/rev*100   : 0;
+    // Цена закупа = Себестоимость / Кол-во без возвратов
+    const priceZakup    = qtyRealSum ? seb / qtyRealSum               : 0;
+    // Цена продажи с НДС = Сумма реализации (с НДС) / Кол-во без возвратов
+    const priceSellNds  = qtyRealSum ? sumRealSum / qtyRealSum         : 0;
+    // Цена продажи без НДС = Цена с НДС / 1.16
+    const priceSellNoNds= priceSellNds / 1.16;
+    // Профит на единицу с НДС = Продажная(с НДС) − Закупочная
+    const profitUnitNds  = priceSellNds   - priceZakup;
+    // Профит на единицу без НДС = Продажная(без НДС) − Закупочная
+    const profitUnitNoNds= priceSellNoNds - priceZakup;
+    // Цены: используем qtyReal (без возвратов) как знаменатель
+    const priceZakup  = qtyReal ? seb / qtyReal     : 0;  // Себест / Кол-во без возвр = Закупочная цена
+    const priceSell   = qtyReal ? sumReal / qtyReal  : 0;  // Сумма реализации / Кол-во = Продажная цена (с НДС)
+    const profitUnit  = priceSell - priceZakup;             // Профит на единицу = Продажная − Закупочная
     const retPct     = rev  ? ret/rev*100    : 0;
     const avg        = qty  ? rev/qty        : 0;
     const retKgPct   = kg   ? retKg/kg*100  : 0;
@@ -114,7 +130,15 @@ const PF = {
       kg:       Math.round(kg*10)/10,
       retKg:    Math.round(retKg*10)/10,
       retKgPct: Math.round(retKgPct*10)/10,
-      profKg:   kg ? Math.round(prof/kg) : 0,
+      profKg:       kg ? Math.round(prof/kg)  : 0,
+      priceZakup:    Math.round(priceZakup),      // Себест ÷ Кол-во(без возвр)
+      priceSellNds:  Math.round(priceSellNds),    // СуммаРеал(с НДС) ÷ Кол-во(без возвр)
+      priceSellNoNds:Math.round(priceSellNoNds),  // ÷ 1.16
+      profitUnitNds:  Math.round(profitUnitNds),  // Продажная(с НДС) − Закупочная
+      profitUnitNoNds:Math.round(profitUnitNoNds),// Продажная(без НДС) − Закупочная
+      priceZakup:  Math.round(priceZakup),   // Закупочная цена = Себест÷Кол-во(без возвр)
+      priceSell:   Math.round(priceSell),    // Продажная цена = СуммаРеал(с НДС)÷Кол-во(без возвр)
+      profitUnit:  Math.round(profitUnit),   // Профит на единицу = Продажная − Закупочная
       sebKg:    kg ? Math.round(seb/kg)  : 0,
     };
   },
@@ -170,6 +194,12 @@ const PF = {
     const iKnt       = ri('контрагент');
     const iSku       = ri('номенклатура','sku','товар');
     const iDate      = ri('периоддень','период','дата','date');
+    // Индексы колонок по позиции (надёжнее для коротких имён)
+    const iQtyReal   = rH.findIndex(h => h === 'количествореализации');     // col 5: Кол-во реализации (БЕЗ возвратов)
+    const iSumReal   = rH.findIndex(h => h === 'суммареализации');           // col 8: Сумма реализации с НДС (БЕЗ возвратов)
+    // Точный поиск по имени колонки (findIndex с проверкой равенства)
+    const iQtyReal   = rH.findIndex(h => h === 'количествореализации');  // col 5: Кол-во реализации БЕЗ возвратов
+    const iSumReal   = rH.findIndex(h => h === 'суммареализации');        // col 8: Сумма реализации с НДС, БЕЗ возвратов
     const iQtyN      = ri('количествореализации(с','количествосвозвр');
     const iQtyR      = ri('количествовозвратов');
     // ВЫРУЧКА = «Сумма без налогов» (суммабезналогов)
@@ -192,9 +222,16 @@ const PF = {
       if (!dt) continue;
 
       const mk  = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
-      const day = dt.toISOString().slice(0,10);
+      // ВАЖНО: используем локальную дату, а не UTC.
+      // toISOString() сдвигает дату в UTC → в часовых поясах UTC+N дата "уезжает" на день назад.
+      // Пример бага: 21.04.2026 00:00 по Астане (UTC+5) → 2026-04-20 19:00 UTC → toISOString даёт "2026-04-20"
+      const day = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
       if (!monthMap.has(mk)) monthMap.set(mk, this.MO[dt.getMonth()] + ' ' + dt.getFullYear());
 
+      const qtyReal   = this.toNum(r[iQtyReal]);  // Кол-во реализации БЕЗ возвратов
+      const sumReal   = this.toNum(r[iSumReal]);  // Сумма реализации с НДС, БЕЗ возвратов
+      const qtyReal   = this.toNum(r[iQtyReal]);  // Кол-во без возвратов (числитель для цен)
+      const sumReal   = this.toNum(r[iSumReal]);  // Сумма реализации с НДС (для цены с НДС)
       const qtyN      = this.toNum(r[iQtyN]);
       const qtyR      = Math.abs(this.toNum(r[iQtyR]));
       const sumBezNds = this.toNum(r[iSumBezNds]);
@@ -208,7 +245,7 @@ const PF = {
         group:    groupMap[knt]  || '⚠️ Без группы',
         skuGroup: skuGroup[sku]  || 'Прочее',
         weight:   w,
-        qtyN, qtyR,
+        qtyN, qtyR, qtyReal, sumReal, qtyReal, sumReal,
         sumBezNds,   // ← ВЫРУЧКА (без НДС)
         sumR,
         seb,
