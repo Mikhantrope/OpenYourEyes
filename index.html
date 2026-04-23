@@ -130,9 +130,8 @@ tr.tot{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
 .day-picker-wrap{position:relative;}
 .day-picker-btn{display:flex;align-items:center;gap:5px;padding:4px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;font-weight:600;cursor:pointer;}
 .day-picker-btn:hover{border-color:var(--accent);}
-.day-picker-popup{display:none;position:absolute;top:calc(100%+4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;z-index:600;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.5);max-height:calc(100vh - 280px);display:flex;flex-direction:column;}
+.day-picker-popup{display:none;position:absolute;top:calc(100%+4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;z-index:600;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.5);max-height:calc(100vh - 280px);flex-direction:column;}
 .day-picker-popup.open{display:flex;}
-/* day-picker-popup.open handled above */
 .dp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .dp-title{font-size:12px;font-weight:700;}
 .dp-actions{display:flex;gap:6px;}
@@ -357,10 +356,10 @@ table.dtable tr.dt-lv3:hover{background:#111620;}
   <!-- Day filter bar -->
   <div class="day-filter-bar">
     <div class="day-picker-wrap">
-      <button class="day-picker-btn" id="dpBtn" onclick="toggleDayPicker()">
+      <button class="day-picker-btn" id="dpBtn" onclick="toggleDayPicker(event)">
         📆 Выбрать дни <span id="dpBtnInfo" style="color:var(--muted)"></span> ▾
       </button>
-      <div class="day-picker-popup" id="dpPopup">
+      <div class="day-picker-popup" id="dpPopup" onclick="event.stopPropagation()">
         <div class="dp-header">
           <span class="dp-title" id="dpTitle">Выберите дни</span>
           <div class="dp-actions">
@@ -680,7 +679,7 @@ function updateDpBtnInfo(){
   document.getElementById('dayTotalCount').textContent=total;
 }
 
-function toggleDayPicker(){document.getElementById('dpPopup').classList.toggle('open');}
+function toggleDayPicker(e){if(e)e.stopPropagation();document.getElementById('dpPopup').classList.toggle('open');}
 document.addEventListener('click',e=>{if(!e.target.closest('.day-picker-wrap'))document.getElementById('dpPopup').classList.remove('open');});
 function selectAllDays(){allDays.forEach(d=>selectedDays.add(d));buildDayPicker();renderDay();}
 function clearAllDays(){if(allDays.length){selectedDays.clear();selectedDays.add(allDays[0]);}buildDayPicker();renderDay();}
