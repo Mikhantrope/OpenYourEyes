@@ -813,13 +813,16 @@ function buildMHeader(){
     `<th style="text-align:left" onclick="clickSort('rev')">Наименование</th>`+
     vis.map(c=>{
       const isSorted=c.key===sk||c.id===sk||c.id===sk.replace('NoNds','Nds').replace('Nds','');
-      // Special columns with NDS toggle
+      // Кнопка ? — показывает объяснение метрики
+      const qBtn = (hintMode && c.doc)
+        ? `<button class="info-btn" onclick="event.stopPropagation();showInfo('${c.id}',event)" title="Нажми — объяснение формулы">?</button>`
+        : '';
       if(c.id==='priceSell'||c.id==='profitUnit'){
         const tag=priceNds?'НДС':'б/НДС';
         const tagStyle=`font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;border:1px solid;margin-left:3px;cursor:pointer;background:${priceNds?'rgba(47,129,247,.2)':'rgba(210,153,34,.2)'};border-color:${priceNds?'#2f81f7':'#d29922'};color:${priceNds?'#58a6ff':'#d29922'}`;
-        return `<th title="${c.tip}" class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}<span onclick="event.stopPropagation();togglePriceNds()" style="${tagStyle}">${tag}</span></th>`;
+        return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}${qBtn}<span onclick="event.stopPropagation();togglePriceNds()" style="${tagStyle}">${tag}</span></th>`;
       }
-      return `<th title="${c.tip}" class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}</th>`;
+      return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}${qBtn}</th>`;
     }).join('');
 }
 
