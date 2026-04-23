@@ -218,6 +218,18 @@ table.dtable tr.dt-lv3:hover{background:#111620;}
 .dt-nog{color:var(--amber)!important;font-style:italic;}
 .dt-totname{font-weight:700;color:#3fb950;}
 .empty-cell{color:var(--dim);}
+.dt-name.focused{color:#fff!important;font-weight:700;}
+tr.dt-focused{background:rgba(47,129,247,.18)!important;}
+tr.dt-focused td.row-hdr{background:#1a2540!important;}
+tr.dt-focused .dt-name{color:#fff!important;font-weight:700;}
+tr.dt-dimmed{opacity:.25;}
+tr.dt-cumul{background:rgba(188,140,255,.07);border-top:1px dashed rgba(188,140,255,.3);}
+tr.dt-cumul td.row-hdr{background:#1a1530!important;font-size:10px;color:var(--purple);}
+.dt-cumul-name{color:var(--purple);font-size:10px;font-weight:700;}
+.cumul-btn{padding:2px 8px;border:1px solid rgba(188,140,255,.4);border-radius:4px;
+  background:rgba(188,140,255,.1);color:var(--purple);font-size:10px;cursor:pointer;white-space:nowrap;}
+.cumul-btn:hover{background:rgba(188,140,255,.2);}
+.cumul-btn.off{opacity:.4;}
 
 /* STATUS */
 .statusbar{background:var(--surface);border-top:1px solid var(--border);padding:3px 10px;display:flex;gap:12px;font-size:10px;color:var(--muted);flex-shrink:0;}
@@ -400,6 +412,9 @@ table.dtable tr.dt-lv3:hover{background:#111620;}
       </div>
     </div>
     <div class="day-filter-info">Показано: <span id="dayShowCount">—</span> дн. из <span id="dayTotalCount">—</span></div>
+    <button class="cumul-btn" id="cumulBtn" onclick="toggleCumulative()" title="Показать/скрыть нарастающий итог под каждым днём">
+      Σ Нарастающий итог
+    </button>
     <div style="margin-left:auto;font-size:10px;color:var(--dim)">← Листайте таблицу вправо →</div>
   </div>
   <!-- Horizontal scrollable table -->
@@ -513,6 +528,8 @@ let selectedDays=new Set();
 let sortKey='rev_d',avgMode='sku';
 let priceNds=true;  // true = с НДС, false = без НДС (для колонок Цена продажи и Профит/шт)
 let dayExpanded=new Set(),dayLevelState={};
+let focusedRow=null;   // имя строки на которую нажали (фильтр по строке)
+let showCumulative=true; // показывать ли кумулятивную строку
 
 const WD=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 const MO_SHORT=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
@@ -894,7 +911,7 @@ function mtoggle(key,btn){
 // Колонки = дни, внутри каждого дня — выбранные метрики
 // ══════════════════════════════════════════════════════════
 function renderDay(){
-  const rows=filtered();
+  let rows=filtered();
   const visMetrics=DAY_METRICS.filter(m=>dmOn[m.id]);
   if(!visMetrics.length){
     document.getElementById('dThead').innerHTML='';
@@ -1007,6 +1024,10 @@ function renderDay(){
   parts.push(`<tr class="dt-tot"><td class="row-hdr"><div class="dt-rnm"><span style="width:13px;display:inline-block"></span><span class="dt-totname">📊 ИТОГО</span></div></td>${totTds}</tr>`);
 
   // Data rows
+  // Cumulative accumulators: running total across days
+  const cumAcc={};
+  visMetrics.forEach(m=>{cumAcc[m.key]=0;});
+
   for(const{n,d,key,hasC,isE,nodeR}of flatWithRows){
     const lv=Math.min(d,3);
     const ind='&nbsp;'.repeat(d*3);
@@ -1014,6 +1035,12 @@ function renderDay(){
     const expBtn=hasC?`<button class="dt-exp${isE?' open':''}" onclick="dayToggle('${sk2}',this)">${isE?'▾':'▸'}</button>`:
                       `<span style="width:13px;display:inline-block"></span>`;
     const nc=n.ng?'dt-name dt-nog':'dt-name';
+
+    // Focus filter
+    const isFocused=focusedRow===n.name;
+    const isDimmed=focusedRow!==null&&!isFocused;
+    const rowCls=`dt-lv${lv}${isFocused?' dt-focused':''}${isDimmed?' dt-dimmed':''}`;
+    const safeName=n.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
 
     // Day cells for this node
     const nodeByDay=PF.groupBy(nodeR,r=>r.day);
@@ -1024,17 +1051,32 @@ function renderDay(){
       visMetrics.forEach((m,mi)=>{
         const v=da?da[m.key]||0:null;
         const hasVal=da&&dayNodeRows.length>0;
-        const isProfit2=m.key==='prof'||m.id==='profitUnit';
-        const c2=hasVal?(m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):isProfit2?(v>0?'pos':v<0?'neg':''):(m.key==='ret'?v?'neg':'neu':'')):'';
-        const isFirst=mi===0;const isLast=mi===numM-1;
-        const bLeft=di>0&&isFirst?'border-left:2px solid var(--border);':'';
-        const bRight=isLast?'border-right:2px solid var(--border);':'';
+        const c2=hasVal?(m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):(m.key==='ret'?v?'neg':'neu':'')):'';
+        const bLeft=di>0&&mi===0?'border-left:2px solid var(--border);':'';
         const txt=hasVal&&v!==0?fmtCell(v,m.fmt,tRev):'<span class="empty-cell">—</span>';
-        tds+=`<td class="dcell ${c2}" style="${bLeft}${bRight}">${txt}</td>`;
+        tds+=`<td class="dcell ${c2}" style="${bLeft}">${txt}</td>`;
       });
     });
 
-    parts.push(`<tr class="dt-lv${lv}"><td class="row-hdr"><div class="dt-rnm">${ind}${expBtn}<span class="${nc}" title="${n.name.replace(/"/g,'&quot;')}">${n.name}</span></div></td>${tds}</tr>`);
+    parts.push(`<tr class="${rowCls}"><td class="row-hdr"><div class="dt-rnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickRowName('${safeName}')" title="Нажми чтобы оставить только эту строку">${n.name}</span></div></td>${tds}</tr>`);
+  }
+
+  // CUMULATIVE ROW — нарастающий итог по всем дням
+  if(showCumulative){
+    visMetrics.forEach(m=>{cumAcc[m.key]=0;});
+    let cumTds='';
+    visDays.forEach((day,di)=>{
+      const dayR=(byDay[day]||[]);
+      const da=PF.agg(dayR);
+      visMetrics.forEach((m,mi)=>{
+        cumAcc[m.key]+=(da[m.key]||0);
+        const v=cumAcc[m.key];
+        const bLeft=di>0&&mi===0?'border-left:2px solid var(--border);':'';
+        const c2=(m.key==='prof'||m.id==='profitUnit')?(v>0?'pos':v<0?'neg':'pur'):'pur';
+        cumTds+=`<td class="dcell ${c2}" style="${bLeft}font-size:10px;">${fmtCell(v,m.fmt,tRev)}</td>`;
+      });
+    });
+    parts.push(`<tr class="dt-cumul"><td class="row-hdr"><div class="dt-rnm"><span style="width:13px;display:inline-block"></span><span class="dt-cumul-name" title="Нарастающий итог — сумма от первого дня до этого">Σ нараст.</span></div></td>${cumTds}</tr>`);
   }
 
   document.getElementById('dTbody').innerHTML=parts.join('');
@@ -1123,6 +1165,23 @@ document.addEventListener('click', e => {
     closeInfo();
   }
 });
+
+// ── ROW FOCUS FILTER ──────────────────────────────────────
+function clickRowName(name){
+  if(focusedRow===name){
+    focusedRow=null; // снимаем фильтр
+  } else {
+    focusedRow=name; // фокусируемся на строке
+  }
+  renderDay();
+}
+
+function toggleCumulative(){
+  showCumulative=!showCumulative;
+  const btn=document.getElementById('cumulBtn');
+  if(btn){btn.classList.toggle('off',!showCumulative);btn.title=showCumulative?'Скрыть нарастающий итог':'Показать нарастающий итог';}
+  renderDay();
+}
 
 async function reloadData(){
   document.getElementById('ls').style.display='flex';
