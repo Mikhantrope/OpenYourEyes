@@ -161,17 +161,18 @@ table.dtable thead{position:sticky;top:0;z-index:100;}
 /* Frozen left column */
 table.dtable th.row-hdr,table.dtable td.row-hdr{
   position:sticky;left:0;z-index:50;
-  background:var(--surface2);
+  background:#21262d;
   min-width:200px;width:200px;max-width:240px;
   text-align:left;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border-right:2px solid var(--border);
 }
-table.dtable td.row-hdr{background:var(--surface);font-size:11px;}
-table.dtable tr.dt-lv0 td.row-hdr{background:rgba(47,129,247,.1);}
-table.dtable tr.dt-lv1 td.row-hdr{background:rgba(33,38,45,.95);}
-table.dtable tr.dt-lv2 td.row-hdr{background:var(--surface);}
-table.dtable tr.dt-lv3 td.row-hdr{background:var(--bg);}
-table.dtable tr.dt-tot td.row-hdr{background:rgba(63,185,80,.1);}
+table.dtable td.row-hdr{background:#161b22;font-size:11px;}
+table.dtable tr.dt-lv0 td.row-hdr{background:#162033;}
+table.dtable tr.dt-lv1 td.row-hdr{background:#181d24;}
+table.dtable tr.dt-lv2 td.row-hdr{background:#161b22;}
+table.dtable tr.dt-lv3 td.row-hdr{background:#0f1318;}
+table.dtable tr.dt-tot td.row-hdr{background:#142318;}
 
 /* Day column group headers */
 table.dtable th.day-hdr-top{
@@ -448,17 +449,12 @@ const MO_SHORT=['Янв','Фев','Мар','Апр','Май','Июн','Июл','
 
 // ── LOAD ──────────────────────────────────────────────────
 // Переключатель НДС для ценовых колонок
-function togglePriceNds(el) {
+function togglePriceNds() {
   priceNds = !priceNds;
-  el.textContent = priceNds ? 'с НДС' : 'без НДС';
-  el.style.background = priceNds ? 'rgba(47,129,247,.2)' : 'rgba(210,153,34,.2)';
-  el.style.borderColor = priceNds ? '#2f81f7' : '#d29922';
-  el.style.color = priceNds ? '#58a6ff' : '#d29922';
-  // Update which key to use for priceSell and profitUnit
-  const ndsKey = priceNds ? 'priceSellNds' : 'priceSellNoNds';
-  const profKey = priceNds ? 'profitUnitNds' : 'profitUnitNoNds';
-  MCOLS.find(c=>c.id==='priceSell').key   = ndsKey;
-  MCOLS.find(c=>c.id==='profitUnit').key  = profKey;
+  const ndsKey  = priceNds ? 'priceSellNds'   : 'priceSellNoNds';
+  const profKey = priceNds ? 'profitUnitNds'  : 'profitUnitNoNds';
+  MCOLS.find(c=>c.id==='priceSell').key        = ndsKey;
+  MCOLS.find(c=>c.id==='profitUnit').key       = profKey;
   DAY_METRICS.find(c=>c.id==='priceSell').key  = ndsKey;
   DAY_METRICS.find(c=>c.id==='profitUnit').key = profKey;
   buildMHeader(); render();
@@ -749,12 +745,9 @@ function buildMHeader(){
       const isSorted=c.key===sk||c.id===sk||c.id===sk.replace('NoNds','Nds').replace('Nds','');
       // Special columns with NDS toggle
       if(c.id==='priceSell'||c.id==='profitUnit'){
-        const ndsBadge=`<span onclick="event.stopPropagation();togglePriceNds(this)" title="Переключить с НДС / без НДС"
-          style="margin-left:4px;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;cursor:pointer;border:1px solid;
-          background:${priceNds?'rgba(47,129,247,.2)':'rgba(210,153,34,.2)'};
-          border-color:${priceNds?'#2f81f7':'#d29922'};
-          color:${priceNds?'#58a6ff':'#d29922'}">${priceNds?'с НДС':'без НДС'}</span>`;
-        return `<th title="${c.tip}" class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}${ndsBadge}</th>`;
+        const tag=priceNds?'НДС':'б/НДС';
+        const tagStyle=`font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;border:1px solid;margin-left:3px;cursor:pointer;background:${priceNds?'rgba(47,129,247,.2)':'rgba(210,153,34,.2)'};border-color:${priceNds?'#2f81f7':'#d29922'};color:${priceNds?'#58a6ff':'#d29922'}`;
+        return `<th title="${c.tip}" class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}<span onclick="event.stopPropagation();togglePriceNds()" style="${tagStyle}">${tag}</span></th>`;
       }
       return `<th title="${c.tip}" class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}</th>`;
     }).join('');
