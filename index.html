@@ -130,14 +130,16 @@ tr.tot{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
 .day-picker-wrap{position:relative;}
 .day-picker-btn{display:flex;align-items:center;gap:5px;padding:4px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;font-weight:600;cursor:pointer;}
 .day-picker-btn:hover{border-color:var(--accent);}
-.day-picker-popup{display:none;position:absolute;top:calc(100%+4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;z-index:600;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.5);}
-.day-picker-popup.open{display:block;}
+.day-picker-popup{display:none;position:absolute;top:calc(100%+4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;z-index:600;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.5);max-height:calc(100vh - 280px);display:flex;flex-direction:column;}
+.day-picker-popup.open{display:flex;}
+/* day-picker-popup.open handled above */
 .dp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .dp-title{font-size:12px;font-weight:700;}
 .dp-actions{display:flex;gap:6px;}
 .dp-action{font-size:11px;color:var(--accent);cursor:pointer;padding:2px 6px;border-radius:4px;}
 .dp-action:hover{background:rgba(47,129,247,.1);}
-.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;overflow-y:auto;padding-right:2px;}
+.dp-scroll-area{overflow-y:auto;flex:1;padding-right:2px;}
 .dp-day{padding:4px;border-radius:5px;font-size:11px;font-family:'Consolas',monospace;text-align:center;cursor:pointer;background:var(--surface2);color:var(--muted);border:1px solid transparent;transition:all .1s;}
 .dp-day:hover{border-color:var(--accent);color:var(--text);}
 .dp-day.selected{background:rgba(47,129,247,.2);border-color:var(--accent);color:#58a6ff;font-weight:700;}
@@ -367,8 +369,8 @@ table.dtable tr.dt-lv3:hover{background:#111620;}
             <span class="dp-action" onclick="selectWorkdays()">Рабочие</span>
           </div>
         </div>
-        <div class="dp-weekdays"><div class="dp-wd">Пн</div><div class="dp-wd">Вт</div><div class="dp-wd">Ср</div><div class="dp-wd">Чт</div><div class="dp-wd">Пт</div><div class="dp-wd" style="color:var(--amber)">Сб</div><div class="dp-wd" style="color:var(--amber)">Вс</div></div>
-        <div class="dp-grid" id="dpGrid"></div>
+        <div class="dp-weekdays" style="flex-shrink:0"><div class="dp-wd">Пн</div><div class="dp-wd">Вт</div><div class="dp-wd">Ср</div><div class="dp-wd">Чт</div><div class="dp-wd">Пт</div><div class="dp-wd" style="color:var(--amber)">Сб</div><div class="dp-wd" style="color:var(--amber)">Вс</div></div>
+        <div style="overflow-y:auto;flex:1;padding-right:2px;"><div class="dp-grid" id="dpGrid"></div></div>
       </div>
     </div>
     <div class="day-filter-info">Показано: <span id="dayShowCount">—</span> дн. из <span id="dayTotalCount">—</span></div>
@@ -409,7 +411,10 @@ const MCOLS=[
   {id:'kg',   lbl:'Объём кг', key:'kg',    fmt:'kg',  on:true, tip:'Кол-во×вес'},
   {id:'profKg',lbl:'Приб./кг',key:'profKg',fmt:'full',on:true, tip:'Прибыль÷кг'},
   {id:'sebKg', lbl:'Затр./кг',key:'sebKg', fmt:'full',on:true, tip:'Себест÷кг'},
-  {id:'share', lbl:'Доля %',  key:'_sh',   fmt:'share',on:true,tip:'Доля в выручке'},
+  {id:'share',       lbl:'Доля %',        key:'_sh',          fmt:'share',on:true, tip:'Доля в выручке'},
+  {id:'priceZakup',  lbl:'Цена закупа',   key:'priceZakup',   fmt:'full', on:true, tip:'Себестоимость ÷ Кол-во реализации (без возвратов)'},
+  {id:'priceSell',   lbl:'Цена продажи',  key:'priceSellNds', fmt:'full', on:true, tip:'Цена продажи — переключайте с НДС / без НДС кнопкой в заголовке'},
+  {id:'profitUnit',  lbl:'Профит/шт',     key:'profitUnitNds',fmt:'full', on:true, tip:'Профит на единицу = Цена продажи − Цена закупа. Переключайте с НДС / без НДС'},
 ];
 let mColOn={}; MCOLS.forEach(c=>mColOn[c.id]=c.on);
 
@@ -422,7 +427,10 @@ const DAY_METRICS=[
   {id:'kg',   lbl:'Объём кг',key:'kg',    fmt:'kg',  on:false},
   {id:'seb',  lbl:'Себест.',  key:'seb',   fmt:'rev', on:false},
   {id:'ret',  lbl:'Возврат', key:'ret',   fmt:'rev', on:false},
-  {id:'retPct',lbl:'Возврат%',key:'retPct',fmt:'pct',on:false},
+  {id:'retPct',    lbl:'Возврат%',   key:'retPct',       fmt:'pct', on:false},
+  {id:'priceZakup', lbl:'Цена закупа', key:'priceZakup',   fmt:'full',on:false},
+  {id:'priceSell',  lbl:'Цена продажи',key:'priceSellNds', fmt:'full',on:false},
+  {id:'profitUnit', lbl:'Профит/шт',   key:'profitUnitNds',fmt:'full',on:false},
 ];
 let dmOn={}; DAY_METRICS.forEach(m=>dmOn[m.id]=m.on);
 
@@ -433,12 +441,30 @@ let filterGrp=new Set(['ALL']),filterSkuGrp=new Set(['ALL']);
 let allGroups=[],allSkuGroups=[],allDays=[];
 let selectedDays=new Set();
 let sortKey='rev_d',avgMode='sku';
+let priceNds=true;  // true = с НДС, false = без НДС (для колонок Цена продажи и Профит/шт)
 let dayExpanded=new Set(),dayLevelState={};
 
 const WD=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 const MO_SHORT=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
 
 // ── LOAD ──────────────────────────────────────────────────
+// Переключатель НДС для ценовых колонок
+function togglePriceNds(el) {
+  priceNds = !priceNds;
+  el.textContent = priceNds ? 'с НДС' : 'без НДС';
+  el.style.background = priceNds ? 'rgba(47,129,247,.2)' : 'rgba(210,153,34,.2)';
+  el.style.borderColor = priceNds ? '#2f81f7' : '#d29922';
+  el.style.color = priceNds ? '#58a6ff' : '#d29922';
+  // Update which key to use for priceSell and profitUnit
+  const ndsKey = priceNds ? 'priceSellNds' : 'priceSellNoNds';
+  const profKey = priceNds ? 'profitUnitNds' : 'profitUnitNoNds';
+  MCOLS.find(c=>c.id==='priceSell').key   = ndsKey;
+  MCOLS.find(c=>c.id==='profitUnit').key  = profKey;
+  DAY_METRICS.find(c=>c.id==='priceSell').key  = ndsKey;
+  DAY_METRICS.find(c=>c.id==='profitUnit').key = profKey;
+  buildMHeader(); render();
+}
+
 async function loadData(){
   const errEl=document.getElementById('lerr');errEl.style.display='none';
   try{
@@ -721,7 +747,16 @@ function buildMHeader(){
   document.querySelector('#mThead tr').innerHTML=
     `<th style="text-align:left" onclick="clickSort('rev')">Наименование</th>`+
     vis.map(c=>{
-      const isSorted=c.key===sk||c.id===sk;
+      const isSorted=c.key===sk||c.id===sk||c.id===sk.replace('NoNds','Nds').replace('Nds','');
+      // Special columns with NDS toggle
+      if(c.id==='priceSell'||c.id==='profitUnit'){
+        const ndsBadge=`<span onclick="event.stopPropagation();togglePriceNds(this)" title="Переключить с НДС / без НДС"
+          style="margin-left:4px;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;cursor:pointer;border:1px solid;
+          background:${priceNds?'rgba(47,129,247,.2)':'rgba(210,153,34,.2)'};
+          border-color:${priceNds?'#2f81f7':'#d29922'};
+          color:${priceNds?'#58a6ff':'#d29922'}">${priceNds?'с НДС':'без НДС'}</span>`;
+        return `<th title="${c.tip}" class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}${ndsBadge}</th>`;
+      }
       return `<th title="${c.tip}" class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}</th>`;
     }).join('');
 }
@@ -924,7 +959,8 @@ function renderDay(){
       visMetrics.forEach((m,mi)=>{
         const v=da?da[m.key]||0:null;
         const hasVal=da&&dayNodeRows.length>0;
-        const c2=hasVal?(m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):(m.key==='ret'?v?'neg':'neu':'')):'';
+        const isProfit2=m.key==='prof'||m.id==='profitUnit';
+        const c2=hasVal?(m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):isProfit2?(v>0?'pos':v<0?'neg':''):(m.key==='ret'?v?'neg':'neu':'')):'';
         const isFirst=mi===0;const isLast=mi===numM-1;
         const bLeft=di>0&&isFirst?'border-left:2px solid var(--border);':'';
         const bRight=isLast?'border-right:2px solid var(--border);':'';
