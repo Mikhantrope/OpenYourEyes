@@ -222,6 +222,26 @@ table.dtable tr.dt-lv3:hover{background:#111620;}
 /* STATUS */
 .statusbar{background:var(--surface);border-top:1px solid var(--border);padding:3px 10px;display:flex;gap:12px;font-size:10px;color:var(--muted);flex-shrink:0;}
 .statusbar span{color:var(--text);font-weight:600;}
+
+/* INFO POPUP */
+.info-btn{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;border:1px solid var(--dim);background:transparent;color:var(--dim);font-size:9px;font-weight:700;cursor:pointer;margin-left:3px;vertical-align:middle;line-height:1;flex-shrink:0;}
+.info-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(47,129,247,.1);}
+#infoPopup{display:none;position:fixed;z-index:9000;background:#1a2035;border:1px solid #2f81f7;border-radius:12px;padding:0;width:340px;box-shadow:0 8px 32px rgba(0,0,0,.6);font-size:12px;}
+#infoPopup.visible{display:block;}
+.ip-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px;border-bottom:1px solid var(--border);}
+.ip-title{font-size:13px;font-weight:700;color:var(--text);}
+.ip-close{width:20px;height:20px;border-radius:50%;border:none;background:var(--surface2);color:var(--muted);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;}
+.ip-close:hover{color:var(--text);}
+.ip-body{padding:12px 14px;}
+.ip-row{margin-bottom:10px;}
+.ip-row:last-child{margin-bottom:0;}
+.ip-label{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.ip-val{font-size:12px;color:var(--text);line-height:1.5;background:var(--surface2);border-radius:6px;padding:6px 9px;font-family:'Consolas',monospace;}
+.ip-val.meaning{font-family:'Segoe UI',sans-serif;background:rgba(47,129,247,.06);border:1px solid rgba(47,129,247,.2);}
+.ip-val.example{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.2);color:#3fb950;}
+.ip-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+.ip-toggle input{cursor:pointer;}
+.hint-mode-off .info-btn{display:none;}
 </style>
 </head>
 <body>
@@ -337,7 +357,13 @@ table.dtable tr.dt-lv3:hover{background:#111620;}
     <span class="tlbl">Метрики в колонках:</span>
     <div class="metric-chooser" id="metricChooser"></div>
   </div>
-  <div style="margin-left:auto;font-size:10px;color:var(--dim)" id="luTime"></div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+    <label class="ip-toggle" title="Включить/выключить подсказки по столбцам">
+      <input type="checkbox" id="hintToggle" checked onchange="toggleHintMode(this.checked)">
+      <span style="font-size:10px;color:var(--muted)">❓ Подсказки</span>
+    </label>
+    <span style="font-size:10px;color:var(--dim)" id="luTime"></span>
+  </div>
 </div>
 
 <!-- FILTER PANEL -->
@@ -387,6 +413,20 @@ table.dtable tr.dt-lv3:hover{background:#111620;}
   </div>
 </div>
 
+<!-- INFO POPUP -->
+<div id="infoPopup">
+  <div class="ip-header">
+    <span class="ip-title" id="ipTitle">—</span>
+    <button class="ip-close" onclick="closeInfo()">✕</button>
+  </div>
+  <div class="ip-body">
+    <div class="ip-row"><div class="ip-label">📐 Формула</div><div class="ip-val" id="ipFormula">—</div></div>
+    <div class="ip-row"><div class="ip-label">📋 Источник в 1С</div><div class="ip-val" id="ipSource">—</div></div>
+    <div class="ip-row"><div class="ip-label">💡 Что означает</div><div class="ip-val meaning" id="ipMeaning">—</div></div>
+    <div class="ip-row"><div class="ip-label">🔢 Пример</div><div class="ip-val example" id="ipExample">—</div></div>
+  </div>
+</div>
+
 <div class="statusbar">
   <div>Строк: <span id="stRows">—</span></div>
   <div>Записей: <span id="stTotal">—</span></div>
@@ -400,21 +440,52 @@ table.dtable tr.dt-lv3:hover{background:#111620;}
 <script>
 // ── MONTH MODE COLUMNS ──────────────────────────────────────
 const MCOLS=[
-  {id:'qty',  lbl:'Кол-во',   key:'qty',   fmt:'qty', on:true, tip:'Кол-во штук'},
-  {id:'rev',  lbl:'Выручка ₸',key:'rev',   fmt:'full',on:true, tip:'Сумма без налогов'},
-  {id:'ret',  lbl:'Возврат ₸',key:'ret',   fmt:'full',on:true, tip:'Сумма возвратов'},
-  {id:'retPct',lbl:'Возврат%',key:'retPct',fmt:'pct', on:true, tip:'|Возврат|÷Выручка'},
-  {id:'seb',  lbl:'Себест. ₸',key:'seb',   fmt:'full',on:true, tip:'Стоимость(без НДС)'},
-  {id:'prof', lbl:'Прибыль ₸',key:'prof',  fmt:'full',on:true, tip:'Profit из 1С'},
-  {id:'mar',  lbl:'Маржа %',  key:'mar',   fmt:'pct', on:true, tip:'Прибыль÷Выручка'},
-  {id:'avg',  lbl:'Ср.цена ₸',key:'avg',   fmt:'full',on:false,tip:'Выручка÷Кол-во'},
-  {id:'kg',   lbl:'Объём кг', key:'kg',    fmt:'kg',  on:true, tip:'Кол-во×вес'},
-  {id:'profKg',lbl:'Приб./кг',key:'profKg',fmt:'full',on:true, tip:'Прибыль÷кг'},
-  {id:'sebKg', lbl:'Затр./кг',key:'sebKg', fmt:'full',on:true, tip:'Себест÷кг'},
-  {id:'share',       lbl:'Доля %',        key:'_sh',          fmt:'share',on:true, tip:'Доля в выручке'},
-  {id:'priceZakup',  lbl:'Цена закупа',   key:'priceZakup',   fmt:'full', on:true, tip:'Себестоимость ÷ Кол-во реализации (без возвратов)'},
-  {id:'priceSell',   lbl:'Цена продажи',  key:'priceSellNds', fmt:'full', on:true, tip:'Цена продажи — переключайте с НДС / без НДС кнопкой в заголовке'},
-  {id:'profitUnit',  lbl:'Профит/шт',     key:'profitUnitNds',fmt:'full', on:true, tip:'Профит на единицу = Цена продажи − Цена закупа. Переключайте с НДС / без НДС'},
+  {id:'qty',      lbl:'Кол-во',     key:'qty',         fmt:'qty', on:true,
+    tip:'Количество реализованных единиц',
+    doc:{formula:'СУММ(«Количество реализации (с возвратами)»)',source:'Колонка I в ИсхРеал из 1С',meaning:'Фактически проданное количество штук — уже учитывает возвраты (т.е. если вернули 5 шт, они вычтены)',example:'Продали 100 шт, вернули 5 → Кол-во = 95'}},
+  {id:'rev',      lbl:'Выручка ₸',  key:'rev',         fmt:'full',on:true,
+    tip:'Выручка без НДС',
+    doc:{formula:'СУММ(«Сумма без налогов»)',source:'Колонка O в ИсхРеал из 1С',meaning:'Реальная выручка без НДС — основная база для расчёта маржи и прибыли. НЕ путать с «Суммой реализации» — та содержит НДС',example:'Продали на 116 000 ₸ с НДС → Выручка = 100 000 ₸'}},
+  {id:'ret',      lbl:'Возврат ₸',  key:'ret',         fmt:'full',on:true,
+    tip:'Сумма возвратов',
+    doc:{formula:'СУММ(«Сумма возвратов»)',source:'Колонка K в ИсхРеал из 1С',meaning:'Деньги которые вернули покупателям. Отрицательное число означает уменьшение выручки',example:'-50 000 ₸ = вернули товар на 50 тысяч'}},
+  {id:'retPct',   lbl:'Возврат %',  key:'retPct',      fmt:'pct', on:true,
+    tip:'Процент возврата от выручки',
+    doc:{formula:'|Сумма возвратов| ÷ Выручка × 100%',source:'Считается на сайте из колонок O и K',meaning:'Показывает какой % выручки "уходит" обратно через возвраты. Норма для молочки — до 2-3%. Выше — проблема с качеством или приёмкой',example:'Выручка 1 млн, возвраты 30 тыс → Возврат% = 3.0%'}},
+  {id:'seb',      lbl:'Себест. ₸',  key:'seb',         fmt:'full',on:true,
+    tip:'Себестоимость (прямые затраты на закупку)',
+    doc:{formula:'СУММ(«Стоимость (без НДС)»)',source:'Колонка P в ИсхРеал из 1С',meaning:'Сколько заплатили поставщику за этот товар. Прямые затраты — без учёта ФОТ, аренды, логистики',example:'Закупили молоко на 80 000 ₸, продали на 100 000 ₸ → Себест = 80 000 ₸'}},
+  {id:'prof',     lbl:'Прибыль ₸',  key:'prof',        fmt:'full',on:true,
+    tip:'Валовая прибыль (до косвенных затрат)',
+    doc:{formula:'«Profit (сумма)» = Выручка − Себестоимость',source:'Колонка Q в ИсхРеал — 1С считает сам',meaning:'⚠️ Это ВАЛОВАЯ прибыль — только прямые затраты вычтены. ФОТ, аренда, логистика — НЕ учтены. Для полной картины смотри P&L',example:'Выручка 100 000 − Себест 80 000 = Прибыль 20 000 ₸'}},
+  {id:'mar',      lbl:'Маржа %',    key:'mar',         fmt:'pct', on:true,
+    tip:'Маржинальность (рентабельность продаж)',
+    doc:{formula:'Прибыль ÷ Выручка × 100%',source:'Считается на сайте',meaning:'Показывает сколько копеек прибыли на каждый тенге выручки. Без учёта косвенных расходов. Минус = продаём дешевле чем покупаем',example:'Прибыль 20 000 ÷ Выручка 100 000 = Маржа 20%'}},
+  {id:'avg',      lbl:'Ср.цена ₸',  key:'avg',         fmt:'full',on:false,
+    tip:'Средняя цена продажи',
+    doc:{formula:'Выручка ÷ Кол-во (с возвратами)',source:'Считается на сайте',meaning:'Средняя цена за единицу товара по данной группе/контрагенту/SKU',example:'Выручка 100 000 ÷ 200 шт = 500 ₸/шт'}},
+  {id:'kg',       lbl:'Объём кг',   key:'kg',          fmt:'kg',  on:true,
+    tip:'Физический объём продаж в кг',
+    doc:{formula:'Кол-во × Вес единицы SKU',source:'Кол-во из ИсхРеал × Вес из листа SKUСправочник',meaning:'Показывает реальный физический объём — удобно для сравнения разных SKU (1л молоко vs 400гр сметана)',example:'200 шт × 1 кг = 200 кг'}},
+  {id:'profKg',   lbl:'Приб./кг',   key:'profKg',      fmt:'full',on:true,
+    tip:'Прибыль на 1 кг продукции',
+    doc:{formula:'Прибыль ÷ Объём(кг)',source:'Считается на сайте',meaning:'Сколько тенге прибыли приносит каждый килограмм. Удобно для сравнения разных весовых категорий',example:'Прибыль 20 000 ÷ 200 кг = 100 ₸/кг'}},
+  {id:'sebKg',    lbl:'Затр./кг',   key:'sebKg',       fmt:'full',on:true,
+    tip:'Прямые затраты на 1 кг продукции',
+    doc:{formula:'Себестоимость ÷ Объём(кг)',source:'Считается на сайте',meaning:'Сколько тенге себестоимости на каждый кг — удобно для сравнения эффективности SKU',example:'Себест 80 000 ÷ 200 кг = 400 ₸/кг'}},
+  {id:'share',    lbl:'Доля %',     key:'_sh',         fmt:'share',on:true,
+    tip:'Доля в общей выручке',
+    doc:{formula:'Выручка строки ÷ Выручка ИТОГО × 100%',source:'Считается на сайте',meaning:'Показывает вклад этого контрагента/группы/SKU в общую выручку',example:'Кофейни 30 млн ÷ Всего 300 млн = 10%'}},
+  {id:'priceZakup',lbl:'Цена закупа',key:'priceZakup', fmt:'full',on:true,
+    tip:'Средняя закупочная цена за штуку',
+    doc:{formula:'Себестоимость ÷ Кол-во реализации (БЕЗ возвратов)',source:'Себест из колонки P ÷ Кол-во из колонки G (без скобок)',meaning:'Сколько в среднем платим поставщику за одну штуку. Используем кол-во БЕЗ возвратов — именно столько реально купили',example:'Себест 80 000 ÷ 200 шт = 400 ₸/шт'}},
+  {id:'priceSell', lbl:'Цена продажи',key:'priceSellNds',fmt:'full',on:true,
+    tip:'Средняя цена продажи (переключатель НДС/б.НДС)',
+    doc:{formula:'с НДС: Сумма реализации ÷ Кол-во (без возвратов)
+без НДС: (Сумма реализации ÷ 1.16) ÷ Кол-во',source:'Сумма реализации из колонки J ÷ Кол-во из колонки G',meaning:'Цена по которой продаём клиенту. С НДС — что видит покупатель в накладной. Без НДС — база для сравнения с закупочной',example:'Продали на 116 000 ₸ (с НДС) ÷ 200 шт = 580 ₸/шт'}},
+  {id:'profitUnit',lbl:'Профит/шт',  key:'profitUnitNds',fmt:'full',on:true,
+    tip:'Заработок/убыток на одной штуке',
+    doc:{formula:'Цена продажи − Цена закупа',source:'Считается на сайте из двух колонок выше',meaning:'Ключевая метрика: зарабатываем или теряем на каждой единице товара. Минус = продаём ниже себестоимости',example:'Продажа 580 ₸ − Закуп 400 ₸ = Профит +180 ₸/шт'}},
 ];
 let mColOn={}; MCOLS.forEach(c=>mColOn[c.id]=c.on);
 
@@ -1011,6 +1082,45 @@ function onSearch(){
   searchTerm=document.getElementById('srch').value.trim().toLowerCase();
   render();
 }
+
+// ── INFO POPUP ────────────────────────────────────────────
+let hintMode = true;
+
+function toggleHintMode(on) {
+  hintMode = on;
+  document.body.classList.toggle('hint-mode-off', !on);
+  if (!on) closeInfo();
+}
+
+function showInfo(colId, event) {
+  if (!hintMode) return;
+  const col = MCOLS.find(c => c.id === colId);
+  if (!col || !col.doc) return;
+  event.stopPropagation();
+  const popup = document.getElementById('infoPopup');
+  document.getElementById('ipTitle').textContent = col.lbl;
+  document.getElementById('ipFormula').textContent  = col.doc.formula;
+  document.getElementById('ipSource').textContent   = col.doc.source;
+  document.getElementById('ipMeaning').textContent  = col.doc.meaning;
+  document.getElementById('ipExample').textContent  = col.doc.example;
+  // Position near click
+  const x = Math.min(event.clientX, window.innerWidth - 360);
+  const y = Math.min(event.clientY + 10, window.innerHeight - 320);
+  popup.style.left = x + 'px';
+  popup.style.top  = y + 'px';
+  popup.classList.add('visible');
+}
+
+function closeInfo() {
+  document.getElementById('infoPopup').classList.remove('visible');
+}
+
+// Close on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#infoPopup') && !e.target.classList.contains('info-btn')) {
+    closeInfo();
+  }
+});
 
 async function reloadData(){
   document.getElementById('ls').style.display='flex';
