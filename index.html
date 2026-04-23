@@ -1024,22 +1024,24 @@ function renderDay(){
   parts.push(`<tr class="dt-tot"><td class="row-hdr"><div class="dt-rnm"><span style="width:13px;display:inline-block"></span><span class="dt-totname">📊 ИТОГО</span></div></td>${totTds}</tr>`);
 
   // Data rows
+  // Если выбрана строка — показываем только её
+  const visRows = focusedRow
+    ? flatWithRows.filter(({n}) => n.name === focusedRow)
+    : flatWithRows;
+
   // Cumulative accumulators: running total across days
   const cumAcc={};
   visMetrics.forEach(m=>{cumAcc[m.key]=0;});
 
-  for(const{n,d,key,hasC,isE,nodeR}of flatWithRows){
+  for(const{n,d,key,hasC,isE,nodeR}of visRows){
     const lv=Math.min(d,3);
     const ind='&nbsp;'.repeat(d*3);
     const sk2=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const expBtn=hasC?`<button class="dt-exp${isE?' open':''}" onclick="dayToggle('${sk2}',this)">${isE?'▾':'▸'}</button>`:
                       `<span style="width:13px;display:inline-block"></span>`;
     const nc=n.ng?'dt-name dt-nog':'dt-name';
-
-    // Focus filter
     const isFocused=focusedRow===n.name;
-    const isDimmed=focusedRow!==null&&!isFocused;
-    const rowCls=`dt-lv${lv}${isFocused?' dt-focused':''}${isDimmed?' dt-dimmed':''}`;
+    const rowCls=`dt-lv${lv}${isFocused?' dt-focused':''}`;
     const safeName=n.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
 
     // Day cells for this node
@@ -1058,25 +1060,49 @@ function renderDay(){
       });
     });
 
-    parts.push(`<tr class="${rowCls}"><td class="row-hdr"><div class="dt-rnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickRowName('${safeName}')" title="Нажми чтобы оставить только эту строку">${n.name}</span></div></td>${tds}</tr>`);
+    const focusHint=focusedRow?'Нажми чтобы снять фильтр':'Нажми чтобы оставить только эту строку';
+    parts.push(`<tr class="${rowCls}"><td class="row-hdr"><div class="dt-rnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickRowName('${safeName}')" title="${focusHint}">${n.name}${isFocused?' <span style=\"font-size:9px;color:var(--accent);margin-left:4px\">✕</span>':''}</span></div></td>${tds}</tr>`);
   }
 
-  // CUMULATIVE ROW — нарастающий итог по всем дням
+  // CUMULATIVE ROW — нарастающий итог
+  // Если есть фокус — считаем только по выбранной строке
   if(showCumulative){
     visMetrics.forEach(m=>{cumAcc[m.key]=0;});
     let cumTds='';
+
     visDays.forEach((day,di)=>{
-      const dayR=(byDay[day]||[]);
-      const da=PF.agg(dayR);
+      let dayV={};
+      visMetrics.forEach(m=>{dayV[m.key]=0;});
+
+      if(focusedRow){
+        // Считаем только по выбранной строке
+        const focusedItem=flatWithRows.find(({n})=>n.name===focusedRow);
+        if(focusedItem){
+          const nodeByDay=PF.groupBy(focusedItem.nodeR,r=>r.day);
+          const dayNodeRows=nodeByDay[day]||[];
+          if(dayNodeRows.length){
+            const da=PF.agg(dayNodeRows);
+            visMetrics.forEach(m=>{dayV[m.key]=da[m.key]||0;});
+          }
+        }
+      } else {
+        // Считаем по всем данным за день
+        const dayR=(byDay[day]||[]);
+        const da=PF.agg(dayR);
+        visMetrics.forEach(m=>{dayV[m.key]=da[m.key]||0;});
+      }
+
       visMetrics.forEach((m,mi)=>{
-        cumAcc[m.key]+=(da[m.key]||0);
+        cumAcc[m.key]+=(dayV[m.key]||0);
         const v=cumAcc[m.key];
         const bLeft=di>0&&mi===0?'border-left:2px solid var(--border);':'';
         const c2=(m.key==='prof'||m.id==='profitUnit')?(v>0?'pos':v<0?'neg':'pur'):'pur';
         cumTds+=`<td class="dcell ${c2}" style="${bLeft}font-size:10px;">${fmtCell(v,m.fmt,tRev)}</td>`;
       });
     });
-    parts.push(`<tr class="dt-cumul"><td class="row-hdr"><div class="dt-rnm"><span style="width:13px;display:inline-block"></span><span class="dt-cumul-name" title="Нарастающий итог — сумма от первого дня до этого">Σ нараст.</span></div></td>${cumTds}</tr>`);
+
+    const cumLabel=focusedRow?`Σ ${focusedRow.slice(0,20)}...`:'Σ нараст.';
+    parts.push(`<tr class="dt-cumul"><td class="row-hdr"><div class="dt-rnm"><span style="width:13px;display:inline-block"></span><span class="dt-cumul-name" title="Нарастающий итог${focusedRow?' по: '+focusedRow:''}">${cumLabel}</span></div></td>${cumTds}</tr>`);
   }
 
   document.getElementById('dTbody').innerHTML=parts.join('');
