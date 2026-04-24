@@ -99,7 +99,12 @@ tr.lv0{background:rgba(47,129,247,.07);}tr.lv0:hover{background:rgba(47,129,247,
 tr.lv1{background:rgba(33,38,45,.9);}tr.lv1:hover{background:rgba(48,54,61,.6);}
 tr.lv2{background:var(--surface);}tr.lv2:hover{background:var(--surface2);}
 tr.lv3{background:var(--bg);}tr.lv3:hover{background:#111620;}
-tr.tot{background:rgba(63,185,80,.07);border-top:2px solid rgba(63,185,80,.4);}
+tr.tot{
+  background:rgba(63,185,80,.12)!important;
+  border-top:2px solid rgba(63,185,80,.6)!important;
+  border-bottom:2px solid rgba(63,185,80,.4)!important;
+}
+tr.tot td{font-weight:700;}
 .cnm{display:flex;align-items:center;}
 .exp{width:13px;height:13px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:3px;}
 .exp:hover{color:var(--text);background:var(--surface2);}
@@ -219,13 +224,30 @@ table.dtable tr.dt-lv3:hover{background:#111620;}
 .dt-totname{font-weight:700;color:#3fb950;}
 .empty-cell{color:var(--dim);}
 .dt-name.focused{color:#fff!important;font-weight:700;}
+
+/* ИТОГО строка — жирная рамка сверху и снизу, зелёный фон */
+table.dtable tr.dt-tot{
+  background:rgba(63,185,80,.12)!important;
+  border-top:2px solid rgba(63,185,80,.6)!important;
+  border-bottom:2px solid rgba(63,185,80,.4)!important;
+}
+table.dtable tr.dt-tot td{font-weight:700;}
+table.dtable tr.dt-tot td.row-hdr{background:#0f2018!important;border-right:3px solid rgba(63,185,80,.5);}
+
+/* Нарастающий итог — фиолетовая рамка */
+tr.dt-cumul{
+  background:rgba(188,140,255,.1)!important;
+  border-top:2px solid rgba(188,140,255,.5)!important;
+  border-bottom:2px solid rgba(188,140,255,.3)!important;
+}
+tr.dt-cumul td{font-weight:700;}
+tr.dt-cumul td.row-hdr{background:#1a1030!important;border-right:3px solid rgba(188,140,255,.5);}
+.dt-cumul-name{color:var(--purple);font-size:11px;font-weight:700;}
+
 tr.dt-focused{background:rgba(47,129,247,.18)!important;}
 tr.dt-focused td.row-hdr{background:#1a2540!important;}
 tr.dt-focused .dt-name{color:#fff!important;font-weight:700;}
 tr.dt-dimmed{opacity:.25;}
-tr.dt-cumul{background:rgba(188,140,255,.07);border-top:1px dashed rgba(188,140,255,.3);}
-tr.dt-cumul td.row-hdr{background:#1a1530!important;font-size:10px;color:var(--purple);}
-.dt-cumul-name{color:var(--purple);font-size:10px;font-weight:700;}
 .cumul-btn{padding:2px 8px;border:1px solid rgba(188,140,255,.4);border-radius:4px;
   background:rgba(188,140,255,.1);color:var(--purple);font-size:10px;cursor:pointer;white-space:nowrap;}
 .cumul-btn:hover{background:rgba(188,140,255,.2);}
@@ -1024,10 +1046,29 @@ function renderDay(){
   parts.push(`<tr class="dt-tot"><td class="row-hdr"><div class="dt-rnm"><span style="width:13px;display:inline-block"></span><span class="dt-totname">📊 ИТОГО</span></div></td>${totTds}</tr>`);
 
   // Data rows
-  // Если выбрана строка — показываем только её
-  const visRows = focusedRow
-    ? flatWithRows.filter(({n}) => n.name === focusedRow)
-    : flatWithRows;
+  // Если выбрана строка — показываем только её и её дочерние строки
+  let visRows;
+  if(focusedRow){
+    // Находим индекс выбранной строки
+    const focusIdx = flatWithRows.findIndex(({n}) => n.name === focusedRow);
+    if(focusIdx >= 0){
+      const focusDepth = flatWithRows[focusIdx].d;
+      // Берём саму строку + все строки глубже (дочерние)
+      const result = [flatWithRows[focusIdx]];
+      for(let fi = focusIdx+1; fi < flatWithRows.length; fi++){
+        if(flatWithRows[fi].d > focusDepth){
+          result.push(flatWithRows[fi]);
+        } else {
+          break; // вышли из дочерних
+        }
+      }
+      visRows = result;
+    } else {
+      visRows = flatWithRows;
+    }
+  } else {
+    visRows = flatWithRows;
+  }
 
   // Cumulative accumulators: running total across days
   const cumAcc={};
@@ -1075,7 +1116,7 @@ function renderDay(){
       visMetrics.forEach(m=>{dayV[m.key]=0;});
 
       if(focusedRow){
-        // Считаем только по выбранной строке
+        // Считаем по выбранной строке (только top-level, без дочерних дублей)
         const focusedItem=flatWithRows.find(({n})=>n.name===focusedRow);
         if(focusedItem){
           const nodeByDay=PF.groupBy(focusedItem.nodeR,r=>r.day);
