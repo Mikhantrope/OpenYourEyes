@@ -18,6 +18,7 @@ const PF = {
   GID_KONTR: '1039539700',
   GID_SKU:   '286897778',
   GID_PRIHOD:'1270219264',
+  GID_PLAN:  '311695615',   // Лист Планы — план закупа по поставщикам
 
   csvUrl(gid) {
     return `https://docs.google.com/spreadsheets/d/e/${this.PUB_ID}/pub?gid=${gid}&single=true&output=csv`;
