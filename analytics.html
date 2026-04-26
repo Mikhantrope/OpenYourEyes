@@ -47,7 +47,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 .section{margin-bottom:40px;}
 .sl{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
 .sl-num{font-family:var(--mono);font-size:10px;color:var(--accent);font-weight:600;}
-.sl-title{font-family:var(--head);font-size:22px;letter-spacing:1px;}
+.sl-title{font-family:var(--head);font-size:28px;letter-spacing:1px;}
 .sl-line{flex:1;height:1px;background:linear-gradient(to right,var(--border2),transparent);}
 .sl-desc{font-size:11px;color:var(--muted);margin-bottom:18px;}
 
@@ -93,14 +93,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 
 /* SIGNAL CARDS */
 .sigs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.sig-icon{font-size:22px;margin-bottom:8px;}
 .sig{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px;}
 .sig.ok{border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.03);}
 .sig.warn{border-color:rgba(255,61,87,.3);background:rgba(255,61,87,.03);}
 .sig.info{border-color:rgba(0,200,255,.3);background:rgba(0,200,255,.03);}
 .sig.amber{border-color:rgba(255,170,0,.3);background:rgba(255,170,0,.03);}
 .sig-icon{font-size:18px;margin-bottom:6px;}
-.sig-t{font-size:11px;font-weight:700;margin-bottom:5px;}
-.sig-b{font-size:11px;color:var(--muted);line-height:1.55;}
+.sig-t{font-size:13px;font-weight:700;margin-bottom:6px;}
+.sig-b{font-size:12px;color:var(--muted);line-height:1.6;}
 .sig-b strong{color:var(--text);}
 
 /* BULLET METRIC */
@@ -562,11 +563,10 @@ new Chart(document.getElementById('cPriceVsAO'),{
       borderRadius:4,
     }]
   },
-  options:{responsive:true,plugins:{legend:{display:false},
-    annotation:{annotations:{line1:{type:'line',yMin:553,yMax:553,borderColor:'rgba(176,77,255,.5)',borderWidth:1.5,borderDash:[4,4],label:{display:true,content:'Годовой план 553₸',font:{size:9}}}}}},
-    tooltip:{callbacks:{label:v=>`${v.raw} ₸/кг`}}},
-    scales:{y:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>v+' ₸'},suggestedMin:380},x:{grid:{display:false}}}}
-});
+  options:{responsive:true,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>`${v.raw} ₸/кг`}}},
+    scales:{y:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>v+' ₸'},suggestedMin:380},x:{grid:{display:false}}}
+}});
 
 // 6. Category growth
 const CATS=['Молоко','Сметана','Творог','Масло','Кефир','Сыр','Кумыс','Сливки'];
@@ -617,6 +617,36 @@ new Chart(document.getElementById('cKntTop'),{
     datasets:[{label:'Выручка млн',data:[98.1,39.0,18.8,17.8,43.2,9.5,7.7,6.7,5.6,4.8],
       backgroundColor:['#00c8ffaa','#00e676aa','#b04dffaa','#ff3d57aa','#ffaa00aa','#ff3d57aa','#00c8ffaa','#ff3d57aa','#00e676aa','#5a7a96aa'],
       borderRadius:3}]
+  },
+  options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>v+' млн'}},y:{grid:{display:false},ticks:{font:{size:9}}}}}
+});
+
+// 9b. Kg dynamics plan vs fact
+new Chart(document.getElementById('cKgDyn'),{
+  type:'bar',
+  data:{
+    labels:['Янв','Фев','Мар','Апр(19д)'],
+    datasets:[
+      {label:'Факт кг',data:[91164,230802,431682,148977],backgroundColor:'rgba(0,200,255,.7)',borderRadius:3},
+      {label:'План кг (АО+БМ)',data:[565017,492025,552238,338717],backgroundColor:'rgba(255,170,0,.2)',borderColor:'rgba(255,170,0,.5)',borderWidth:1.5,borderRadius:3},
+    ]
+  },
+  options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10}}},
+    scales:{y:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>(v/1000).toFixed(0)+'k шт'}},x:{grid:{display:false}}}}
+});
+
+// 9c. Channels structure
+new Chart(document.getElementById('cChannels'),{
+  type:'bar',
+  data:{
+    labels:['Прочие','Кофейни','Рег.Бурабай','Ритейл','ВС','Без группы','Категория А','Horeca','Юрлица'],
+    datasets:[{
+      label:'Выручка млн ₸',
+      data:[163.2,115.6,54.3,39.0,31.8,6.2,5.8,3.9,0.46],
+      backgroundColor:['#00c8ffaa','#b04dffaa','#00e676aa','#00e676dd','#ffaa00aa','#ffaa0066','#ffaa00aa','#ff4da6aa','#5a7a96aa'],
+      borderRadius:3,
+    }]
   },
   options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},
     scales:{x:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>v+' млн'}},y:{grid:{display:false},ticks:{font:{size:9}}}}}
