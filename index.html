@@ -89,7 +89,9 @@ select.sel{background:var(--surface2);border:1px solid var(--border);color:var(-
 #monthView table{width:100%;border-collapse:collapse;table-layout:fixed;}
 #monthView thead{position:sticky;top:0;z-index:100;}
 #monthView th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:5px 7px;border-bottom:2px solid var(--border);border-right:1px solid var(--border);text-align:right;white-space:nowrap;cursor:pointer;user-select:none;}
-#monthView th:first-child{text-align:left;width:255px;min-width:200px;}
+#monthView th:first-child{text-align:left;width:220px;min-width:160px;}
+#monthView th{font-size:9px;padding:4px 5px;white-space:nowrap;}
+#monthView td{padding:3px 5px;font-size:10px;}
 #monthView th:hover{color:var(--text);}
 #monthView th.sa::after{content:' ↑';color:var(--accent);}
 #monthView th.sd::after{content:' ↓';color:var(--accent);}
@@ -313,7 +315,10 @@ tr.dt-dimmed{opacity:.25;}
     </div>
     <div class="live-b"><div class="ldot"></div>Live</div>
     <button class="ibtn" onclick="reloadData()">⟳</button>
-    <div class="pills" id="periodPills"><button class="pill active" data-m="all">Все</button></div>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <span style="font-size:9px;color:var(--dim)">Ctrl+клик=мульти</span>
+      <div class="pills" id="periodPills"><button class="pill active" data-m="all">Все</button></div>
+    </div>
   </div>
 </div>
 
@@ -478,9 +483,15 @@ tr.dt-dimmed{opacity:.25;}
 <script>
 // ── MONTH MODE COLUMNS (v2026-04-23 06:08) ──────────────────────────────────────
 const MCOLS=[
-  {id:'qty',      lbl:'Кол-во',     key:'qty',         fmt:'qty', on:true,
-    tip:'Количество реализованных единиц',
-    doc:{formula:'СУММ(«Количество реализации (с возвратами)»)',source:'Колонка I в ИсхРеал из 1С',meaning:'Фактически проданное количество штук — уже учитывает возвраты (т.е. если вернули 5 шт, они вычтены)',example:'Продали 100 шт, вернули 5 → Кол-во = 95'}},
+  {id:'qtyReal',  lbl:'Реал.',       key:'qtyReal',     fmt:'qty', on:true,
+    tip:'Кол-во реализации (без возвратов)',
+    doc:{formula:'СУММ(«Количество реализации»)',source:'Колонка G в ИсхРеал',meaning:'Сколько штук реально продали — без учёта возвратов',example:'Продали 10, вернули 3 → Реал.=10'}},
+  {id:'qty',      lbl:'С возвр.',    key:'qty',         fmt:'qty', on:true,
+    tip:'Кол-во реализации с возвратами (продажи минус возвраты)',
+    doc:{formula:'СУММ(«Количество реализации (с возвратами)»)',source:'Колонка I в ИсхРеал из 1С',meaning:'Продажи минус возвраты = чистое количество. Если продали 10 и вернули 3 → С возвр.=7',example:'Продали 10 шт, вернули 3 → С возвр. = 7'}},
+  {id:'qtyRet',   lbl:'Возвр.',      key:'qtyRet',      fmt:'qty', on:true,
+    tip:'Количество возвратов (штук)',
+    doc:{formula:'СУММ(«Количество возвратов»)',source:'Колонка H в ИсхРеал из 1С',meaning:'Сколько штук вернули покупатели. Отображается как отрицательное число',example:'Вернули 3 шт → Возвр. = −3'}},
   {id:'rev',      lbl:'Выручка ₸',  key:'rev',         fmt:'full',on:true,
     tip:'Выручка без НДС',
     doc:{formula:'СУММ(«Сумма без налогов»)',source:'Колонка O в ИсхРеал из 1С',meaning:'Реальная выручка без НДС — основная база для расчёта маржи и прибыли. НЕ путать с «Суммой реализации» — та содержит НДС',example:'Продали на 116 000 ₸ с НДС → Выручка = 100 000 ₸'}},
@@ -496,7 +507,7 @@ const MCOLS=[
   {id:'prof',     lbl:'Прибыль ₸',  key:'prof',        fmt:'full',on:true,
     tip:'Валовая прибыль (до косвенных затрат)',
     doc:{formula:'«Profit (сумма)» = Выручка − Себестоимость',source:'Колонка Q в ИсхРеал — 1С считает сам',meaning:'⚠️ Это ВАЛОВАЯ прибыль — только прямые затраты вычтены. ФОТ, аренда, логистика — НЕ учтены. Для полной картины смотри P&L',example:'Выручка 100 000 − Себест 80 000 = Прибыль 20 000 ₸'}},
-  {id:'mar',      lbl:'Маржа %',    key:'mar',         fmt:'pct', on:true,
+  {id:'mar',      lbl:'Маржа %',    key:'mar',         fmt:'pct', on:false,
     tip:'Маржинальность (рентабельность продаж)',
     doc:{formula:'Прибыль ÷ Выручка × 100%',source:'Считается на сайте',meaning:'Показывает сколько копеек прибыли на каждый тенге выручки. Без учёта косвенных расходов. Минус = продаём дешевле чем покупаем',example:'Прибыль 20 000 ÷ Выручка 100 000 = Маржа 20%'}},
   {id:'avg',      lbl:'Ср.цена ₸',  key:'avg',         fmt:'full',on:false,
@@ -520,7 +531,7 @@ const MCOLS=[
   {id:'priceSell', lbl:'Цена продажи',key:'priceSellNds',fmt:'full',on:true,
     tip:'Средняя цена продажи (переключатель НДС/б.НДС)',
     doc:{formula:'с НДС: СуммаРеализации ÷ Кол-во | без НДС: (СуммаРеализации ÷ 1.16) ÷ Кол-во',source:'Сумма реализации из колонки J ÷ Кол-во из колонки G (без возвратов)',meaning:'Цена по которой продаём клиенту. С НДС — что видит покупатель в накладной. Без НДС — база для сравнения с закупочной ценой',example:'Продали на 116 000 ₸ с НДС ÷ 200 шт = 580 ₸/шт'}},
-  {id:'profitUnit',lbl:'Профит/шт',  key:'profitUnitNds',fmt:'full',on:true,
+  {id:'profitUnit',lbl:'Профит/шт',  key:'profitUnitNds',fmt:'full',on:false,
     tip:'Заработок/убыток на одной штуке',
     doc:{formula:'Цена продажи − Цена закупа',source:'Считается на сайте из двух колонок выше',meaning:'Ключевая метрика: зарабатываем или теряем на каждой единице товара. Минус = продаём ниже себестоимости',example:'Продажа 580 ₸ − Закуп 400 ₸ = Профит +180 ₸/шт'}},
 ];
@@ -549,9 +560,10 @@ let filterGrp=new Set(['ALL']),filterSkuGrp=new Set(['ALL']);
 let allGroups=[],allSkuGroups=[],allDays=[];
 let selectedDays=new Set();
 let sortKey='rev_d',avgMode='sku';
+let selectedMonths=new Set(['all']);  // 'all' или набор mk типа '2026-01'
 let priceNds=true;  // true = с НДС, false = без НДС (для колонок Цена продажи и Профит/шт)
 let dayExpanded=new Set(),dayLevelState={};
-let focusedRow=null;   // имя строки на которую нажали (фильтр по строке)
+let focusedRow=null;   // имя строки (фильтр по строке) — работает в обоих режимах
 let showCumulative=true; // показывать ли кумулятивную строку
 
 const WD=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
@@ -584,8 +596,27 @@ async function loadData(){
       months.map(([k,lbl])=>`<button class="pill" data-m="${k}">${lbl.split(' ')[0]}</button>`).join('');
     pe.addEventListener('click',e=>{
       const btn=e.target.closest('.pill');if(!btn)return;
-      pe.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');currentMonth=btn.dataset.m;
+      const m=btn.dataset.m;
+      if(m==='all'){
+        // Нажали "Все" — сбрасываем всё
+        selectedMonths=new Set(['all']);
+        pe.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+      } else {
+        // Нажали конкретный месяц — мульти-выбор
+        selectedMonths.delete('all');
+        pe.querySelector('[data-m="all"]').classList.remove('active');
+        if(selectedMonths.has(m)){
+          selectedMonths.delete(m);
+          btn.classList.remove('active');
+          if(selectedMonths.size===0){selectedMonths.add('all');pe.querySelector('[data-m="all"]').classList.add('active');}
+        } else {
+          selectedMonths.add(m);
+          btn.classList.add('active');
+        }
+      }
+      // Backward compat
+      currentMonth=selectedMonths.has('all')?'all':[...selectedMonths][0]||'all';
       expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};
       updateAvailableDays();render();
     });
@@ -617,7 +648,7 @@ async function loadData(){
 }
 
 function updateAvailableDays(){
-  const rows=currentMonth==='all'?rawRows:rawRows.filter(r=>r.mk===currentMonth);
+  const rows=filtered();
   allDays=[...new Set(rows.map(r=>r.day))].sort();
   selectedDays=new Set(allDays);
   buildDayPicker();
@@ -661,7 +692,12 @@ function updateKPIs(){
 
 // ── FILTERS ───────────────────────────────────────────────
 function filtered(){
-  let rows=currentMonth==='all'?rawRows:rawRows.filter(r=>r.mk===currentMonth);
+  let rows;
+  if(selectedMonths.has('all') || selectedMonths.size===0){
+    rows=rawRows;
+  } else {
+    rows=rawRows.filter(r=>selectedMonths.has(r.mk));
+  }
   if(!filterGrp.has('ALL'))    rows=rows.filter(r=>filterGrp.has(r.group));
   if(!filterSkuGrp.has('ALL')) rows=rows.filter(r=>filterSkuGrp.has(r.skuGroup));
   return rows;
@@ -886,6 +922,8 @@ function renderMonth(){
     for(const n of ns){
       const key=n.name+'_d'+d;const hasC=n.ch.length>0;const isE=expanded.has(key);
       if(searchTerm){const m=n.name.toLowerCase().includes(searchTerm);if(!m&&!(hasC&&anyMatch(n.ch,searchTerm)))continue;}
+      // Focus filter: if focusedRow set, only show that row and its children
+      if(focusedRow && d===0 && n.name!==focusedRow) continue;
       flat.push({n,d,key,hasC,isE});
       if(isE&&hasC)flatten(n.ch,d+1);
     }
@@ -1236,12 +1274,13 @@ document.addEventListener('click', e => {
 
 // ── ROW FOCUS FILTER ──────────────────────────────────────
 function clickRowName(name){
-  if(focusedRow===name){
-    focusedRow=null; // снимаем фильтр
-  } else {
-    focusedRow=name; // фокусируемся на строке
-  }
+  focusedRow = focusedRow===name ? null : name;
   renderDay();
+}
+function clickMonthRow(name){
+  focusedRow = focusedRow===name ? null : name;
+  expanded.clear(); levelState={};
+  renderMonth();
 }
 
 function toggleCumulative(){

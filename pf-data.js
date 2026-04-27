@@ -82,7 +82,7 @@ const PF = {
 
   // ── АГРЕГАЦИЯ ────────────────────────────────────────────────
   agg(rows) {
-    let qty=0,rev=0,ret=0,seb=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0;
+    let qty=0,rev=0,ret=0,seb=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0;
     for (const x of rows) {
       qty        += x.qtyN;
       rev        += x.sumBezNds;
@@ -91,21 +91,28 @@ const PF = {
       prof       += x.prof;
       kg         += x.kg;
       retKg      += x.retKg;
-      qtyRealSum += (x.qtyReal||x.qtyN);
-      sumRealSum += (x.sumReal||0);
+      // Цены считаем ТОЛЬКО по строкам продаж (qtyReal > 0)
+      // Возвратные строки имеют отрицательную себестоимость — они искажают цену
+      if((x.qtyReal||0) > 0){
+        qtyRealSum += x.qtyReal;
+        sumRealSum += (x.sumReal||0);
+        sebRealSum += x.seb;   // себестоимость только из строк продаж
+      }
     }
     const mar            = rev  ? prof/rev*100  : 0;
     const retPct         = rev  ? ret/rev*100   : 0;
     const avg            = qty  ? rev/qty       : 0;
     const retKgPct       = kg   ? retKg/kg*100 : 0;
-    const priceZakup     = qtyRealSum ? seb/qtyRealSum           : 0;
+    const priceZakup     = qtyRealSum ? sebRealSum/qtyRealSum    : 0;  // только из строк продаж
     const priceSellNds   = qtyRealSum ? sumRealSum/qtyRealSum    : 0;
     const priceSellNoNds = priceSellNds/1.16;
     const profitUnitNds  = priceSellNds  - priceZakup;
     const profitUnitNoNds= priceSellNoNds- priceZakup;
 
     return {
-      qty:            Math.round(qty),
+      qty:            Math.round(qty),    // Кол-во с возвратами (qtyNet)
+      qtyReal:        Math.round(qtyRealSum), // Кол-во реализации (без возвратов)
+      qtyRet:         Math.round(qty - qtyRealSum < 0 ? qty - qtyRealSum : 0), // Кол-во возвратов
       rev:            Math.round(rev),
       ret:            Math.round(ret),
       retPct:         Math.round(retPct*10)/10,
