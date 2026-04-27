@@ -921,6 +921,7 @@ function renderMonth(){
   const tRev=tot.rev||1;
   const sf=getSF();
   const tree=buildInnerTree(rows,sf,expanded);
+  console.log('[DEBUG] rows:',rows.length,'tree:',tree.length,'focusedRow:',focusedRow,'focusedDepth:',focusedDepth);
   const vis=MCOLS.filter(c=>mColOn[c.id]||c.id==='share');
 
   const flat=[];
