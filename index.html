@@ -569,7 +569,8 @@ let sortKey='rev_d',avgMode='sku';
 let selectedMonths=new Set(['all']);  // 'all' или набор mk типа '2026-01'
 let priceNds=true;  // true = с НДС, false = без НДС (для колонок Цена продажи и Профит/шт)
 let dayExpanded=new Set(),dayLevelState={};
-let focusedRow=null;   // имя строки (фильтр по строке) — работает в обоих режимах
+let focusedRow=null;   // имя строки в фокусе
+let focusedDepth=-1;   // глубина выбранной строки
 let showCumulative=true; // показывать ли кумулятивную строку
 
 const WD=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
@@ -928,8 +929,17 @@ function renderMonth(){
     for(const n of ns){
       const key=n.name+'_d'+d;const hasC=n.ch.length>0;const isE=expanded.has(key);
       if(searchTerm){const m=n.name.toLowerCase().includes(searchTerm);if(!m&&!(hasC&&anyMatch(n.ch,searchTerm)))continue;}
-      // Focus filter: if focusedRow set, only show that row and its children
-      if(focusedRow && d===0 && n.name!==focusedRow) continue;
+      // Focus filter: показываем только строку в фокусе + её детей
+      if(focusedRow){
+        if(d===focusedDepth){
+          // На уровне фокуса — пропускаем все кроме выбранной
+          if(n.name!==focusedRow) continue;
+        } else if(d < focusedDepth){
+          // Выше уровня фокуса — пропускаем всё (родители не нужны)
+          continue;
+        }
+        // Ниже уровня фокуса (дочерние) — показываем всё
+      }
       flat.push({n,d,key,hasC,isE});
       if(isE&&hasC)flatten(n.ch,d+1);
     }
@@ -960,9 +970,9 @@ function renderMonth(){
       return `<td class="${c2}">${txt}</td>`;
     }).join('');
     const mSafe=n.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const mFocused=focusedRow===n.name;
+    const mFocused=focusedRow===n.name&&focusedDepth===d;
     const mHint=mFocused?'Нажми чтобы снять фильтр':'Нажми чтобы оставить только эту строку';
-    parts.push(`<tr class="lv${lv}"><td><div class="cnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickMonthRow('${mSafe}')" title="${mHint}">${n.name}${mFocused?'<span style=\"color:var(--accent);font-size:9px;margin-left:3px\">✕</span>':''}</span></div></td>${tds}</tr>`);
+    parts.push(`<tr class="lv${lv}"><td><div class="cnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickMonthRow('${mSafe}',${d})" title="${mHint}">${n.name}${mFocused?' <span style=\"color:var(--accent);font-size:9px\">✕</span>':''}</span></div></td>${tds}</tr>`);
   }
   document.getElementById('mTbody').innerHTML=parts.join('');
   document.getElementById('stRows').textContent=flat.length;
@@ -1096,18 +1106,16 @@ function renderDay(){
   // Data rows
   // Если выбрана строка — показываем только её и её дочерние строки
   let visRows;
-  if(focusedRow){
-    // Находим индекс выбранной строки
-    const focusIdx = flatWithRows.findIndex(({n}) => n.name === focusedRow);
+  if(focusedRow && focusedDepth >= 0){
+    const focusIdx = flatWithRows.findIndex(({n,d}) => n.name===focusedRow && d===focusedDepth);
     if(focusIdx >= 0){
-      const focusDepth = flatWithRows[focusIdx].d;
-      // Берём саму строку + все строки глубже (дочерние)
+      // Берём саму строку + все строки ГЛУБЖЕ (дочерние)
       const result = [flatWithRows[focusIdx]];
-      for(let fi = focusIdx+1; fi < flatWithRows.length; fi++){
-        if(flatWithRows[fi].d > focusDepth){
+      for(let fi=focusIdx+1; fi<flatWithRows.length; fi++){
+        if(flatWithRows[fi].d > focusedDepth){
           result.push(flatWithRows[fi]);
         } else {
-          break; // вышли из дочерних
+          break;
         }
       }
       visRows = result;
@@ -1149,8 +1157,8 @@ function renderDay(){
       });
     });
 
-    const focusHint=focusedRow?'Нажми чтобы снять фильтр':'Нажми чтобы оставить только эту строку';
-    parts.push(`<tr class="${rowCls}"><td class="row-hdr"><div class="dt-rnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickRowName('${safeName}')" title="${focusHint}">${n.name}${isFocused?' <span style=\"font-size:9px;color:var(--accent);margin-left:4px\">✕</span>':''}</span></div></td>${tds}</tr>`);
+    const focusHint=(focusedRow===n.name&&focusedDepth===d)?'Нажми чтобы снять фильтр':'Нажми чтобы оставить только эту строку';
+    parts.push(`<tr class="${rowCls}"><td class="row-hdr"><div class="dt-rnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickRowName('${safeName}',${d})" title="${focusHint}">${n.name}${(focusedRow===n.name&&focusedDepth===d)?' <span style=\"font-size:9px;color:var(--accent);margin-left:4px\">✕</span>':''}</span></div></td>${tds}</tr>`);
   }
 
   // CUMULATIVE ROW — нарастающий итог
@@ -1216,7 +1224,7 @@ function toggleLv(depth){
   renderMonth();
 }
 
-function collapseAll(){expanded.clear();levelState={};document.querySelectorAll('#btn0,#btn1,#btn2').forEach(b=>b.classList.remove('lit'));renderMonth();}
+function collapseAll(){expanded.clear();levelState={};focusedRow=null;focusedDepth=-1;document.querySelectorAll('#btn0,#btn1,#btn2').forEach(b=>b.classList.remove('lit'));renderMonth();}
 
 function toggleDayLv(depth){
   const btn=document.getElementById('dbtn'+depth);
@@ -1232,7 +1240,9 @@ function toggleDayLv(depth){
 function collapseAllDay(){dayExpanded.clear();dayLevelState={};document.querySelectorAll('#dbtn0,#dbtn1,#dbtn2').forEach(b=>b.classList.remove('lit'));renderDay();}
 
 function swapH(){
-  hierarchy=hierarchy==='k'?'s':'k';expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};
+  hierarchy=hierarchy==='k'?'s':'k';
+  expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};
+  focusedRow=null;focusedDepth=-1;
   document.getElementById('swLbl').textContent=hierarchy==='k'?'👥 Контрагент → SKU':'📦 SKU → Контрагент';
   render();
 }
@@ -1282,13 +1292,21 @@ document.addEventListener('click', e => {
 });
 
 // ── ROW FOCUS FILTER ──────────────────────────────────────
-function clickRowName(name){
-  focusedRow = focusedRow===name ? null : name;
+function clickRowName(name, depth){
+  if(focusedRow===name && focusedDepth===depth){
+    focusedRow=null; focusedDepth=-1;
+  } else {
+    focusedRow=name; focusedDepth=depth;
+  }
   renderDay();
 }
-function clickMonthRow(name){
-  focusedRow = focusedRow===name ? null : name;
-  expanded.clear(); levelState={};
+function clickMonthRow(name, depth){
+  if(focusedRow===name && focusedDepth===depth){
+    // Повторный клик — снимаем фокус
+    focusedRow=null; focusedDepth=-1;
+  } else {
+    focusedRow=name; focusedDepth=depth;
+  }
   renderMonth();
 }
 
