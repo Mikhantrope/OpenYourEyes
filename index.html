@@ -625,6 +625,7 @@ async function loadData(){
       // Backward compat
       currentMonth=selectedMonths.has('all')?'all':[...selectedMonths][0]||'all';
       expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};
+      focusedRow=null; focusedDepth=-1;  // сбрасываем фокус при смене месяца
       updateAvailableDays();render();
     });
 
@@ -664,6 +665,7 @@ function updateAvailableDays(){
 // ── VIEW MODE ─────────────────────────────────────────────
 function setViewMode(mode){
   viewMode=mode;
+  focusedRow=null; focusedDepth=-1;  // сбрасываем фокус при смене режима
   document.getElementById('vmMonth').classList.toggle('active',mode==='month');
   document.getElementById('vmDay').classList.toggle('active',false);
   document.getElementById('vmDay').classList.toggle('day-active',mode==='day');
@@ -921,7 +923,6 @@ function renderMonth(){
   const tRev=tot.rev||1;
   const sf=getSF();
   const tree=buildInnerTree(rows,sf,expanded);
-  console.log('[DEBUG] rows:',rows.length,'tree:',tree.length,'focusedRow:',focusedRow,'focusedDepth:',focusedDepth);
   const vis=MCOLS.filter(c=>mColOn[c.id]||c.id==='share');
 
   const flat=[];
@@ -933,13 +934,17 @@ function renderMonth(){
       // Focus filter: показываем только строку в фокусе + её детей
       if(focusedRow){
         if(d===focusedDepth){
-          // На уровне фокуса — пропускаем все кроме выбранной
           if(n.name!==focusedRow) continue;
+          // Нашли нужную строку — добавляем и раскрываем детей
+          flat.push({n,d,key,hasC,isE:true});
+          if(hasC) flatten(n.ch,d+1);
+          continue;
         } else if(d < focusedDepth){
-          // Выше уровня фокуса — пропускаем всё (родители не нужны)
+          // Выше уровня фокуса — рекурсируем вглубь без добавления в flat
+          if(hasC) flatten(n.ch,d+1);
           continue;
         }
-        // Ниже уровня фокуса (дочерние) — показываем всё
+        // d > focusedDepth: дочерние — показываем всё
       }
       flat.push({n,d,key,hasC,isE});
       if(isE&&hasC)flatten(n.ch,d+1);
