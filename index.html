@@ -89,7 +89,13 @@ select.sel{background:var(--surface2);border:1px solid var(--border);color:var(-
 #monthView table{width:100%;border-collapse:collapse;table-layout:fixed;}
 #monthView thead{position:sticky;top:0;z-index:100;}
 #monthView th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:5px 7px;border-bottom:2px solid var(--border);border-right:1px solid var(--border);text-align:right;white-space:nowrap;cursor:pointer;user-select:none;}
-#monthView th:first-child{text-align:left;width:220px;min-width:160px;}
+#monthView th:first-child{text-align:left;width:220px;min-width:160px;position:sticky;left:0;z-index:101;background:var(--surface2);}
+#monthView td:first-child{position:sticky;left:0;z-index:50;}
+#monthView tr.lv0 td:first-child{background:#0d1420;}
+#monthView tr.lv1 td:first-child{background:#181d24;}
+#monthView tr.lv2 td:first-child{background:#161b22;}
+#monthView tr.lv3 td:first-child{background:#0f1318;}
+#monthView tr.tot td:first-child{background:#0f2018;}
 #monthView th{font-size:9px;padding:4px 5px;white-space:nowrap;}
 #monthView td{padding:3px 5px;font-size:10px;}
 #monthView th:hover{color:var(--text);}
@@ -485,16 +491,16 @@ tr.dt-dimmed{opacity:.25;}
 const MCOLS=[
   {id:'qtyReal',  lbl:'Реал.',       key:'qtyReal',     fmt:'qty', on:true,
     tip:'Кол-во реализации (без возвратов)',
-    doc:{formula:'СУММ(«Количество реализации»)',source:'Колонка G в ИсхРеал',meaning:'Сколько штук реально продали — без учёта возвратов',example:'Продали 10, вернули 3 → Реал.=10'}},
+    doc:{formula:'СУММ(«Количество реализации»)',source:'Колонка G в ИсхРеал',meaning:'Сколько штук реально отгрузили покупателям — возвраты НЕ вычитаются. Используется как знаменатель для расчёта цены продажи и закупа',example:'Продали 5 шт 04.03, ещё 5 шт 18.03 → Реал.=10. Возвраты сюда не входят'}},
   {id:'qty',      lbl:'С возвр.',    key:'qty',         fmt:'qty', on:true,
     tip:'Кол-во реализации с возвратами (продажи минус возвраты)',
-    doc:{formula:'СУММ(«Количество реализации (с возвратами)»)',source:'Колонка I в ИсхРеал из 1С',meaning:'Продажи минус возвраты = чистое количество. Если продали 10 и вернули 3 → С возвр.=7',example:'Продали 10 шт, вернули 3 → С возвр. = 7'}},
+    doc:{formula:'СУММ(«Количество реализации (с возвратами)»)',source:'Колонка I в ИсхРеал из 1С',meaning:'Чистое количество = продажи минус возвраты. Это основной показатель сколько у клиента осталось нашего товара',example:'Продали 10 шт, вернули 3 → С возвр. = 7'}},
   {id:'qtyRet',   lbl:'Возвр.',      key:'qtyRet',      fmt:'qty', on:true,
     tip:'Количество возвратов (штук)',
     doc:{formula:'СУММ(«Количество возвратов»)',source:'Колонка H в ИсхРеал из 1С',meaning:'Сколько штук вернули покупатели. Отображается как отрицательное число',example:'Вернули 3 шт → Возвр. = −3'}},
   {id:'rev',      lbl:'Выручка ₸',  key:'rev',         fmt:'full',on:true,
     tip:'Выручка без НДС',
-    doc:{formula:'СУММ(«Сумма без налогов»)',source:'Колонка O в ИсхРеал из 1С',meaning:'Реальная выручка без НДС — основная база для расчёта маржи и прибыли. НЕ путать с «Суммой реализации» — та содержит НДС',example:'Продали на 116 000 ₸ с НДС → Выручка = 100 000 ₸'}},
+    doc:{formula:'СУММ(«Сумма без налогов»)',source:'Колонка O в ИсхРеал из 1С',meaning:'Выручка без НДС = основа для маржи и прибыли. Включает возвраты (уже вычтены 1С). Колонка «Сумма реализации» (J) содержит НДС — мы её НЕ используем для выручки',example:'Продали на 116 000 ₸ с НДС → Выручка без НДС = 100 000 ₸'}},
   {id:'ret',      lbl:'Возврат ₸',  key:'ret',         fmt:'full',on:true,
     tip:'Сумма возвратов',
     doc:{formula:'СУММ(«Сумма возвратов»)',source:'Колонка K в ИсхРеал из 1С',meaning:'Деньги которые вернули покупателям. Отрицательное число означает уменьшение выручки',example:'-50 000 ₸ = вернули товар на 50 тысяч'}},
@@ -516,10 +522,10 @@ const MCOLS=[
   {id:'kg',       lbl:'Объём кг',   key:'kg',          fmt:'kg',  on:true,
     tip:'Физический объём продаж в кг',
     doc:{formula:'Кол-во × Вес единицы SKU',source:'Кол-во из ИсхРеал × Вес из листа SKUСправочник',meaning:'Показывает реальный физический объём — удобно для сравнения разных SKU (1л молоко vs 400гр сметана)',example:'200 шт × 1 кг = 200 кг'}},
-  {id:'profKg',   lbl:'Приб./кг',   key:'profKg',      fmt:'full',on:true,
+  {id:'profKg',   lbl:'Приб./кг',   key:'profKg',      fmt:'full',on:false,
     tip:'Прибыль на 1 кг продукции',
     doc:{formula:'Прибыль ÷ Объём(кг)',source:'Считается на сайте',meaning:'Сколько тенге прибыли приносит каждый килограмм. Удобно для сравнения разных весовых категорий',example:'Прибыль 20 000 ÷ 200 кг = 100 ₸/кг'}},
-  {id:'sebKg',    lbl:'Затр./кг',   key:'sebKg',       fmt:'full',on:true,
+  {id:'sebKg',    lbl:'Затр./кг',   key:'sebKg',       fmt:'full',on:false,
     tip:'Прямые затраты на 1 кг продукции',
     doc:{formula:'Себестоимость ÷ Объём(кг)',source:'Считается на сайте',meaning:'Сколько тенге себестоимости на каждый кг — удобно для сравнения эффективности SKU',example:'Себест 80 000 ÷ 200 кг = 400 ₸/кг'}},
   {id:'share',    lbl:'Доля %',     key:'_sh',         fmt:'share',on:true,
@@ -527,13 +533,13 @@ const MCOLS=[
     doc:{formula:'Выручка строки ÷ Выручка ИТОГО × 100%',source:'Считается на сайте',meaning:'Показывает вклад этого контрагента/группы/SKU в общую выручку',example:'Кофейни 30 млн ÷ Всего 300 млн = 10%'}},
   {id:'priceZakup',lbl:'Цена закупа',key:'priceZakup', fmt:'full',on:true,
     tip:'Средняя закупочная цена за штуку',
-    doc:{formula:'Себестоимость ÷ Кол-во реализации (БЕЗ возвратов)',source:'Себест из колонки P ÷ Кол-во из колонки G (без скобок)',meaning:'Сколько в среднем платим поставщику за одну штуку. Используем кол-во БЕЗ возвратов — именно столько реально купили',example:'Себест 80 000 ÷ 200 шт = 400 ₸/шт'}},
+    doc:{formula:'Себестоимость (только строки продаж) ÷ Кол-во реализации (Реал.)',source:'Стоимость(без НДС) из строк где qtyReal>0 ÷ Кол-во реализации (колонка G)',meaning:'Закупочная цена за штуку. ВАЖНО: возвратные строки имеют отрицательную себестоимость — они исключены из расчёта чтобы не занижать цену',example:'Продали 5 шт за 1 659 ₸ себест → Цена закупа = 332 ₸/шт'}},
   {id:'priceSell', lbl:'Цена продажи',key:'priceSellNds',fmt:'full',on:true,
     tip:'Средняя цена продажи (переключатель НДС/б.НДС)',
     doc:{formula:'с НДС: СуммаРеализации ÷ Кол-во | без НДС: (СуммаРеализации ÷ 1.16) ÷ Кол-во',source:'Сумма реализации из колонки J ÷ Кол-во из колонки G (без возвратов)',meaning:'Цена по которой продаём клиенту. С НДС — что видит покупатель в накладной. Без НДС — база для сравнения с закупочной ценой',example:'Продали на 116 000 ₸ с НДС ÷ 200 шт = 580 ₸/шт'}},
   {id:'profitUnit',lbl:'Профит/шт',  key:'profitUnitNds',fmt:'full',on:false,
     tip:'Заработок/убыток на одной штуке',
-    doc:{formula:'Цена продажи − Цена закупа',source:'Считается на сайте из двух колонок выше',meaning:'Ключевая метрика: зарабатываем или теряем на каждой единице товара. Минус = продаём ниже себестоимости',example:'Продажа 580 ₸ − Закуп 400 ₸ = Профит +180 ₸/шт'}},
+    doc:{formula:'Цена продажи − Цена закупа',source:'Считается на сайте: (СуммаРеал/КолвоРеал) − (Себест/КолвоРеал)',meaning:'Заработок или убыток на одной штуке. Оба значения считаются только по строкам продаж без возвратов',example:'Цена продажи 395 ₸ − Закуп 332 ₸ = Профит +63 ₸/шт'}},
 ];
 let mColOn={}; MCOLS.forEach(c=>mColOn[c.id]=c.on);
 
@@ -953,7 +959,10 @@ function renderMonth(){
       else txt=fmtCell(v,c.fmt,tRev);
       return `<td class="${c2}">${txt}</td>`;
     }).join('');
-    parts.push(`<tr class="lv${lv}"><td><div class="cnm">${ind}${expBtn}<span class="${nc}" title="${n.name.replace(/"/g,'&quot;')}">${n.name}</span></div></td>${tds}</tr>`);
+    const mSafe=n.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const mFocused=focusedRow===n.name;
+    const mHint=mFocused?'Нажми чтобы снять фильтр':'Нажми чтобы оставить только эту строку';
+    parts.push(`<tr class="lv${lv}"><td><div class="cnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickMonthRow('${mSafe}')" title="${mHint}">${n.name}${mFocused?'<span style=\"color:var(--accent);font-size:9px;margin-left:3px\">✕</span>':''}</span></div></td>${tds}</tr>`);
   }
   document.getElementById('mTbody').innerHTML=parts.join('');
   document.getElementById('stRows').textContent=flat.length;
