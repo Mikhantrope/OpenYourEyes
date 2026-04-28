@@ -82,12 +82,17 @@ const PF = {
 
   // ── АГРЕГАЦИЯ ────────────────────────────────────────────────
   agg(rows) {
-    let qty=0,rev=0,ret=0,seb=0,sebWithNds=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0,sebWithNdsRealSum=0,sumRealTotal=0;
+    let qty=0,rev=0,ret=0,seb=0,sebWithNds=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0,sebWithNdsRealSum=0,sumRealTotal=0,revSaleOnly=0,sebSaleOnly=0;
     for (const x of rows) {
       qty        += x.qtyN;
       rev        += x.sumBezNds;
       ret        += x.sumR;
       sumRealTotal += (x.sumReal||0);
+      // Для profNet: только строки продаж (не возвратов)
+      if((x.qtyReal||0) > 0){
+        revSaleOnly += (x.sumBezNds||0);  // выручка только от продаж
+        sebSaleOnly += (x.seb||0);        // себест только от продаж
+      }
       seb        += x.seb;
       sebWithNds += (x.sebWithNds ?? x.seb);
       prof       += x.prof;
@@ -124,6 +129,9 @@ const PF = {
       seb:            Math.round(seb),
       sebWithNds:     Math.round(sebWithNds),
       prof:           Math.round(prof),
+      profNet:        Math.round(revSaleOnly - sebSaleOnly), // прибыль без потерь от возвратов
+      mar:            rev ? Math.round(prof/rev*1000)/10 : 0,
+      marNet:         revSaleOnly ? Math.round((revSaleOnly-sebSaleOnly)/revSaleOnly*1000)/10 : 0,
       mar:            Math.round(mar*10)/10,
       avg:            Math.round(avg),
       kg:             Math.round(kg*10)/10,
