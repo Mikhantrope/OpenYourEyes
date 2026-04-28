@@ -40,6 +40,14 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .vm-btn.active{background:var(--surface2);color:var(--text);}
 .vm-btn.day-active{background:rgba(210,153,34,.2);border:1px solid rgba(210,153,34,.4);color:var(--amber);}
 
+
+/* PRICE VAT SWITCH — visible header control */
+.price-vat-switch{display:flex;align-items:center;gap:4px;background:rgba(210,153,34,.10);border:1px solid rgba(210,153,34,.45);border-radius:8px;padding:3px 5px;box-shadow:0 0 0 1px rgba(210,153,34,.08) inset;}
+.pv-label{font-size:10px;color:var(--amber);font-weight:800;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;padding:0 4px;}
+.pv-btn{padding:4px 10px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;}
+.pv-btn.active{background:var(--amber);color:#141414;border-color:var(--amber);}
+.pv-btn:hover:not(.active){color:var(--text);border-color:rgba(210,153,34,.35);}
+
 /* KPI BAR */
 .kpi-bar{display:flex;gap:1px;background:var(--border);border-bottom:1px solid var(--border);overflow-x:auto;}
 .kpi{background:var(--surface);padding:7px 12px;flex:1;min-width:80px;position:relative;}
@@ -320,6 +328,11 @@ tr.dt-dimmed{opacity:.25;}
       <button class="vm-btn active" id="vmMonth" onclick="setViewMode('month')">📅 По месяцам</button>
       <button class="vm-btn" id="vmDay" onclick="setViewMode('day')">📆 По дням</button>
     </div>
+    <div class="price-vat-switch" title="Переключает отображение цены закупа, цены продажи и профита/шт. Себестоимость, прибыль и маржа остаются без НДС.">
+      <span class="pv-label">Цены</span>
+      <button class="pv-btn active" data-vat-mode="no" onclick="setPriceNds(false)">б/НДС</button>
+      <button class="pv-btn" data-vat-mode="yes" onclick="setPriceNds(true)">с НДС</button>
+    </div>
     <div class="live-b"><div class="ldot"></div>Live</div>
     <button class="ibtn" onclick="reloadData()">⟳</button>
     <div style="display:flex;align-items:center;gap:4px;">
@@ -334,7 +347,7 @@ tr.dt-dimmed{opacity:.25;}
   <div class="kpi"><div class="kpi-lbl">Выручка (без НДС)</div><div class="kpi-val blue" id="k-rev">—</div><div class="kpi-sub">Сумма без налогов</div><div class="ktip">«Сумма без налогов» из 1С = выручка без НДС</div></div>
   <div class="kpi"><div class="kpi-lbl">Кол-во (шт)</div><div class="kpi-val blue" id="k-qty">—</div><div class="kpi-sub">целых единиц</div></div>
   <div class="kpi"><div class="kpi-lbl">Объём (кг)</div><div class="kpi-val blue" id="k-kg">—</div><div class="kpi-sub">кг = кол-во × вес</div></div>
-  <div class="kpi"><div class="kpi-lbl">Себестоимость</div><div class="kpi-val amb" id="k-seb">—</div><div class="kpi-sub">из прихода × кол-во</div><div class="ktip">Себестоимость пересчитывается по цене прихода: цена прихода × количество реализации. Если цены прихода нет — берётся «Стоимость (без НДС)» из 1С.</div></div>
+  <div class="kpi"><div class="kpi-lbl" id="k-seb-lbl">Себестоимость (б/НДС)</div><div class="kpi-val amb" id="k-seb">—</div><div class="kpi-sub" id="k-seb-sub">финансовая база без НДС</div><div class="ktip">Себестоимость пересчитывается по цене прихода без НДС: если в приходе есть НДС, он вычитается; если НДС нет — цена не делится. Это база для прибыли и маржи.</div></div>
   <div class="kpi"><div class="kpi-lbl">Прибыль</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">Выручка − Себест.</div><div class="ktip">«Profit» из 1С = Выручка без НДС − Себестоимость<br>⚠️ Валовая прибыль, ДО косвенных затрат</div></div>
   <div class="kpi"><div class="kpi-lbl">Маржа %</div><div class="kpi-val" id="k-mar">—</div><div class="kpi-sub">Прибыль ÷ Выручка</div></div>
   <div class="kpi"><div class="kpi-lbl">Возвраты</div><div class="kpi-val red" id="k-ret">—</div><div class="kpi-sub">сумма возвратов</div></div>
@@ -358,6 +371,12 @@ tr.dt-dimmed{opacity:.25;}
 <div class="toolbar">
   <span class="tlbl">Иерархия:</span>
   <button class="swbtn" onclick="swapH()"><span id="swLbl">👥 Контрагент → SKU</span> ⇄</button>
+  <div class="sep"></div>
+  <span class="tlbl">Закуп/цены:</span>
+  <div class="expbtns" title="Переключает отображение цены закупа, цены продажи и профита/шт. Финансовая себестоимость, прибыль и маржа остаются без НДС — это база для P&L.">
+    <button class="ebtn active" id="vatNoBtn" data-vat-mode="no" onclick="setPriceNds(false)">б/НДС</button>
+    <button class="ebtn" id="vatYesBtn" data-vat-mode="yes" onclick="setPriceNds(true)">с НДС</button>
+  </div>
   <div class="sep"></div>
   <!-- Month mode expand buttons -->
   <div id="monthExpand" style="display:flex;align-items:center;gap:5px;">
@@ -582,8 +601,9 @@ const MO_SHORT=['Янв','Фев','Мар','Апр','Май','Июн','Июл','
 
 // ── LOAD ──────────────────────────────────────────────────
 // Переключатель НДС для ценовых колонок
-function togglePriceNds() {
-  priceNds = !priceNds;
+// Важно: финансовая себестоимость, прибыль и маржа остаются без НДС.
+// Переключатель меняет только отображение: цена закупа, цена продажи, профит/шт.
+function applyPriceNdsKeys() {
   const ndsKey   = priceNds ? 'priceSellNds'   : 'priceSellNoNds';
   const zakupKey = priceNds ? 'priceZakupNds'  : 'priceZakup';
   const profKey  = priceNds ? 'profitUnitNds'  : 'profitUnitNoNds';
@@ -593,8 +613,22 @@ function togglePriceNds() {
   DAY_METRICS.find(c=>c.id==='priceSell').key  = ndsKey;
   DAY_METRICS.find(c=>c.id==='priceZakup').key = zakupKey;
   DAY_METRICS.find(c=>c.id==='profitUnit').key = profKey;
-  buildMHeader(); render();
 }
+function updateNdsControls() {
+  document.querySelectorAll('[data-vat-mode="no"]').forEach(btn=>btn.classList.toggle('active', !priceNds));
+  document.querySelectorAll('[data-vat-mode="yes"]').forEach(btn=>btn.classList.toggle('active', priceNds));
+}
+function setPriceNds(value) {
+  priceNds = !!value;
+  applyPriceNdsKeys();
+  updateNdsControls();
+  buildMHeader();
+  render();
+}
+function togglePriceNds() {
+  setPriceNds(!priceNds);
+}
+
 
 async function loadData(){
   const errEl=document.getElementById('lerr');errEl.style.display='none';
@@ -934,7 +968,7 @@ function buildMHeader(){
       if(c.id==='priceSell'||c.id==='priceZakup'||c.id==='profitUnit'){
         const tag=priceNds?'НДС':'б/НДС';
         const tagStyle=`font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;border:1px solid;margin-left:3px;cursor:pointer;background:${priceNds?'rgba(47,129,247,.2)':'rgba(210,153,34,.2)'};border-color:${priceNds?'#2f81f7':'#d29922'};color:${priceNds?'#58a6ff':'#d29922'}`;
-        return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}${qBtn}<span onclick="event.stopPropagation();togglePriceNds()" style="${tagStyle}">${tag}</span></th>`;
+        return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}${qBtn}<span onclick="event.stopPropagation();togglePriceNds()" style="${tagStyle}" title="Нажми, чтобы переключить б/НДС ↔ с НДС">${tag}</span></th>`;
       }
       return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}${qBtn}</th>`;
     }).join('');
