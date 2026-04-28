@@ -82,11 +82,12 @@ const PF = {
 
   // ── АГРЕГАЦИЯ ────────────────────────────────────────────────
   agg(rows) {
-    let qty=0,rev=0,ret=0,seb=0,sebWithNds=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0,sebWithNdsRealSum=0;
+    let qty=0,rev=0,ret=0,seb=0,sebWithNds=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0,sebWithNdsRealSum=0,sumRealTotal=0;
     for (const x of rows) {
       qty        += x.qtyN;
       rev        += x.sumBezNds;
       ret        += x.sumR;
+      sumRealTotal += (x.sumReal||0);
       seb        += x.seb;
       sebWithNds += (x.sebWithNds ?? x.seb);
       prof       += x.prof;
