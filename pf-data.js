@@ -140,6 +140,21 @@ const PF = {
   },
 
   // ── ОСНОВНАЯ ЗАГРУЗКА ПРОДАЖ ─────────────────────────────────
+  // ── СЕБЕСТОИМОСТЬ ИЗ ПРИХОДА ─────────────────────────────
+  // Ищет ближайшую цену прихода ДО даты продажи
+  // Если прихода ДО нет — берёт первый имеющийся
+  getPrikhodPrice(sku, saleDate){
+    if(typeof PRIKHOD_PRICES === 'undefined') return null;
+    const entries = PRIKHOD_PRICES[sku];
+    if(!entries || entries.length === 0) return null;
+    let best = null;
+    for(const [dt, price] of entries){
+      if(dt <= saleDate) best = price;
+    }
+    if(best === null) best = entries[0][1]; // первый имеющийся
+    return best;
+  },
+
   async loadSales(onProgress) {
     const p = onProgress || (()=>{});
 
@@ -225,6 +240,10 @@ const PF = {
       const seb      =this.toNum(r[iSeb]);
       const prof     =this.toNum(r[iProf]);
       const w        =skuWeight[sku]||1;
+
+      // Себестоимость из прихода: цена ближайшего прихода ДО даты продажи
+      const prikhodPrice = getPrikhodPrice(sku, day);
+      const sebNew = prikhodPrice !== null ? prikhodPrice * parseFloat(r[iQtyReal]||0) : parseFloat(r[iSeb]||0);
 
       rawRows.push({
         knt,sku,mk,day,

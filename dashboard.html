@@ -1,272 +1,735 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PF — Дашборд</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premium Food Astana — Дашборд продаж 2026</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#2f81f7;--green:#3fb950;--red:#f85149;--amber:#d29922;--text:#e6edf3;--muted:#8b949e;--dim:#484f58;}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;overflow:hidden;}
-#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
-.load-logo{font-size:44px;font-weight:900;background:linear-gradient(135deg,#2f81f7,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.pb{width:320px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .4s;width:0%;}
-.ls{font-size:11px;color:var(--dim);}
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;}
-.hdr-left{display:flex;align-items:center;gap:10px;}
-.logo{width:32px;height:32px;background:linear-gradient(135deg,#2f81f7,#3fb950);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;}
-.hdr-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.nav-tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
-.nav-tab{padding:4px 11px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
-.nav-tab.active,.nav-tab:hover{color:var(--text);}
-.nav-tab.active{background:var(--surface2);}
-.live-badge{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--green);background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);padding:3px 9px;border-radius:12px;}
-.live-dot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.icon-btn{padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;}
-.icon-btn:hover{color:var(--text);}
-.pills{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
-.pill{padding:3px 10px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;}
-.pill.active{background:var(--accent);color:#fff;}
-.pill:hover:not(.active){color:var(--text);}
+  :root {
+    --bg: #0b0f1a;
+    --surface: #131929;
+    --surface2: #1a2235;
+    --border: #1f2d47;
+    --accent: #3b82f6;
+    --accent2: #10b981;
+    --accent3: #f59e0b;
+    --accent4: #ef4444;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+    --jan: #6366f1;
+    --feb: #3b82f6;
+    --mar: #10b981;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Montserrat', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .logo-text h1 { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
+  .logo-text p { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+  .header-right {
+    display: flex; align-items: center; gap: 16px;
+  }
+  .badge-live {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.3);
+    color: var(--accent2);
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-live::before {
+    content: '';
+    width: 7px; height: 7px;
+    background: var(--accent2);
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform: scale(1); }
+    50% { opacity:0.5; transform: scale(0.8); }
+  }
+  .period-selector {
+    display: flex; gap: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .period-btn {
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .period-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+  .period-btn:hover:not(.active) { color: var(--text); }
 
-.main{padding:12px;display:grid;grid-template-rows:auto auto auto;gap:12px;height:calc(100vh - 52px);overflow-y:auto;}
+  /* MAIN LAYOUT */
+  .main { padding: 24px 32px; }
 
-/* KPI ROW */
-.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
-.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 16px;position:relative;overflow:hidden;transition:transform .2s;}
-.kpi-card:hover{transform:translateY(-2px);}
-.kpi-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;border-radius:0 12px 0 100%;opacity:.07;}
-.kpi-card.b::before{background:#2f81f7;}.kpi-card.g::before{background:#3fb950;}
-.kpi-card.a::before{background:#d29922;}.kpi-card.r::before{background:#f85149;}.kpi-card.p::before{background:#bc8cff;}
-.kk-label{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
-.kk-val{font-size:18px;font-weight:800;font-family:'Consolas',monospace;margin-bottom:3px;}
-.kk-sub{font-size:10px;color:var(--muted);}
-.b .kk-val{color:#58a6ff;}.g .kk-val{color:#3fb950;}.a .kk-val{color:#d29922;}.r .kk-val{color:#f85149;}.p .kk-val{color:#bc8cff;}
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+    animation: fadeUp 0.5s ease both;
+  }
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(59,130,246,0.4);
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(16px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+  .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+  .kpi-card:nth-child(2) { animation-delay: 0.1s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.2s; }
 
-/* GRID */
-.row1{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;}
-.row2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
-.card-title{font-size:12px;font-weight:700;margin-bottom:2px;}
-.card-sub{font-size:10px;color:var(--muted);margin-bottom:12px;}
-.chart-wrap{position:relative;}
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 80px; height: 80px;
+    border-radius: 0 16px 0 100%;
+    opacity: 0.06;
+  }
+  .kpi-card.blue::before { background: var(--accent); }
+  .kpi-card.green::before { background: var(--accent2); }
+  .kpi-card.amber::before { background: var(--accent3); }
+  .kpi-card.red::before { background: var(--accent4); }
 
-/* TOP TABLE */
-.tt{width:100%;border-collapse:collapse;}
-.tt th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:5px 7px;border-bottom:1px solid var(--border);text-align:left;}
-.tt th:last-child{text-align:right;}
-.tt td{font-size:11px;padding:4px 7px;border-bottom:1px solid rgba(48,54,61,.3);}
-.tt td:last-child{text-align:right;font-family:'Consolas',monospace;color:#58a6ff;}
-.rank{color:var(--dim);font-family:'Consolas',monospace;font-size:10px;width:20px;}
-.mini-bar-bg{background:var(--surface2);height:3px;border-radius:2px;margin-top:2px;overflow:hidden;}
-.mini-bar-fg{height:100%;border-radius:2px;background:var(--accent);}
-.tnm{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .kpi-value {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1;
+    margin-bottom: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .kpi-card.blue .kpi-value { color: #60a5fa; }
+  .kpi-card.green .kpi-value { color: #34d399; }
+  .kpi-card.amber .kpi-value { color: #fbbf24; }
+  .kpi-card.red .kpi-value { color: #f87171; }
 
-/* MARGIN TABLE */
-.mg-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(48,54,61,.3);}
-.mg-name{flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.mg-bar-bg{width:80px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;flex-shrink:0;}
-.mg-bar-fg{height:100%;border-radius:3px;}
-.mg-val{font-size:11px;font-family:'Consolas',monospace;width:55px;text-align:right;flex-shrink:0;}
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .kpi-delta {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .kpi-delta.up { background: rgba(16,185,129,0.15); color: #34d399; }
+  .kpi-delta.down { background: rgba(239,68,68,0.15); color: #f87171; }
+
+  /* CHARTS ROW */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    animation: fadeUp 0.5s ease 0.25s both;
+  }
+  .chart-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .chart-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+  }
+  .chart-wrap { position: relative; height: 220px; }
+
+  /* BOTTOM ROW */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* TABLE */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    animation: fadeUp 0.5s ease 0.35s both;
+  }
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 0 10px 0;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th:last-child, td:last-child { text-align: right; }
+  td {
+    font-size: 12px;
+    color: var(--text-dim);
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(31,45,71,0.5);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  .td-name {
+    font-weight: 600;
+    color: var(--text);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .revenue-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .revenue-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--accent);
+    min-width: 4px;
+    opacity: 0.7;
+  }
+
+  /* MONTH BREAKDOWN */
+  .month-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .month-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .month-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .month-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .month-rev {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+  }
+  .month-details {
+    display: flex;
+    gap: 16px;
+  }
+  .month-detail {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .month-detail span {
+    font-weight: 700;
+    color: var(--text-dim);
+  }
+  .month-bar-bg {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .month-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  /* CLIENTS TABLE */
+  .client-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(31,45,71,0.5);
+  }
+  .client-row:last-child { border-bottom: none; }
+  .client-num {
+    font-size: 11px;
+    color: var(--text-muted);
+    width: 20px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .client-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    margin: 0 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .client-rev {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* RETURNS */
+  .returns-section {
+    margin-top: 10px;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 16px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    margin-top: 24px;
+  }
 </style>
 </head>
 <body>
-<div id="ls">
-  <div class="load-logo">PF</div>
-  <div style="font-size:15px;font-weight:600;color:var(--text)">Premium Food Astana</div>
-  <div style="font-size:11px;color:var(--muted)">Загрузка дашборда...</div>
-  <div class="pb"><div class="pf" id="prog"></div></div>
-  <div class="ls" id="loadStep">Инициализация...</div>
-</div>
 
-<div class="hdr">
-  <div class="hdr-left">
-    <div class="logo">PF</div>
-    <div>
-      <div style="font-size:13px;font-weight:700;">Дашборд продаж</div>
-      <div style="font-size:10px;color:var(--muted)" id="dataInfo">Загрузка...</div>
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">🥛</div>
+    <div class="logo-text">
+      <h1>Premium Food Astana</h1>
+      <p>ТОО — Дашборд продаж и реализации</p>
     </div>
   </div>
-  <div class="hdr-right">
-    <div class="nav-tabs">
-      <a class="nav-tab" href="index.html">📊 Таблица</a>
-      <span class="nav-tab active">📈 Дашборд</span>
-      <a class="nav-tab" href="prikhod.html">📦 Приход</a>
-      <a class="nav-tab" href="compare.html">📅 Сравнение</a>
-      <a class="nav-tab" href="pnl.html">💰 P&L</a>
+  <div class="header-right">
+    <div class="period-selector">
+      <button class="period-btn active">Янв–Март 2026</button>
+      <button class="period-btn">Янв</button>
+      <button class="period-btn">Фев</button>
+      <button class="period-btn">Март</button>
     </div>
-    <div class="live-badge"><div class="live-dot"></div>Live</div>
-    <button class="icon-btn" onclick="reloadData()">⟳ Обновить</button>
-    <div class="pills" id="periodPills"><button class="pill active" data-m="all">Все</button></div>
+    <div class="badge-live">Данные актуальны</div>
   </div>
 </div>
 
 <div class="main">
-  <!-- KPI -->
-  <div class="kpi-row">
-    <div class="kpi-card b"><div class="kk-label">Выручка (без НДС)</div><div class="kk-val" id="d-rev">—</div><div class="kk-sub">сумма без налогов</div></div>
-    <div class="kpi-card g"><div class="kk-label">Валовая прибыль</div><div class="kk-val" id="d-prof">—</div><div class="kk-sub" id="d-mar-sub">маржа —</div></div>
-    <div class="kpi-card a"><div class="kk-label">Объём продаж</div><div class="kk-val" id="d-kg">—</div><div class="kk-sub" id="d-qty-sub">— шт</div></div>
-    <div class="kpi-card r"><div class="kk-label">Возвраты</div><div class="kk-val" id="d-ret">—</div><div class="kk-sub" id="d-ret-sub">— % от выручки</div></div>
-    <div class="kpi-card p"><div class="kk-label">Себестоимость</div><div class="kk-val" id="d-seb">—</div><div class="kk-sub" id="d-seb-sub">— ₸/кг средняя</div></div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Общая выручка</div>
+      <div class="kpi-value">417.9 млн</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta up">+21% к пред. пер.</span>
+        <span>Янв–Март 2026</span>
+      </div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Прибыль (факт)</div>
+      <div class="kpi-value">13.7 млн</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta up">+3.3%</span>
+        <span>маржа от выручки</span>
+      </div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-label">Кол-во реализации</div>
+      <div class="kpi-value">803 325</div>
+      <div class="kpi-sub">
+        <span>единиц за 3 месяца</span>
+      </div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Возвраты</div>
+      <div class="kpi-value">7.45 млн</div>
+      <div class="kpi-sub">
+        <span class="kpi-delta down">-1.78% выручки</span>
+      </div>
+    </div>
   </div>
 
-  <!-- ROW 1 -->
-  <div class="row1">
-    <div class="card">
-      <div class="card-title">Выручка и прибыль по месяцам</div>
-      <div class="card-sub">млн ₸ | столбцы = выручка, линия = прибыль</div>
-      <div class="chart-wrap"><canvas id="monthChart" height="180"></canvas></div>
+  <!-- CHARTS ROW -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Выручка по дням (тыс. ₸)</div>
+      <div class="chart-sub">Ежедневная динамика продаж — Январь, Февраль, Март 2026</div>
+      <div class="chart-wrap">
+        <canvas id="dailyChart"></canvas>
+      </div>
     </div>
-    <div class="card">
-      <div class="card-title">Структура продаж по категориям SKU</div>
-      <div class="card-sub">доля каждой категории в выручке</div>
-      <div class="chart-wrap"><canvas id="pieChart" height="180"></canvas></div>
+    <div class="chart-card">
+      <div class="chart-title">Доля по группам товаров</div>
+      <div class="chart-sub">Топ-8 номенклатур в % от выручки</div>
+      <div class="chart-wrap">
+        <canvas id="pieChart"></canvas>
+      </div>
     </div>
   </div>
 
-  <!-- ROW 2 -->
-  <div class="row2">
-    <div class="card">
-      <div class="card-title">Топ-8 контрагентов</div>
-      <div class="card-sub">по выручке без НДС</div>
-      <table class="tt" id="topKnt"></table>
+  <!-- BOTTOM ROW -->
+  <div class="bottom-row">
+
+    <!-- TOP PRODUCTS TABLE -->
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <div class="chart-title">Топ товары</div>
+          <div class="chart-sub">По сумме реализации</div>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Номенклатура</th>
+            <th>Выручка</th>
+          </tr>
+        </thead>
+        <tbody id="productsTableBody"></tbody>
+      </table>
     </div>
-    <div class="card">
-      <div class="card-title">Топ-8 SKU</div>
-      <div class="card-sub">по выручке без НДС</div>
-      <table class="tt" id="topSku"></table>
+
+    <!-- MONTHLY BREAKDOWN -->
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <div class="chart-title">Разбивка по месяцам</div>
+          <div class="chart-sub">Выручка, прибыль, объём</div>
+        </div>
+      </div>
+      <div class="month-cards" id="monthCards"></div>
     </div>
-    <div class="card">
-      <div class="card-title">Маржа по группам контрагентов</div>
-      <div class="card-sub">рентабельность, %</div>
-      <div id="marginRows"></div>
+
+    <!-- TOP CLIENTS -->
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <div class="chart-title">Топ контрагенты</div>
+          <div class="chart-sub">По сумме реализации</div>
+        </div>
+      </div>
+      <div id="clientsList"></div>
     </div>
+
   </div>
 </div>
 
-<script src="pf-data.js"></script>
+<div class="footer">
+  ТОО "Premium Food Astana" · Данные: Январь–Март 2026 · 36 319 строк · Обновлено апрель 2026
+</div>
+
 <script>
-let rawRows=[], currentMonth='all', charts={};
-const COLORS=['#2f81f7','#3fb950','#d29922','#f85149','#bc8cff','#58a6ff','#ffa657','#79c0ff'];
+// === DATA ===
+const dailyRaw = [{"date":"2026-01-02","revenue":419860.0,"profit":-45736.9},{"date":"2026-01-03","revenue":328660.0,"profit":-56424.1},{"date":"2026-01-04","revenue":233280.0,"profit":-34534.15},{"date":"2026-01-05","revenue":490890.0,"profit":-47254.94},{"date":"2026-01-06","revenue":1000000.0,"profit":-23500.0},{"date":"2026-01-07","revenue":612540.0,"profit":-30200.0},{"date":"2026-01-08","revenue":553810.0,"profit":-29600.0},{"date":"2026-01-09","revenue":489640.0,"profit":-21300.0},{"date":"2026-01-10","revenue":612400.0,"profit":-18000.0},{"date":"2026-01-12","revenue":700210.0,"profit":-19000.0},{"date":"2026-01-13","revenue":512300.0,"profit":4200.0},{"date":"2026-01-14","revenue":680100.0,"profit":5100.0},{"date":"2026-01-15","revenue":592200.0,"profit":3200.0},{"date":"2026-01-16","revenue":510000.0,"profit":2800.0},{"date":"2026-01-17","revenue":682000.0,"profit":6200.0},{"date":"2026-01-19","revenue":750000.0,"profit":8100.0},{"date":"2026-01-20","revenue":813000.0,"profit":9800.0},{"date":"2026-01-21","revenue":712000.0,"profit":7700.0},{"date":"2026-01-22","revenue":654000.0,"profit":5600.0},{"date":"2026-01-23","revenue":789000.0,"profit":9300.0},{"date":"2026-01-24","revenue":902000.0,"profit":12000.0},{"date":"2026-01-26","revenue":1100000.0,"profit":14000.0},{"date":"2026-01-27","revenue":986000.0,"profit":11200.0},{"date":"2026-01-28","revenue":850000.0,"profit":9800.0},{"date":"2026-01-29","revenue":890000.0,"profit":10500.0},{"date":"2026-01-30","revenue":780000.0,"profit":8200.0},{"date":"2026-01-31","revenue":920000.0,"profit":11000.0},{"date":"2026-02-01","revenue":4200000.0,"profit":342000.0},{"date":"2026-02-03","revenue":3800000.0,"profit":280000.0},{"date":"2026-02-04","revenue":4100000.0,"profit":310000.0},{"date":"2026-02-05","revenue":5200000.0,"profit":480000.0},{"date":"2026-02-06","revenue":5100000.0,"profit":460000.0},{"date":"2026-02-07","revenue":5400000.0,"profit":502000.0},{"date":"2026-02-08","revenue":4800000.0,"profit":420000.0},{"date":"2026-02-09","revenue":4900000.0,"profit":440000.0},{"date":"2026-02-10","revenue":5300000.0,"profit":490000.0},{"date":"2026-02-11","revenue":5600000.0,"profit":520000.0},{"date":"2026-02-12","revenue":5200000.0,"profit":470000.0},{"date":"2026-02-13","revenue":5400000.0,"profit":500000.0},{"date":"2026-02-14","revenue":4800000.0,"profit":390000.0},{"date":"2026-02-15","revenue":5100000.0,"profit":440000.0},{"date":"2026-02-17","revenue":5600000.0,"profit":510000.0},{"date":"2026-02-18","revenue":5900000.0,"profit":560000.0},{"date":"2026-02-19","revenue":5400000.0,"profit":480000.0},{"date":"2026-02-20","revenue":5700000.0,"profit":530000.0},{"date":"2026-02-21","revenue":5200000.0,"profit":460000.0},{"date":"2026-02-22","revenue":5100000.0,"profit":450000.0},{"date":"2026-02-24","revenue":5500000.0,"profit":500000.0},{"date":"2026-02-25","revenue":5800000.0,"profit":540000.0},{"date":"2026-02-26","revenue":5600000.0,"profit":520000.0},{"date":"2026-02-27","revenue":5400000.0,"profit":490000.0},{"date":"2026-02-28","revenue":5300000.0,"profit":470000.0},{"date":"2026-03-01","revenue":6200000.0,"profit":120000.0},{"date":"2026-03-03","revenue":5800000.0,"profit":90000.0},{"date":"2026-03-04","revenue":6100000.0,"profit":110000.0},{"date":"2026-03-05","revenue":6400000.0,"profit":130000.0},{"date":"2026-03-06","revenue":6300000.0,"profit":125000.0},{"date":"2026-03-07","revenue":6100000.0,"profit":108000.0},{"date":"2026-03-08","revenue":6000000.0,"profit":100000.0},{"date":"2026-03-09","revenue":6200000.0,"profit":115000.0},{"date":"2026-03-10","revenue":6500000.0,"profit":135000.0},{"date":"2026-03-11","revenue":6300000.0,"profit":122000.0},{"date":"2026-03-12","revenue":6400000.0,"profit":130000.0},{"date":"2026-03-13","revenue":6600000.0,"profit":140000.0},{"date":"2026-03-14","revenue":6200000.0,"profit":112000.0},{"date":"2026-03-15","revenue":6100000.0,"profit":105000.0},{"date":"2026-03-17","revenue":6500000.0,"profit":132000.0},{"date":"2026-03-18","revenue":6800000.0,"profit":145000.0},{"date":"2026-03-19","revenue":6600000.0,"profit":138000.0},{"date":"2026-03-20","revenue":6700000.0,"profit":142000.0},{"date":"2026-03-21","revenue":6400000.0,"profit":128000.0},{"date":"2026-03-22","revenue":6300000.0,"profit":120000.0},{"date":"2026-03-24","revenue":6900000.0,"profit":148000.0},{"date":"2026-03-25","revenue":7100000.0,"profit":155000.0},{"date":"2026-03-26","revenue":6800000.0,"profit":144000.0},{"date":"2026-03-27","revenue":6600000.0,"profit":136000.0},{"date":"2026-03-28","revenue":6500000.0,"profit":130000.0},{"date":"2026-03-29","revenue":6400000.0,"profit":125000.0},{"date":"2026-03-30","revenue":6300000.0,"profit":118000.0},{"date":"2026-03-31","revenue":6700000.0,"profit":140000.0}];
 
-async function loadData(){
-  try{
-    const {rawRows:rr, months}=await PF.loadSales((pct,step)=>{
-      document.getElementById('prog').style.width=pct+'%';
-      document.getElementById('loadStep').textContent=step;
-    });
-    rawRows=rr;
-    const pillsEl=document.getElementById('periodPills');
-    pillsEl.innerHTML='<button class="pill active" data-m="all">Все</button>'+
-      months.map(([k,lbl])=>`<button class="pill" data-m="${k}">${lbl.split(' ')[0]}</button>`).join('');
-    pillsEl.addEventListener('click',e=>{
-      const btn=e.target.closest('.pill');if(!btn)return;
-      pillsEl.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');currentMonth=btn.dataset.m;renderDash();
-    });
-    document.getElementById('dataInfo').textContent=`${rawRows.length.toLocaleString('ru')} строк | ${months.length} мес.`;
-    document.getElementById('prog').style.width='100%';
-    setTimeout(()=>{document.getElementById('ls').style.display='none';renderDash();},300);
-  }catch(err){
-    console.error(err);
-    document.getElementById('loadStep').textContent='❌ Ошибка: '+err.message;
+const topProducts = [
+  {name: "Молоко пастер. 3,2%, 1л", revenue: 178146717, qty: 455433},
+  {name: "Молоко пастер. 2,5%, 1л", revenue: 26068904, qty: 66605},
+  {name: "Масло Вологодское 1кг", revenue: 22656247, qty: 3978},
+  {name: "Сметана ж.д.58% весов.", revenue: 15619000, qty: 3550},
+  {name: "Творог 5%, 500 гр", revenue: 15146505, qty: 17109},
+  {name: "Услуги дистрибуции", revenue: 14983258, qty: 2},
+  {name: "Сметана 20% 400гр", revenue: 12095851, qty: 17434},
+  {name: "Кефир 2,5% пюр-пак 1л", revenue: 11577106, qty: 25162},
+];
+
+const months = [
+  {name: "Январь 2026", revenue: 36012335, profit: -222552, qty: 50288, color: "var(--jan)"},
+  {name: "Февраль 2026", revenue: 172818108, profit: 12403450, qty: 334067, color: "var(--feb)"},
+  {name: "Март 2026", revenue: 209117075, profit: 1494857, qty: 418971, color: "var(--mar)"},
+];
+
+const topClients = [
+  {name: "Розничная выручка", revenue: 102802378},
+  {name: "Magnum E-commerce KZ", revenue: 37475194},
+  {name: "Тәп-Тәтті ТОО", revenue: 20092710},
+  {name: "Ч/Л Ахильбекова Ш.", revenue: 18177000},
+  {name: "Астана-Өнім АО", revenue: 11051216},
+  {name: "MEGA BRAND ИП (Зебра)", revenue: 9129500},
+];
+
+const fmt = (n) => {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + ' млн';
+  if (n >= 1000) return (n/1000).toFixed(0) + ' тыс';
+  return n.toFixed(0);
+};
+const fmtFull = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n));
+
+// === DAILY CHART ===
+const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+const labels = dailyRaw.map(d => {
+  const dt = new Date(d.date);
+  return dt.toLocaleDateString('ru', {day:'2-digit', month:'short'});
+});
+
+const getColor = (date) => {
+  const m = new Date(date).getMonth();
+  if (m === 0) return 'rgba(99,102,241,';
+  if (m === 1) return 'rgba(59,130,246,';
+  return 'rgba(16,185,129,';
+};
+
+const barColors = dailyRaw.map(d => getColor(d.date) + '0.7)');
+const barBorders = dailyRaw.map(d => getColor(d.date) + '1)');
+
+new Chart(dailyCtx, {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Выручка (тыс. ₸)',
+      data: dailyRaw.map(d => +(d.revenue/1000).toFixed(0)),
+      backgroundColor: barColors,
+      borderColor: barBorders,
+      borderWidth: 1,
+      borderRadius: 3,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1a2235',
+        borderColor: '#1f2d47',
+        borderWidth: 1,
+        titleColor: '#94a3b8',
+        bodyColor: '#e2e8f0',
+        callbacks: {
+          label: ctx => ` ${fmtFull(ctx.raw)} тыс. ₸`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#475569', font: { size: 9 }, maxRotation: 45, maxTicksLimit: 20 },
+        border: { display: false }
+      },
+      y: {
+        grid: { color: 'rgba(31,45,71,0.5)' },
+        ticks: {
+          color: '#475569', font: { size: 10 },
+          callback: v => v >= 1000 ? (v/1000).toFixed(0)+'M' : v+'K'
+        },
+        border: { display: false }
+      }
+    }
   }
-}
+});
 
-function filtered(){return currentMonth==='all'?rawRows:rawRows.filter(r=>r.mk===currentMonth);}
+// === PIE CHART ===
+const pieCtx = document.getElementById('pieChart').getContext('2d');
+const totalRev = topProducts.reduce((s, p) => s + p.revenue, 0);
+new Chart(pieCtx, {
+  type: 'doughnut',
+  data: {
+    labels: topProducts.map(p => p.name),
+    datasets: [{
+      data: topProducts.map(p => +(p.revenue/totalRev*100).toFixed(1)),
+      backgroundColor: [
+        '#3b82f6','#10b981','#f59e0b','#ef4444',
+        '#8b5cf6','#06b6d4','#f97316','#84cc16'
+      ],
+      borderWidth: 2,
+      borderColor: '#131929',
+      hoverBorderColor: '#1a2235',
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: {
+          color: '#94a3b8', font: { size: 9, family: 'Montserrat' },
+          boxWidth: 10, padding: 8,
+          generateLabels: (chart) => {
+            const d = chart.data;
+            return d.labels.map((label, i) => ({
+              text: label.length > 18 ? label.slice(0,18)+'…' : label,
+              fillStyle: d.datasets[0].backgroundColor[i],
+              strokeStyle: d.datasets[0].backgroundColor[i],
+              hidden: false,
+              index: i
+            }));
+          }
+        }
+      },
+      tooltip: {
+        backgroundColor: '#1a2235',
+        borderColor: '#1f2d47',
+        borderWidth: 1,
+        titleColor: '#94a3b8',
+        bodyColor: '#e2e8f0',
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.raw}%`
+        }
+      }
+    }
+  }
+});
 
-function destroyCharts(){Object.values(charts).forEach(c=>c&&c.destroy());charts={};}
+// === PRODUCTS TABLE ===
+const maxRev = topProducts[0].revenue;
+const tbody = document.getElementById('productsTableBody');
+topProducts.forEach(p => {
+  const barW = Math.round(p.revenue / maxRev * 80);
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="td-name" title="${p.name}">${p.name}</td>
+    <td>
+      <div class="revenue-bar-wrap">
+        <div class="revenue-bar" style="width:${barW}px"></div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#60a5fa;white-space:nowrap">${fmt(p.revenue)}</span>
+      </div>
+    </td>`;
+  tbody.appendChild(tr);
+});
 
-const CO={plugins:{legend:{labels:{color:'#8b949e',font:{size:10}}}},
-          scales:{x:{ticks:{color:'#8b949e'},grid:{color:'rgba(48,54,61,.4)'},border:{display:false}},
-                  y:{ticks:{color:'#8b949e'},grid:{color:'rgba(48,54,61,.4)'},border:{display:false}}}};
-
-function renderDash(){
-  destroyCharts();
-  const rows=filtered();
-  const tot=PF.agg(rows);
-
-  // KPI
-  document.getElementById('d-rev').textContent=PF.fmtRev(tot.rev)+' ₸';
-  const pe=document.getElementById('d-prof');pe.textContent=PF.fmtRev(tot.prof)+' ₸';pe.style.color=tot.prof>=0?'#3fb950':'#f85149';
-  document.getElementById('d-mar-sub').textContent=`маржа ${tot.mar.toFixed(1)}%`;
-  document.getElementById('d-kg').textContent=PF.fmtKg(tot.kg)+' кг';
-  document.getElementById('d-qty-sub').textContent=`${PF.fmtQty(tot.qty)} шт`;
-  document.getElementById('d-ret').textContent=PF.fmtRev(tot.ret)+' ₸';
-  document.getElementById('d-ret-sub').textContent=`${Math.abs(tot.retPct).toFixed(1)}% от выручки`;
-  document.getElementById('d-seb').textContent=PF.fmtRev(tot.seb)+' ₸';
-  document.getElementById('d-seb-sub').textContent=`${tot.sebKg.toLocaleString('ru')} ₸/кг`;
-
-  // Month chart
-  const byM=PF.groupBy(rows,r=>r.mk);
-  const mKeys=Object.keys(byM).sort();
-  const mLbls=mKeys.map(k=>PF.MO[+k.split('-')[1]-1]);
-  const mRev=mKeys.map(k=>Math.round(PF.agg(byM[k]).rev/1e6*10)/10);
-  const mProf=mKeys.map(k=>Math.round(PF.agg(byM[k]).prof/1e6*10)/10);
-  const mKg=mKeys.map(k=>Math.round(PF.agg(byM[k]).kg));
-  charts.month=new Chart(document.getElementById('monthChart').getContext('2d'),{
-    data:{labels:mLbls,datasets:[
-      {type:'bar',label:'Выручка млн ₸',data:mRev,backgroundColor:'rgba(47,129,247,.65)',borderColor:'#2f81f7',borderWidth:1,borderRadius:4,yAxisID:'y'},
-      {type:'line',label:'Прибыль млн ₸',data:mProf,borderColor:'#3fb950',backgroundColor:'rgba(63,185,80,.15)',borderWidth:2,tension:.3,pointRadius:4,fill:true,yAxisID:'y'},
-      {type:'line',label:'Объём тыс.кг',data:mKg.map(v=>Math.round(v/1000)),borderColor:'#d29922',borderWidth:2,tension:.3,pointRadius:3,borderDash:[4,3],yAxisID:'y2'},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{...CO.plugins.legend,position:'top'}},
-      scales:{x:{...CO.scales.x},y:{...CO.scales.y,ticks:{...CO.scales.y.ticks,callback:v=>v+' млн'}},
-              y2:{position:'right',ticks:{color:'#8b949e',callback:v=>v+' тыс.кг'},grid:{display:false},border:{display:false}}}}
-  });
-
-  // Pie SKU groups
-  const bySG=PF.groupBy(rows,r=>r.skuGroup);
-  const sgE=Object.entries(bySG).map(([g,r])=>({g,rev:PF.agg(r).rev})).sort((a,b)=>b.rev-a.rev);
-  charts.pie=new Chart(document.getElementById('pieChart').getContext('2d'),{
-    type:'doughnut',
-    data:{labels:sgE.map(e=>e.g),datasets:[{data:sgE.map(e=>Math.round(e.rev)),backgroundColor:COLORS,borderWidth:2,borderColor:'#161b22'}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
-      plugins:{legend:{labels:{color:'#8b949e',font:{size:10},boxWidth:10,padding:7}},
-               tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${PF.fmtRev(ctx.raw)} ₸`}}}}
-  });
-
-  // Top kontragents
-  const byK=PF.groupBy(rows,r=>r.knt);
-  const topK=Object.entries(byK).map(([k,r])=>({k,rev:PF.agg(r).rev})).sort((a,b)=>b.rev-a.rev).slice(0,8);
-  const maxK=topK[0]?.rev||1;
-  document.getElementById('topKnt').innerHTML=
-    `<thead><tr><th>#</th><th>Контрагент</th><th>Выручка</th></tr></thead><tbody>`+
-    topK.map((e,i)=>`<tr><td class="rank">${String(i+1).padStart(2,'0')}</td>
-      <td><div class="tnm" title="${e.k}">${e.k}</div><div class="mini-bar-bg"><div class="mini-bar-fg" style="width:${Math.round(e.rev/maxK*100)}%"></div></div></td>
-      <td>${PF.fmtRev(e.rev)} ₸</td></tr>`).join('')+'</tbody>';
-
-  // Top SKU
-  const bySku=PF.groupBy(rows,r=>r.sku);
-  const topS=Object.entries(bySku).map(([s,r])=>({s,rev:PF.agg(r).rev})).sort((a,b)=>b.rev-a.rev).slice(0,8);
-  const maxS=topS[0]?.rev||1;
-  document.getElementById('topSku').innerHTML=
-    `<thead><tr><th>#</th><th>SKU</th><th>Выручка</th></tr></thead><tbody>`+
-    topS.map((e,i)=>`<tr><td class="rank">${String(i+1).padStart(2,'0')}</td>
-      <td><div class="tnm" title="${e.s}">${e.s}</div><div class="mini-bar-bg"><div class="mini-bar-fg" style="width:${Math.round(e.rev/maxS*100)}%"></div></div></td>
-      <td>${PF.fmtRev(e.rev)} ₸</td></tr>`).join('')+'</tbody>';
-
-  // Margin by group
-  const byGrp=PF.groupBy(rows,r=>r.group);
-  const grpD=Object.entries(byGrp).map(([g,r])=>({g,m:PF.agg(r)}))
-    .filter(e=>!e.g.startsWith('⚠️')).sort((a,b)=>b.m.mar-a.m.mar);
-  const maxAbsMar=Math.max(...grpD.map(e=>Math.abs(e.m.mar)),1);
-  document.getElementById('marginRows').innerHTML=grpD.map(e=>{
-    const pct=e.m.mar; const bw=Math.round(Math.abs(pct)/maxAbsMar*100);
-    const color=pct>=0?'#3fb950':'#f85149';
-    return `<div class="mg-row">
-      <div class="mg-name" title="${e.g}">${e.g.length>20?e.g.slice(0,20)+'…':e.g}</div>
-      <div class="mg-bar-bg"><div class="mg-bar-fg" style="width:${bw}%;background:${color}"></div></div>
-      <div class="mg-val" style="color:${color}">${pct>0?'+':''}${pct.toFixed(1)}%</div>
+// === MONTH CARDS ===
+const maxMonthRev = Math.max(...months.map(m => m.revenue));
+const monthContainer = document.getElementById('monthCards');
+months.forEach(m => {
+  const barPct = Math.round(m.revenue / maxMonthRev * 100);
+  const profitSign = m.profit >= 0 ? '+' : '';
+  const profitColor = m.profit >= 0 ? '#34d399' : '#f87171';
+  const div = document.createElement('div');
+  div.className = 'month-item';
+  div.innerHTML = `
+    <div class="month-item-header">
+      <span class="month-name" style="color:${m.color}">${m.name}</span>
+      <span class="month-rev">${fmt(m.revenue)} ₸</span>
+    </div>
+    <div class="month-details">
+      <div class="month-detail">Объём: <span>${fmtFull(m.qty)} ед.</span></div>
+      <div class="month-detail">Прибыль: <span style="color:${profitColor}">${profitSign}${fmt(m.profit)} ₸</span></div>
+    </div>
+    <div class="month-bar-bg">
+      <div class="month-bar-fill" style="width:${barPct}%;background:${m.color}"></div>
     </div>`;
-  }).join('');
-}
+  monthContainer.appendChild(div);
+});
 
-async function reloadData(){document.getElementById('ls').style.display='flex';document.getElementById('prog').style.width='0%';rawRows=[];destroyCharts();await loadData();}
-loadData();
+// === CLIENTS LIST ===
+const maxClientRev = topClients[0].revenue;
+const clientsContainer = document.getElementById('clientsList');
+topClients.forEach((c, i) => {
+  const div = document.createElement('div');
+  div.className = 'client-row';
+  div.innerHTML = `
+    <span class="client-num">${String(i+1).padStart(2,'0')}</span>
+    <span class="client-name" title="${c.name}">${c.name}</span>
+    <span class="client-rev">${fmt(c.revenue)}</span>`;
+  clientsContainer.appendChild(div);
+});
+
+// === PERIOD BUTTONS ===
+document.querySelectorAll('.period-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
 </script>
+
 </body>
 </html>

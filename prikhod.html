@@ -1,218 +1,293 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PF — Приход товара</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PF — Приход</title>
 <style>
-:root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#2f81f7;--green:#3fb950;--red:#f85149;--amber:#d29922;--text:#e6edf3;--muted:#8b949e;--dim:#484f58;}
+:root{--bg:#07090f;--s1:#0d1219;--s2:#131a23;--border:#1e2d40;
+  --accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;
+  --text:#dde8f5;--muted:#5a7a96;--dim:#2d4055;
+  --mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;}
-#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
-.load-logo{font-size:44px;font-weight:900;background:linear-gradient(135deg,#2f81f7,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.pb{width:320px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .4s;width:0%;}
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;background:var(--surface);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;}
-.hdr-left{display:flex;align-items:center;gap:10px;}
-.logo{width:32px;height:32px;background:linear-gradient(135deg,#2f81f7,#3fb950);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;}
-.nav-tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
-.nav-tab{padding:4px 11px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
-.nav-tab.active,.nav-tab:hover{color:var(--text);}
-.nav-tab.active{background:var(--surface2);}
-.live-badge{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--green);background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);padding:3px 9px;border-radius:12px;}
-.live-dot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:12px;}
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+/* NAV */
+.nav{display:flex;align-items:center;padding:7px 16px;background:var(--s1);border-bottom:1px solid var(--border);gap:3px;position:sticky;top:0;z-index:200;}
+.nl{font-family:'Bebas Neue',sans-serif;font-size:22px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px;}
+.nav a{padding:4px 8px;border-radius:5px;text-decoration:none;color:var(--muted);font-size:11px;font-weight:600;}
+.nav a:hover,.nav a.active{color:var(--text);}
+.nav a.active{background:var(--s2);}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--s1);border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:35px;z-index:199;}
+.conflict-badge{display:flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(255,61,87,.12);border:1px solid rgba(255,61,87,.4);border-radius:6px;color:var(--red);font-size:11px;font-weight:700;cursor:pointer;}
+.conflict-badge:hover{background:rgba(255,61,87,.2);}
+.conflict-dot{width:7px;height:7px;border-radius:50%;background:var(--red);animation:pulse 1.5s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.icon-btn{padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;}
-.icon-btn:hover{color:var(--text);}
-.pills{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
-.pill{padding:3px 10px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;}
-.pill.active{background:var(--accent);color:#fff;}
-.pill:hover:not(.active){color:var(--text);}
-select.sel{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:5px;font-size:11px;outline:none;}
+.filter-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+select,input[type=text]{background:var(--s2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:5px;font-size:11px;font-family:var(--body);}
+select:focus,input:focus{outline:1px solid var(--accent);}
+.btn{padding:4px 10px;border:1px solid var(--border);border-radius:5px;background:var(--s2);color:var(--text);font-size:11px;cursor:pointer;}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.active{background:rgba(0,200,255,.12);border-color:var(--accent);color:var(--accent);}
+.kpi-row{display:flex;gap:12px;margin-left:auto;flex-wrap:wrap;}
+.kpi{text-align:center;}
+.kpi-v{font-family:var(--mono);font-size:13px;font-weight:600;}
+.kpi-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;}
 
-.main{padding:14px;display:flex;flex-direction:column;gap:12px;height:calc(100vh - 52px);overflow-y:auto;}
-
-.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
-.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
-.kk-label{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-.kk-val{font-size:16px;font-weight:700;font-family:'Consolas',monospace;margin-bottom:2px;}
-.kk-sub{font-size:10px;color:var(--muted);}
-.blue{color:#58a6ff;}.green{color:#3fb950;}.amber{color:#d29922;}
-
-.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.search-box{display:flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 9px;min-width:200px;}
-.search-box input{background:transparent;border:none;outline:none;color:var(--text);font-size:12px;width:100%;}
-.search-box input::placeholder{color:var(--dim);}
-
-.table-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;flex:1;}
-.table-wrap{overflow:auto;max-height:calc(100vh - 300px);}
+/* TABLE */
+.wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;}
-thead{position:sticky;top:0;z-index:10;}
-th{background:var(--surface2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:7px 10px;border-bottom:2px solid var(--border);text-align:right;white-space:nowrap;cursor:pointer;user-select:none;}
-th:first-child,.th-l{text-align:left;}
-th:hover{color:var(--text);}
-td{padding:4px 10px;border-bottom:1px solid rgba(48,54,61,.35);text-align:right;font-size:12px;font-family:'Consolas',monospace;white-space:nowrap;}
-td.tl{text-align:left;font-family:'Segoe UI',sans-serif;max-width:220px;overflow:hidden;text-overflow:ellipsis;}
-tr:hover td{background:rgba(48,54,61,.25);}
-.pos{color:#3fb950;}.muted-c{color:var(--muted);}
-.statusbar{font-size:10px;color:var(--muted);padding:4px 12px;background:var(--surface);border-top:1px solid var(--border);}
-.statusbar span{color:var(--text);font-weight:600;}
+thead th{padding:6px 8px;text-align:right;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);position:sticky;top:0;background:var(--s1);white-space:nowrap;cursor:pointer;user-select:none;z-index:100;}
+thead th:first-child,thead th:nth-child(2){text-align:left;}
+thead th:hover{color:var(--text);}
+thead th.sa{color:var(--accent);}
+thead th.sa::after{content:' ↓';}
+thead th.sd{color:var(--accent);}
+thead th.sd::after{content:' ↑';}
+tbody tr{border-bottom:1px solid rgba(30,45,64,.5);}
+tbody tr:hover td{background:rgba(255,255,255,.025);}
+tbody tr.conflict-row td{background:rgba(255,61,87,.04);}
+tbody tr.conflict-row td:first-child{border-left:2px solid var(--red);}
+td{padding:5px 8px;text-align:right;font-size:11px;}
+td:first-child{text-align:left;font-family:var(--body);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+td:nth-child(2){text-align:left;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:10px;}
+td.num{font-family:var(--mono);}
+td.conflict-cell{color:var(--red);font-weight:700;}
+.conflict-icon{font-size:11px;margin-left:4px;color:var(--red);}
+
+/* CONFLICT PANEL */
+.conflict-panel{display:none;margin:0;padding:10px 14px;background:rgba(255,61,87,.06);border-bottom:1px solid rgba(255,61,87,.3);}
+.conflict-panel.show{display:block;}
+.conflict-panel h3{font-size:12px;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.conflict-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:6px;max-height:200px;overflow-y:auto;}
+.conflict-item{background:rgba(255,61,87,.08);border:1px solid rgba(255,61,87,.25);border-radius:6px;padding:6px 8px;font-size:10px;}
+.conflict-item .ci-sku{font-weight:700;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.conflict-item .ci-info{color:var(--muted);}
+.conflict-item .ci-prices{font-family:var(--mono);color:var(--red);font-weight:600;}
+
+/* PAGINATION */
+.pagebar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--border);background:var(--s1);}
+.pagebar span{font-size:11px;color:var(--muted);}
+.page-btn{padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:var(--s2);color:var(--muted);font-size:11px;cursor:pointer;}
+.page-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.page-btn:disabled{opacity:.3;cursor:default;}
+.page-info{font-family:var(--mono);font-size:11px;color:var(--text);}
 </style>
 </head>
 <body>
-<div id="ls">
-  <div class="load-logo">PF</div>
-  <div style="font-size:15px;font-weight:600;color:var(--text)">Premium Food Astana</div>
-  <div style="font-size:11px;color:var(--muted)">Загрузка журнала прихода...</div>
-  <div class="pb"><div class="pf" id="prog"></div></div>
-  <div style="font-size:11px;color:var(--dim)" id="loadStep">Инициализация...</div>
+
+<div class="nav">
+  <span class="nl" style="font-family:serif;font-style:italic">PF</span>
+  <a href="index.html">📊 Таблица</a>
+  <a href="dashboard.html">📈 Дашборд</a>
+  <a href="prikhod.html" class="active">📦 Приход</a>
+  <a href="compare.html">📅 Сравнение</a>
+  <a href="pnl.html">💰 P&L</a>
+  <a href="analytics.html">🔬 Аналитика</a>
 </div>
 
-<div class="hdr">
-  <div class="hdr-left">
-    <div class="logo">PF</div>
-    <div><div style="font-size:13px;font-weight:700;">Приход товара</div><div style="font-size:10px;color:var(--muted)" id="dataInfo">Загрузка...</div></div>
-  </div>
-  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-    <div class="nav-tabs">
-      <a class="nav-tab" href="index.html">📊 Таблица</a>
-      <a class="nav-tab" href="dashboard.html">📈 Дашборд</a>
-      <span class="nav-tab active">📦 Приход</span>
-      <a class="nav-tab" href="compare.html">📅 Сравнение</a>
-      <a class="nav-tab" href="pnl.html">💰 P&L</a>
-    </div>
-    <div class="live-badge"><div class="live-dot"></div>Live</div>
-    <button class="icon-btn" onclick="reloadData()">⟳</button>
-    <div class="pills" id="periodPills"><button class="pill active" data-m="all">Все</button></div>
-  </div>
-</div>
-
-<div class="main">
-  <div class="kpi-row">
-    <div class="kpi-card"><div class="kk-label">Приходов (строк)</div><div class="kk-val blue" id="p-total">—</div><div class="kk-sub">записей в журнале</div></div>
-    <div class="kpi-card"><div class="kk-label">Сумма закупа</div><div class="kk-val amber" id="p-sum">—</div><div class="kk-sub">без НДС</div></div>
-    <div class="kpi-card"><div class="kk-label">Кол-во (шт)</div><div class="kk-val green" id="p-qty">—</div><div class="kk-sub">принято на склад</div></div>
-    <div class="kpi-card"><div class="kk-label">Ср. цена закупа</div><div class="kk-val amber" id="p-avg">—</div><div class="kk-sub">сумма ÷ кол-во</div></div>
-    <div class="kpi-card"><div class="kk-label">НДС</div><div class="kk-val" id="p-nds" style="color:var(--muted)">—</div><div class="kk-sub">сумма НДС</div></div>
-    <div class="kpi-card"><div class="kk-label">Поставщиков</div><div class="kk-val blue" id="p-sup">—</div><div class="kk-sub">уникальных</div></div>
-  </div>
-
-  <div class="toolbar">
-    <div class="search-box"><span style="color:var(--muted)">🔍</span><input type="text" id="searchInput" placeholder="Поиск по SKU или поставщику..." oninput="renderTable()"></div>
-    <select class="sel" id="sortSel" onchange="renderTable()">
-      <option value="date_d">По дате ↓</option>
-      <option value="sum_d">По сумме ↓</option>
-      <option value="qty_d">По кол-ву ↓</option>
-      <option value="price_d">По цене ↓</option>
-      <option value="date_a">По дате ↑</option>
+<div class="toolbar">
+  <div class="filter-row">
+    <select id="fSup" onchange="applyFilters()">
+      <option value="">Все поставщики</option>
     </select>
-    <span style="font-size:10px;color:var(--dim);margin-left:auto" id="lastUpdate"></span>
+    <select id="fSku" onchange="applyFilters()">
+      <option value="">Все SKU</option>
+    </select>
+    <input type="text" id="fSearch" placeholder="🔍 Поиск..." oninput="applyFilters()" style="width:160px">
+    <select id="fMonth" onchange="applyFilters()">
+      <option value="">Все месяцы</option>
+      <option value="2026-01">Январь 2026</option>
+      <option value="2026-02">Февраль 2026</option>
+      <option value="2026-03">Март 2026</option>
+      <option value="2026-04">Апрель 2026</option>
+    </select>
+    <button class="btn" id="fConflict" onclick="toggleConflictFilter()">⚠️ Только конфликты</button>
+    <button class="btn" onclick="clearFilters()">✕ Сбросить</button>
   </div>
-
-  <div class="table-card">
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th class="th-l" onclick="setSort('date')">Дата</th>
-          <th class="th-l">SKU (Номенклатура)</th>
-          <th class="th-l">Поставщик</th>
-          <th onclick="setSort('qty')">Кол-во</th>
-          <th onclick="setSort('price')">Цена ₸</th>
-          <th onclick="setSort('sum')">Сумма ₸</th>
-          <th>НДС ₸</th>
-          <th>Сумма+НДС ₸</th>
-          <th>Ед.</th>
-        </tr></thead>
-        <tbody id="ptbody"></tbody>
-      </table>
-    </div>
-    <div class="statusbar">Показано: <span id="p-rows">—</span> из <span id="p-all">—</span> строк</div>
+  <div id="conflictBadge" class="conflict-badge" onclick="toggleConflictPanel()" style="display:none">
+    <div class="conflict-dot"></div>
+    <span id="conflictCount">0</span> конфликтов цен
+    <span style="font-size:10px;opacity:.7">▼</span>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-v" style="color:var(--accent)" id="kTotal">—</div><div class="kpi-l">Строк</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--text)" id="kQty">—</div><div class="kpi-l">Кол-во</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--green)" id="kSum">—</div><div class="kpi-l">Сумма</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--purple)" id="kSumNds">—</div><div class="kpi-l">НДС</div></div>
   </div>
 </div>
 
-<script src="pf-data.js"></script>
+<!-- Conflict panel -->
+<div class="conflict-panel" id="conflictPanel">
+  <h3>🔴 Конфликты цен — одна SKU, одна дата, один поставщик, разные цены</h3>
+  <div class="conflict-list" id="conflictList"></div>
+</div>
+
+<div class="wrap">
+  <table>
+    <thead>
+      <tr id="thead">
+        <th onclick="sortBy('sku')" id="th_sku">Номенклатура</th>
+        <th onclick="sortBy('sup')" id="th_sup">Поставщик</th>
+        <th onclick="sortBy('dt')" id="th_dt">Дата</th>
+        <th onclick="sortBy('qty')" id="th_qty">Кол-во</th>
+        <th onclick="sortBy('price')" id="th_price">Цена ₸</th>
+        <th onclick="sortBy('sum')" id="th_sum">Сумма ₸</th>
+        <th onclick="sortBy('sum_nds')" id="th_sum_nds">НДС ₸</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+<div class="pagebar">
+  <button class="page-btn" id="btnPrev" onclick="changePage(-1)">← Назад</button>
+  <span class="page-info" id="pageInfo">—</span>
+  <button class="page-btn" id="btnNext" onclick="changePage(1)">Вперёд →</button>
+  <span id="totalInfo" style="margin-left:auto;font-size:11px;color:var(--muted)"></span>
+</div>
+
+<script src="pf-prikhod.js"></script>
 <script>
-let pRows=[], currentMonth='all';
-let sortKey='date_d';
+const PAGE_SIZE = 200;
+let filtered = [];
+let sortCol = 'dt', sortDir = 1;
+let page = 0;
+let showOnlyConflicts = false;
 
-async function loadData(){
-  try{
-    const res=await PF.loadPrikhod((pct,step)=>{document.getElementById('prog').style.width=pct+'%';document.getElementById('loadStep').textContent=step;});
-    pRows=res.pRows;
-    const months=res.months;
+function fmt(n){ return Math.round(n).toLocaleString('ru'); }
+function fmtP(n){ return n.toLocaleString('ru',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
-    const pillsEl=document.getElementById('periodPills');
-    pillsEl.innerHTML='<button class="pill active" data-m="all">Все</button>'+
-      months.map(([k,lbl])=>`<button class="pill" data-m="${k}">${lbl.split(' ')[0]}</button>`).join('');
-    pillsEl.addEventListener('click',e=>{
-      const btn=e.target.closest('.pill');if(!btn)return;
-      pillsEl.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');currentMonth=btn.dataset.m;renderTable();
-    });
+// Build conflict map
+const conflictMap = new Map();
+const grp = {};
+for(const r of PRIKHOD_ROWS){
+  if(!r.conflict) continue;
+  const key = r.sku+'|'+r.dt+'|'+r.sup;
+  if(!grp[key]) grp[key] = {sku:r.sku,dt:r.dt,sup:r.sup,prices:new Set()};
+  grp[key].prices.add(r.price);
+}
+const conflictItems = Object.values(grp);
 
-    document.getElementById('dataInfo').textContent=`${pRows.length.toLocaleString('ru')} приходов | ${months.length} мес.`;
-    document.getElementById('p-all').textContent=pRows.length.toLocaleString('ru');
-    document.getElementById('lastUpdate').textContent='Обн.: '+new Date().toLocaleTimeString('ru');
-    document.getElementById('prog').style.width='100%';
-    setTimeout(()=>{document.getElementById('ls').style.display='none';renderTable();},300);
-  }catch(err){console.error(err);document.getElementById('loadStep').textContent='❌ '+err.message;}
+// Show conflict badge
+if(conflictItems.length > 0){
+  document.getElementById('conflictBadge').style.display='flex';
+  document.getElementById('conflictCount').textContent = conflictItems.length;
+  // Build conflict list
+  document.getElementById('conflictList').innerHTML = conflictItems.map(c=>`
+    <div class="conflict-item">
+      <div class="ci-sku" title="${c.sku}">${c.sku}</div>
+      <div class="ci-info">${c.dt} · ${c.sup.slice(0,30)}</div>
+      <div class="ci-prices">Цены: ${[...c.prices].join(' ₸, ')} ₸</div>
+    </div>`).join('');
 }
 
-function filtered(){return currentMonth==='all'?pRows:pRows.filter(r=>r.mk===currentMonth);}
+// Populate filters
+const sups = [...new Set(PRIKHOD_ROWS.map(r=>r.sup))].sort();
+const skus = [...new Set(PRIKHOD_ROWS.map(r=>r.sku))].sort();
+const fSup = document.getElementById('fSup');
+const fSku = document.getElementById('fSku');
+sups.forEach(s=>{ const o=document.createElement('option');o.value=s;o.textContent=s.length>40?s.slice(0,40)+'…':s;fSup.appendChild(o); });
+skus.forEach(s=>{ const o=document.createElement('option');o.value=s;o.textContent=s.length>50?s.slice(0,50)+'…':s;fSku.appendChild(o); });
 
-function setSort(col){sortKey=sortKey===col+'_d'?col+'_a':col+'_d';document.getElementById('sortSel').value=sortKey;renderTable();}
-
-function renderTable(){
-  const term=document.getElementById('searchInput').value.trim().toLowerCase();
-  let rows=filtered();
-  if(term) rows=rows.filter(r=>r.sku.toLowerCase().includes(term)||r.sup.toLowerCase().includes(term));
-
-  // Sort
-  const sk=document.getElementById('sortSel').value||sortKey;sortKey=sk;
-  const[col,dir]=sk.split('_');const asc=dir==='a';
-  rows.sort((a,b)=>{
-    let va,vb;
-    if(col==='date'){va=a.dt;vb=b.dt;}
-    else if(col==='qty'){va=a.qty;vb=b.qty;}
-    else if(col==='price'){va=a.price;vb=b.price;}
-    else{va=a.sum;vb=b.sum;}
-    return asc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);
+function applyFilters(){
+  const sup = fSup.value;
+  const sku = fSku.value;
+  const search = document.getElementById('fSearch').value.toLowerCase();
+  const month = document.getElementById('fMonth').value;
+  filtered = PRIKHOD_ROWS.filter(r=>{
+    if(sup && r.sup !== sup) return false;
+    if(sku && r.sku !== sku) return false;
+    if(month && !r.dt.startsWith(month)) return false;
+    if(search && !r.sku.toLowerCase().includes(search) && !r.sup.toLowerCase().includes(search)) return false;
+    if(showOnlyConflicts && !r.conflict) return false;
+    return true;
   });
+  sortAndRender();
+}
+
+function sortBy(col){
+  if(sortCol===col) sortDir*=-1; else {sortCol=col;sortDir=-1;}
+  document.querySelectorAll('thead th').forEach(th=>th.className='');
+  const th = document.getElementById('th_'+col);
+  if(th) th.className = sortDir===-1?'sa':'sd';
+  sortAndRender();
+}
+
+function sortAndRender(){
+  filtered.sort((a,b)=>{
+    const av=a[sortCol]||'', bv=b[sortCol]||'';
+    if(typeof av==='number') return (av-bv)*sortDir;
+    return av.localeCompare(bv,'ru')*sortDir;
+  });
+  page=0; render();
+}
+
+function render(){
+  const start=page*PAGE_SIZE, end=Math.min(start+PAGE_SIZE,filtered.length);
+  const slice=filtered.slice(start,end);
 
   // KPIs
-  const totalSum=rows.reduce((s,r)=>s+r.sum,0);
-  const totalQty=rows.reduce((s,r)=>s+r.qty,0);
-  const totalNds=rows.reduce((s,r)=>s+r.nds,0);
-  const uniqSup=new Set(rows.map(r=>r.sup)).size;
-  const avgPrice=totalQty?totalSum/totalQty:0;
-  document.getElementById('p-total').textContent=rows.length.toLocaleString('ru');
-  document.getElementById('p-sum').textContent=PF.fmtRev(totalSum)+' ₸';
-  document.getElementById('p-qty').textContent=Math.round(totalQty).toLocaleString('ru');
-  document.getElementById('p-avg').textContent=Math.round(avgPrice).toLocaleString('ru')+' ₸';
-  document.getElementById('p-nds').textContent=PF.fmtRev(totalNds)+' ₸';
-  document.getElementById('p-sup').textContent=uniqSup;
-  document.getElementById('p-rows').textContent=Math.min(rows.length,500).toLocaleString('ru');
+  const totQty=filtered.reduce((s,r)=>s+r.qty,0);
+  const totSum=filtered.reduce((s,r)=>s+r.sum,0);
+  const totNds=filtered.reduce((s,r)=>s+r.sum_nds,0);
+  document.getElementById('kTotal').textContent=filtered.length.toLocaleString('ru');
+  document.getElementById('kQty').textContent=fmt(totQty);
+  document.getElementById('kSum').textContent=fmt(totSum)+' ₸';
+  document.getElementById('kSumNds').textContent=fmt(totNds)+' ₸';
 
-  const tbody=document.getElementById('ptbody');
-  const show=rows.slice(0,500);
-  tbody.innerHTML=show.map(r=>`<tr>
-    <td class="muted-c">${r.dt.toLocaleDateString('ru-RU')}</td>
-    <td class="tl" title="${r.sku}">${r.sku.length>35?r.sku.slice(0,35)+'…':r.sku}</td>
-    <td class="tl muted-c" title="${r.sup}">${r.sup.length>25?r.sup.slice(0,25)+'…':r.sup}</td>
-    <td>${r.qty.toLocaleString('ru-RU')}</td>
-    <td>${r.price?r.price.toLocaleString('ru-RU'):'—'}</td>
-    <td class="pos">${r.sum.toLocaleString('ru-RU')}</td>
-    <td class="muted-c">${r.nds?r.nds.toLocaleString('ru-RU'):'—'}</td>
-    <td class="muted-c">${(r.sum+r.nds).toLocaleString('ru-RU')}</td>
-    <td class="muted-c">${r.ed||'шт'}</td>
-  </tr>`).join('');
+  // Table
+  document.getElementById('tbody').innerHTML = slice.map(r=>{
+    const cRow = r.conflict ? 'conflict-row' : '';
+    const cIcon = r.conflict ? '<span class="conflict-icon" title="Конфликт цен в этот день для этого SKU">⚠️</span>' : '';
+    const statCell = r.conflict
+      ? `<td class="conflict-cell">⚠️ Конфликт цен</td>`
+      : `<td style="color:var(--green);font-size:10px">✓ OK</td>`;
+    return `<tr class="${cRow}">
+      <td title="${r.sku}">${r.sku.length>45?r.sku.slice(0,45)+'…':r.sku}${cIcon}</td>
+      <td title="${r.sup}">${r.sup.length>35?r.sup.slice(0,35)+'…':r.sup}</td>
+      <td class="num">${r.dt}</td>
+      <td class="num">${fmtP(r.qty)}</td>
+      <td class="num" style="${r.conflict?'color:var(--red);font-weight:700':''}">${fmtP(r.price)}</td>
+      <td class="num">${fmt(r.sum)}</td>
+      <td class="num" style="color:var(--muted)">${fmt(r.sum_nds)}</td>
+      ${statCell}
+    </tr>`;
+  }).join('');
 
-  if(rows.length>500){
-    tbody.innerHTML+=`<tr><td colspan="9" style="text-align:center;color:var(--dim);padding:8px">... ещё ${rows.length-500} строк — используй фильтр или поиск</td></tr>`;
-  }
+  // Pagination
+  const totalPages=Math.ceil(filtered.length/PAGE_SIZE)||1;
+  document.getElementById('pageInfo').textContent=`Стр. ${page+1} из ${totalPages}`;
+  document.getElementById('totalInfo').textContent=`Показано ${start+1}–${end} из ${filtered.length} строк`;
+  document.getElementById('btnPrev').disabled=page===0;
+  document.getElementById('btnNext').disabled=end>=filtered.length;
 }
 
-async function reloadData(){document.getElementById('ls').style.display='flex';document.getElementById('prog').style.width='0%';pRows=[];await loadData();}
-loadData();
+function changePage(d){ page+=d; render(); }
+function toggleConflictPanel(){
+  document.getElementById('conflictPanel').classList.toggle('show');
+}
+function toggleConflictFilter(){
+  showOnlyConflicts=!showOnlyConflicts;
+  document.getElementById('fConflict').classList.toggle('active',showOnlyConflicts);
+  applyFilters();
+}
+function clearFilters(){
+  fSup.value=''; fSku.value='';
+  document.getElementById('fSearch').value='';
+  document.getElementById('fMonth').value='';
+  showOnlyConflicts=false;
+  document.getElementById('fConflict').classList.remove('active');
+  applyFilters();
+}
+
+// Init
+applyFilters();
+sortBy('dt');
 </script>
 </body>
 </html>
