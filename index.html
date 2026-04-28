@@ -107,6 +107,7 @@ tr.lv0{background:rgba(47,129,247,.07);}tr.lv0:hover{background:rgba(47,129,247,
 tr.lv1{background:rgba(33,38,45,.9);}tr.lv1:hover{background:rgba(48,54,61,.6);}
 tr.lv2{background:var(--surface);}tr.lv2:hover{background:var(--surface2);}
 tr.lv3{background:var(--bg);}tr.lv3:hover{background:#111620;}
+.date-name{font-family:'Consolas',monospace;color:var(--amber)!important;font-size:10px!important;}
 tr.tot{
   background:rgba(63,185,80,.12)!important;
   border-top:2px solid rgba(63,185,80,.6)!important;
@@ -333,7 +334,7 @@ tr.dt-dimmed{opacity:.25;}
   <div class="kpi"><div class="kpi-lbl">Выручка (без НДС)</div><div class="kpi-val blue" id="k-rev">—</div><div class="kpi-sub">Сумма без налогов</div><div class="ktip">«Сумма без налогов» из 1С = выручка без НДС</div></div>
   <div class="kpi"><div class="kpi-lbl">Кол-во (шт)</div><div class="kpi-val blue" id="k-qty">—</div><div class="kpi-sub">целых единиц</div></div>
   <div class="kpi"><div class="kpi-lbl">Объём (кг)</div><div class="kpi-val blue" id="k-kg">—</div><div class="kpi-sub">кг = кол-во × вес</div></div>
-  <div class="kpi"><div class="kpi-lbl">Себестоимость</div><div class="kpi-val amb" id="k-seb">—</div><div class="kpi-sub">Стоимость (без НДС)</div><div class="ktip">«Стоимость (без НДС)» из 1С = прямые затраты</div></div>
+  <div class="kpi"><div class="kpi-lbl">Себестоимость</div><div class="kpi-val amb" id="k-seb">—</div><div class="kpi-sub">из прихода × кол-во</div><div class="ktip">Себестоимость пересчитывается по цене прихода: цена прихода × количество реализации. Если цены прихода нет — берётся «Стоимость (без НДС)» из 1С.</div></div>
   <div class="kpi"><div class="kpi-lbl">Прибыль</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">Выручка − Себест.</div><div class="ktip">«Profit» из 1С = Выручка без НДС − Себестоимость<br>⚠️ Валовая прибыль, ДО косвенных затрат</div></div>
   <div class="kpi"><div class="kpi-lbl">Маржа %</div><div class="kpi-val" id="k-mar">—</div><div class="kpi-sub">Прибыль ÷ Выручка</div></div>
   <div class="kpi"><div class="kpi-lbl">Возвраты</div><div class="kpi-val red" id="k-ret">—</div><div class="kpi-sub">сумма возвратов</div></div>
@@ -365,6 +366,7 @@ tr.dt-dimmed{opacity:.25;}
       <button class="ebtn" id="btn0" onclick="toggleLv(0)">Группы</button>
       <button class="ebtn" id="btn1" onclick="toggleLv(1)">Контрагенты</button>
       <button class="ebtn" id="btn2" onclick="toggleLv(2)">SKU</button>
+      <button class="ebtn" id="dateBtn" onclick="toggleMonthDates()" title="Добавить даты под SKU/контрагентом. Даты открываются только у раскрытой строки.">📅 По датам</button>
       <button class="ebtn" onclick="collapseAll()">Свернуть</button>
     </div>
   </div>
@@ -510,10 +512,10 @@ const MCOLS=[
     doc:{formula:'|Сумма возвратов| ÷ Выручка × 100%',source:'Считается на сайте из колонок O и K',meaning:'Показывает какой % выручки "уходит" обратно через возвраты. Норма для молочки — до 2-3%. Выше — проблема с качеством или приёмкой',example:'Выручка 1 млн, возвраты 30 тыс → Возврат% = 3.0%'}},
   {id:'seb',      lbl:'Себест. ₸',  key:'seb',         fmt:'full',on:true,
     tip:'Себестоимость (прямые затраты на закупку)',
-    doc:{formula:'СУММ(«Стоимость (без НДС)»)',source:'Колонка P в ИсхРеал из 1С',meaning:'Сколько заплатили поставщику за этот товар. Прямые затраты — без учёта ФОТ, аренды, логистики',example:'Закупили молоко на 80 000 ₸, продали на 100 000 ₸ → Себест = 80 000 ₸'}},
+    doc:{formula:'Цена прихода по SKU на дату продажи × Кол-во реализации. Если цены прихода нет: fallback на «Стоимость (без НДС)» из 1С',source:'pf-prikhod.js / PRIKHOD_PRICES + ИсхРеал',meaning:'Прямые затраты на товар пересчитываются из прихода: берётся ближайшая цена прихода до даты продажи. ФОТ, аренда, логистика и прочие косвенные расходы сюда не входят',example:'Цена прихода 390 ₸ × 100 шт = Себест. 39 000 ₸'}},
   {id:'prof',     lbl:'Прибыль ₸',  key:'prof',        fmt:'full',on:true,
     tip:'Валовая прибыль (до косвенных затрат)',
-    doc:{formula:'«Profit (сумма)» = Выручка − Себестоимость',source:'Колонка Q в ИсхРеал — 1С считает сам',meaning:'⚠️ Это ВАЛОВАЯ прибыль — только прямые затраты вычтены. ФОТ, аренда, логистика — НЕ учтены. Для полной картины смотри P&L',example:'Выручка 100 000 − Себест 80 000 = Прибыль 20 000 ₸'}},
+    doc:{formula:'Выручка без НДС − Себестоимость из прихода',source:'Считается на сайте после пересчёта себестоимости',meaning:'⚠️ Это ВАЛОВАЯ прибыль — только прямые затраты вычтены. ФОТ, аренда, логистика — НЕ учтены. Для полной картины смотри P&L',example:'Выручка 100 000 − Себест 80 000 = Прибыль 20 000 ₸'}},
   {id:'mar',      lbl:'Маржа %',    key:'mar',         fmt:'pct', on:false,
     tip:'Маржинальность (рентабельность продаж)',
     doc:{formula:'Прибыль ÷ Выручка × 100%',source:'Считается на сайте',meaning:'Показывает сколько копеек прибыли на каждый тенге выручки. Без учёта косвенных расходов. Минус = продаём дешевле чем покупаем',example:'Прибыль 20 000 ÷ Выручка 100 000 = Маржа 20%'}},
@@ -573,6 +575,7 @@ let dayExpanded=new Set(),dayLevelState={};
 let focusedRow=null;   // имя строки в фокусе
 let focusedDepth=-1;   // глубина выбранной строки
 let showCumulative=true; // показывать ли кумулятивную строку
+let showMonthDates=false; // в месячной таблице показывать даты под SKU/контрагентом
 
 const WD=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 const MO_SHORT=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
@@ -864,14 +867,32 @@ function getSF(){
   return(a,b)=>asc?(a.m[key]||0)-(b.m[key]||0):(b.m[key]||0)-(a.m[key]||0);
 }
 
+function fmtDayLabel(day){
+  const parts=String(day).split('-').map(Number);
+  const y=parts[0], m=parts[1], d=parts[2];
+  const dt=new Date(y,(m||1)-1,d||1);
+  const wd=WD[(dt.getDay()+6)%7]||'';
+  return String(d).padStart(2,'0')+'.'+String(m).padStart(2,'0')+' '+wd;
+}
+
+function buildDateChildren(rows){
+  return Object.entries(PF.groupBy(rows,r=>r.day))
+    .sort((a,b)=>a[0].localeCompare(b[0]))
+    .map(([day,dr])=>({name:fmtDayLabel(day),dayKey:day,isDate:true,ng:false,m:PF.agg(dr),ch:[]}));
+}
+
 function buildInnerTree(rows,sf,expSet,prefix=''){
-  const mk=(name,rows,ng=false)=>({name,ng,m:PF.agg(rows),ch:[]});
+  const mk=(name,rows,ng=false,isDate=false)=>({name,ng,isDate,m:PF.agg(rows),ch:[]});
   if(hierarchy==='k'){
     return Object.entries(PF.groupBy(rows,r=>r.group)).map(([g,gr])=>{
       const n=mk(g,gr,g.startsWith('⚠️'));
       n.ch=Object.entries(PF.groupBy(gr,r=>r.knt)).map(([k,kr])=>{
         const kn=mk(k,kr);
-        kn.ch=Object.entries(PF.groupBy(kr,r=>r.sku)).map(([s,sr])=>mk(s,sr)).sort(sf);
+        kn.ch=Object.entries(PF.groupBy(kr,r=>r.sku)).map(([s,sr])=>{
+          const sn=mk(s,sr);
+          if(showMonthDates&&viewMode==='month') sn.ch=buildDateChildren(sr);
+          return sn;
+        }).sort(sf);
         return kn;
       }).sort(sf);
       return n;
@@ -881,7 +902,11 @@ function buildInnerTree(rows,sf,expSet,prefix=''){
       const n=mk(sg,sgr);
       n.ch=Object.entries(PF.groupBy(sgr,r=>r.sku)).map(([s,sr])=>{
         const sn=mk(s,sr);
-        sn.ch=Object.entries(PF.groupBy(sr,r=>r.knt)).map(([k,kr])=>mk(k,kr)).sort(sf);
+        sn.ch=Object.entries(PF.groupBy(sr,r=>r.knt)).map(([k,kr])=>{
+          const kn=mk(k,kr);
+          if(showMonthDates&&viewMode==='month') kn.ch=buildDateChildren(kr);
+          return kn;
+        }).sort(sf);
         return sn;
       }).sort(sf);
       return n;
@@ -966,7 +991,7 @@ function renderMonth(){
     const sk2=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const expBtn=hasC?`<button class="exp${isE?' open':''}" onclick="mtoggle('${sk2}',this)">${isE?'▾':'▸'}</button>`:
                       `<span style="width:13px;display:inline-block"></span>`;
-    const nc=n.ng?'rnm nog':'rnm';
+    const nc=n.isDate?'rnm date-name':(n.ng?'rnm nog':'rnm');
     const tds=vis.map(c=>{
       const v=c.id==='share'?m.rev:(m[c.key]||0);
       const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profKg')?(v>0?'pos':v<0?'neg':''):(c.key==='ret'||c.key==='retKg')?v?'neg':'neu':'';
@@ -1224,7 +1249,10 @@ function toggleLv(depth){
   const btn=document.getElementById('btn'+depth);
   const isOpen=levelState[depth]==='open';
   const tree=buildInnerTree(filtered(),getSF(),expanded);
-  function set(ns,d){if(d>depth)return;for(const n of ns){if(n.ch&&n.ch.length){isOpen?expanded.delete(n.name+'_d'+d):expanded.add(n.name+'_d'+d);set(n.ch,d+1);}}}
+  // Если включён режим дат, кнопка «SKU» раскрывает только до SKU/контрагентов.
+  // Даты открываются вручную через ▸ у конкретного SKU/контрагента — так не создаём 43 000 строк сразу.
+  const maxDepth=(showMonthDates&&depth===2)?1:depth;
+  function set(ns,d){if(d>maxDepth)return;for(const n of ns){if(n.ch&&n.ch.length){isOpen?expanded.delete(n.name+'_d'+d):expanded.add(n.name+'_d'+d);set(n.ch,d+1);}}}
   set(tree,0);
   levelState[depth]=isOpen?'closed':'open';
   btn.classList.toggle('lit',levelState[depth]==='open');
@@ -1232,6 +1260,13 @@ function toggleLv(depth){
 }
 
 function collapseAll(){expanded.clear();levelState={};focusedRow=null;focusedDepth=-1;document.querySelectorAll('#btn0,#btn1,#btn2').forEach(b=>b.classList.remove('lit'));renderMonth();}
+
+function toggleMonthDates(){
+  showMonthDates=!showMonthDates;
+  const btn=document.getElementById('dateBtn');
+  if(btn)btn.classList.toggle('lit',showMonthDates);
+  renderMonth();
+}
 
 function toggleDayLv(depth){
   const btn=document.getElementById('dbtn'+depth);
@@ -1308,6 +1343,8 @@ function clickRowName(name, depth){
   renderDay();
 }
 function clickMonthRow(name, depth){
+  // Глубина 3 — это строки дат в режиме «📅 По датам»; по ним фокус не включаем.
+  if(depth>=3)return;
   if(focusedRow===name && focusedDepth===depth){
     // Повторный клик — снимаем фокус
     focusedRow=null; focusedDepth=-1;
