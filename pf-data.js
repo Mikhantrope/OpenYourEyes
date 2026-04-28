@@ -117,6 +117,7 @@ const PF = {
       qtyReal:        Math.round(qtyRealSum), // Кол-во реализации (без возвратов)
       qtyRet:         Math.round(qty - qtyRealSum < 0 ? qty - qtyRealSum : 0), // Кол-во возвратов
       rev:            Math.round(rev),
+      sumReal:        Math.round(sumRealTotal),  // Сумма реализации с НДС
       ret:            Math.round(ret),
       retPct:         Math.round(retPct*10)/10,
       seb:            Math.round(seb),

@@ -45,8 +45,12 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .price-vat-switch{display:flex;align-items:center;gap:4px;background:rgba(210,153,34,.10);border:1px solid rgba(210,153,34,.45);border-radius:8px;padding:3px 5px;box-shadow:0 0 0 1px rgba(210,153,34,.08) inset;}
 .pv-label{font-size:10px;color:var(--amber);font-weight:800;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;padding:0 4px;}
 .pv-btn{padding:4px 10px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;}
-.pv-btn.active{background:var(--amber);color:#141414;border-color:var(--amber);}
+.pv-btn[data-vat-mode="no"].active{background:var(--accent);color:#07090f;border-color:var(--accent);}
+.pv-btn[data-vat-mode="yes"].active{background:var(--amber);color:#07090f;border-color:var(--amber);}
 .pv-btn:hover:not(.active){color:var(--text);border-color:rgba(210,153,34,.35);}
+.price-nds-badge{display:inline-block;font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;margin-left:3px;letter-spacing:.5px;vertical-align:middle;}
+.price-nds-badge.nds-yes{background:rgba(255,170,0,.2);color:var(--amber);border:1px solid rgba(255,170,0,.4);}
+.price-nds-badge.nds-no{background:rgba(0,200,255,.15);color:var(--accent);border:1px solid rgba(0,200,255,.35);}
 
 /* KPI BAR */
 .kpi-bar{display:flex;gap:1px;background:var(--border);border-bottom:1px solid var(--border);overflow-x:auto;}
@@ -556,6 +560,9 @@ const MCOLS=[
   {id:'priceZakup',lbl:'Цена закупа',key:'priceZakup', fmt:'full',on:true,
     tip:'Средняя закупочная цена за штуку',
     doc:{formula:'Себестоимость (только строки продаж) ÷ Кол-во реализации (Реал.)',source:'Себестоимость из прихода ÷ Кол-во реализации. Переключатель показывает с НДС или без НДС',meaning:'Закупочная цена за штуку. По умолчанию без НДС; при переключении НДС показывает цену прихода с НДС',example:'Продали 5 шт за 1 659 ₸ себест → Цена закупа = 332 ₸/шт'}},
+  {id:'sumReal',   lbl:'Сумма реал.',  key:'sumReal',    fmt:'rev',  on:false,
+    tip:'Сумма реализации с НДС (колонка J из 1С)',
+    doc:{formula:'СУММ(«Сумма реализации»)',source:'Колонка J в ИсхРеал из 1С',meaning:'Сумма продаж С НДС — именно эта сумма в накладных у покупателей. Отличается от Выручки (колонка O без НДС)',example:'Продали на 100 000 ₸ без НДС → Сумма реал. = 116 000 ₸'}},
   {id:'priceSell', lbl:'Цена продажи',key:'priceSellNds',fmt:'full',on:true,
     tip:'Средняя цена продажи (переключатель НДС/б.НДС)',
     doc:{formula:'с НДС: СуммаРеализации ÷ Кол-во | без НДС: (СуммаРеализации ÷ 1.16) ÷ Кол-во',source:'Сумма реализации из колонки J ÷ Кол-во из колонки G (без возвратов)',meaning:'Цена по которой продаём клиенту. С НДС — что видит покупатель в накладной. Без НДС — база для сравнения с закупочной ценой',example:'Продали на 116 000 ₸ с НДС ÷ 200 шт = 580 ₸/шт'}},
@@ -617,6 +624,15 @@ function applyPriceNdsKeys() {
 function updateNdsControls() {
   document.querySelectorAll('[data-vat-mode="no"]').forEach(btn=>btn.classList.toggle('active', !priceNds));
   document.querySelectorAll('[data-vat-mode="yes"]').forEach(btn=>btn.classList.toggle('active', priceNds));
+  // Обновляем мини-бейджи НДС у колонок цен
+  const badge = priceNds
+    ? '<span class="price-nds-badge nds-yes">с НДС</span>'
+    : '<span class="price-nds-badge nds-no">б/НДС</span>';
+  document.querySelectorAll('.price-col-hdr').forEach(el => {
+    const base = el.dataset.base || el.textContent.replace(/с НДС|б\/НДС/g,'').trim();
+    el.dataset.base = base;
+    el.innerHTML = base + badge + '<span class="sort-arr"></span>';
+  });
 }
 function setPriceNds(value) {
   priceNds = !!value;
