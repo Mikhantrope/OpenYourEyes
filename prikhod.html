@@ -154,52 +154,108 @@ td.conflict-cell{color:var(--red);font-weight:700;}
 <script src="pf-prikhod.js"></script>
 <script>
 const PAGE_SIZE = 200;
+const PUB_ID = '2PACX-1vTwyEj5Huy-avrqvCZj1rCqTBJObnOHNJ-GVdZic0J1_fwVafku2G0MpiZtGle8zOXzUUmEer26ylrO';
+const GID_PRIHOD = '1270219264';
+
+let allRows = [];  // loaded from Sheets CSV
 let filtered = [];
-let sortCol = 'dt', sortDir = 1;
+let sortCol = 'dt', sortDir = -1;
 let page = 0;
 let showOnlyConflicts = false;
 
 function fmt(n){ return Math.round(n).toLocaleString('ru'); }
-function fmtP(n){ return n.toLocaleString('ru',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtP(n){ return (+n).toLocaleString('ru',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
-// Build conflict map
-const conflictMap = new Map();
-const grp = {};
-for(const r of PRIKHOD_ROWS){
-  if(!r.conflict) continue;
-  const key = r.sku+'|'+r.dt+'|'+r.sup;
-  if(!grp[key]) grp[key] = {sku:r.sku,dt:r.dt,sup:r.sup,prices:new Set()};
-  grp[key].prices.add(r.price);
-}
-const conflictItems = Object.values(grp);
-
-// Show conflict badge
-if(conflictItems.length > 0){
-  document.getElementById('conflictBadge').style.display='flex';
-  document.getElementById('conflictCount').textContent = conflictItems.length;
-  // Build conflict list
-  document.getElementById('conflictList').innerHTML = conflictItems.map(c=>`
-    <div class="conflict-item">
-      <div class="ci-sku" title="${c.sku}">${c.sku}</div>
-      <div class="ci-info">${c.dt} · ${c.sup.slice(0,30)}</div>
-      <div class="ci-prices">Цены: ${[...c.prices].join(' ₸, ')} ₸</div>
-    </div>`).join('');
+// Build conflict lookup from PRIKHOD_CONFLICTS
+const conflictSet = new Set();
+if(typeof PRIKHOD_CONFLICTS !== 'undefined'){
+  for(const c of PRIKHOD_CONFLICTS){
+    conflictSet.add(c.sku+'|'+c.dt);
+  }
+  if(PRIKHOD_CONFLICTS.length > 0){
+    document.getElementById('conflictBadge').style.display='flex';
+    document.getElementById('conflictCount').textContent = PRIKHOD_CONFLICTS.length;
+    document.getElementById('conflictList').innerHTML = PRIKHOD_CONFLICTS.map(c=>`
+      <div class="conflict-item">
+        <div class="ci-sku" title="${c.sku}">${c.sku}</div>
+        <div class="ci-info">${c.dt} · ${c.sup||''}  </div>
+        <div class="ci-prices">Цены: ${c.prices.map(p=>p+' ₸').join(', ')}</div>
+      </div>`).join('');
+  }
 }
 
-// Populate filters
-const sups = [...new Set(PRIKHOD_ROWS.map(r=>r.sup))].sort();
-const skus = [...new Set(PRIKHOD_ROWS.map(r=>r.sku))].sort();
-const fSup = document.getElementById('fSup');
-const fSku = document.getElementById('fSku');
-sups.forEach(s=>{ const o=document.createElement('option');o.value=s;o.textContent=s.length>40?s.slice(0,40)+'…':s;fSup.appendChild(o); });
-skus.forEach(s=>{ const o=document.createElement('option');o.value=s;o.textContent=s.length>50?s.slice(0,50)+'…':s;fSku.appendChild(o); });
+// Parse CSV row
+function parseCSV(text){
+  const lines = text.split('
+');
+  const rows = [];
+  for(const line of lines){
+    if(!line.trim()) continue;
+    const cols = []; let cur='', inQ=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){inQ=!inQ;}
+      else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}
+      else cur+=ch;
+    }
+    cols.push(cur.trim());
+    rows.push(cols);
+  }
+  return rows;
+}
+
+async function loadData(){
+  document.getElementById('tbody').innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted)">⏳ Загрузка из Google Sheets...</td></tr>';
+  try{
+    const url=`https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=${GID_PRIHOD}&single=true&output=csv`;
+    const text = await (await fetch(url)).text();
+    const rows = parseCSV(text);
+    if(rows.length < 2){ throw new Error('Нет данных'); }
+    const h = rows[0].map(c=>c.toLowerCase().replace(/\s/g,''));
+    const fi = k => h.findIndex(c=>c.includes(k));
+    const iSku=fi('номенклатура'); const iSup=fi('поставщик')||fi('организация');
+    const iDt=fi('период')||fi('дата'); const iQty=fi('количество');
+    const iPrice=fi('цена'); const iSum=fi('сумма');
+    const iNds=fi('ндс')||fi('nds');
+
+    allRows = [];
+    const fSup=document.getElementById('fSup');
+    const fSku=document.getElementById('fSku');
+    const supSet=new Set(), skuSet=new Set();
+
+    for(let i=1;i<rows.length;i++){
+      const r=rows[i];
+      const sku=r[iSku]||''; if(!sku||sku==='Номенклатура') continue;
+      const dt=(r[iDt]||'').trim().slice(0,10);
+      if(!dt) continue;
+      const sup=r[iSup]||'';
+      const qty=parseFloat(r[iQty])||0;
+      const price=parseFloat(r[iPrice])||0;
+      const sum=parseFloat(r[iSum])||0;
+      const nds=parseFloat(r[iNds])||0;
+      const conflict=conflictSet.has(sku+'|'+dt);
+      allRows.push({sku,sup,dt,qty,price,sum,sum_nds:nds,conflict});
+      supSet.add(sup); skuSet.add(sku);
+    }
+
+    // Populate filters
+    fSup.innerHTML='<option value="">Все поставщики</option>';
+    fSku.innerHTML='<option value="">Все SKU</option>';
+    [...supSet].sort().forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s.length>40?s.slice(0,40)+'…':s;fSup.appendChild(o);});
+    [...skuSet].sort().forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s.length>50?s.slice(0,50)+'…':s;fSku.appendChild(o);});
+
+    applyFilters();
+  }catch(e){
+    document.getElementById('tbody').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--red)">❌ Ошибка загрузки: ${e.message}</td></tr>`;
+  }
+}
 
 function applyFilters(){
-  const sup = fSup.value;
-  const sku = fSku.value;
+  const sup = document.getElementById('fSup').value;
+  const sku = document.getElementById('fSku').value;
   const search = document.getElementById('fSearch').value.toLowerCase();
   const month = document.getElementById('fMonth').value;
-  filtered = PRIKHOD_ROWS.filter(r=>{
+  filtered = allRows.filter(r=>{
     if(sup && r.sup !== sup) return false;
     if(sku && r.sku !== sku) return false;
     if(month && !r.dt.startsWith(month)) return false;
@@ -285,9 +341,8 @@ function clearFilters(){
   applyFilters();
 }
 
-// Init
-applyFilters();
-sortBy('dt');
+// Init — load from Sheets
+loadData();
 </script>
 </body>
 </html>

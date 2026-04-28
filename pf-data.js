@@ -167,29 +167,11 @@ const PF = {
       (idx[sku] = idx[sku] || []).push({ dt, priceNoNds, priceWithNds: priceWithNds || priceNoNds });
     };
 
-    if (typeof PRIKHOD_ROWS !== 'undefined' && Array.isArray(PRIKHOD_ROWS)) {
-      for (const row of PRIKHOD_ROWS) {
-        const qty = Number(row.qty) || 0;
-        const price = Number(row.price) || 0;      // обычно цена строки с НДС
-        const sum = Number(row.sum) || 0;          // сумма строки как в приходе
-        const nds = Number(row.sum_nds) || 0;      // НДС внутри суммы
-        let priceNoNds = price;
-
-        // Самый надёжный расчёт — из суммы и НДС строки.
-        // Так мы не делим на 1.16 строки без НДС и не ломаем поставщиков без НДС.
-        if (qty > 0 && nds > 0 && sum > nds) {
-          priceNoNds = (sum - nds) / qty;
-        }
-
-        push(row.sku, row.dt, priceNoNds, price);
-      }
-    } else if (typeof PRIKHOD_PRICES !== 'undefined') {
-      // Старый формат без sum_nds. Оставлен только как fallback.
-      // В нём нельзя понять поставщика без НДС, поэтому считаем, что цена с НДС.
+    // Новый формат PRIKHOD_PRICES: {sku: [[dt, priceNoNds, priceWithNds], ...]}
+    if (typeof PRIKHOD_PRICES !== 'undefined') {
       for (const [sku, entries] of Object.entries(PRIKHOD_PRICES)) {
-        for (const [dt, price] of entries || []) {
-          const p = Number(price) || 0;
-          push(sku, dt, p / 1.16, p);
+        for (const [dt, pNoNds, pNds] of entries || []) {
+          push(sku, dt, Number(pNoNds)||0, Number(pNds)||0);
         }
       }
     }
