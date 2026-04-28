@@ -118,7 +118,7 @@ const PF = {
       qtyReal:        Math.round(qtyRealSum), // Кол-во реализации (без возвратов)
       qtyRet:         Math.round(qty - qtyRealSum < 0 ? qty - qtyRealSum : 0), // Кол-во возвратов
       rev:            Math.round(rev),
-      sumReal:        Math.round(sumRealTotal),  // Сумма реализации с НДС
+      sumReal:        Math.round(sumRealSum),    // Сумма реализации с НДС (из строк продаж)
       ret:            Math.round(ret),
       retPct:         Math.round(retPct*10)/10,
       seb:            Math.round(seb),
@@ -189,13 +189,19 @@ const PF = {
     const entries = this._buildPrikhodCostIndex()[sku];
     if (!entries || entries.length === 0) return null;
 
+    // Минимально допустимая цена: 10 ₸ с НДС
+    // Цены ниже — это ошибки в 1С (технические строки, списания и т.д.)
+    const MIN_PRICE = 10;
+    const valid = entries.filter(e => (e.priceWithNds || e.priceNoNds) >= MIN_PRICE);
+    if (!valid.length) return null;
+
     let best = null;
-    for (const entry of entries) {
+    for (const entry of valid) {
       if (entry.dt <= saleDate) best = entry;
       else break;
     }
 
-    return best || entries[0]; // если прихода ДО продажи нет — берём первый имеющийся
+    return best || valid[0]; // если прихода ДО нет — берём первый валидный
   },
 
   async loadSales(onProgress) {
@@ -287,12 +293,20 @@ const PF = {
       // Себестоимость из прихода: цена ближайшего прихода ДО даты продажи
       // Основная себестоимость считается БЕЗ НДС, чтобы корректно сравнивать с выручкой без НДС.
       const prikhodCost = this.getPrikhodCostPrices(sku, day);
-      const sebNew = prikhodCost ? prikhodCost.priceNoNds * qtyReal : seb;
-      const sebWithNds = prikhodCost ? prikhodCost.priceWithNds * qtyReal : seb;
+      // Себест. ₸ = цена прихода × qtyN (с учётом возвратов, как и выручка)
+      // Цена закупа = seb/qtyReal в agg() — только по строкам продаж
+      const qtyForSeb = qtyN;  // используем qtyN чтобы сравнивать с выручкой (та тоже с возвратами)
+      const sebNew = prikhodCost ? prikhodCost.priceNoNds * qtyForSeb : seb;
+      const sebWithNds = prikhodCost ? prikhodCost.priceWithNds * qtyForSeb : seb;
       const profNew = sumBezNds - sebNew;
 
       rawRows.push({
         knt,sku,mk,day,
+        ndsSuspect: (() => {
+          // Проверка: |sumBezNds - sumReal/1.16| > 5 ₸ → подозрительная строка
+          if(sumReal && Math.abs(sumBezNds - sumReal/1.16) > 5) return true;
+          return false;
+        })(),
         group:    groupMap[knt]||'⚠️ Без группы',
         skuGroup: skuGroup[sku]||'Прочее',
         weight:w,

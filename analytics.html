@@ -171,7 +171,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
   </div>
 
   <div class="g2">
-    <div class="card"><div class="ct">Цена продажи (с НДС) vs Цена закупа, ₸/шт</div><canvas id="cPrice"></canvas></div>
+    <div class="card"><div class="ct">Цена продажи vs Цена закупа — оба БЕЗ НДС, ₸/шт</div><canvas id="cPrice"></canvas></div>
     <div class="card"><div class="ct">Сравнение цены: факт vs план по месяцам, ₸</div><canvas id="cPriceVsPlan"></canvas></div>
   </div>
 </div>
@@ -295,14 +295,15 @@ async function init(){
     document.getElementById('monthCards').innerHTML=mcHtml;
 
     // ── PRICE HIGHLIGHT ───────────────────────────────────────
-    const priceItems=[
-      {v:`${monthly[1].priceSellNds} ₸`,l:'Цена продажи янв',c:'var(--accent)'},
-      {v:`${PLAN_PRICE[0]} ₸`,l:'План янв',c:'var(--amber)'},
-      {v:`${monthly[3].priceSellNds} ₸`,l:'Цена продажи мар',c:'var(--accent)'},
-      {v:`${PLAN_PRICE[2]} ₸`,l:'План мар',c:'var(--amber)'},
-      {v:`${monthly[4].priceSellNds} ₸`,l:'Цена продажи апр',c:monthly[4].priceSellNds<PLAN_PRICE[3]?'var(--red)':'var(--green)'},
-      {v:`${PLAN_PRICE[3]} ₸`,l:'План апр',c:'var(--amber)'},
-      {v:'553 ₸',l:'Год. план',c:'var(--amber)'},
+    // Цены сравниваем без НДС (оба показателя одинаковой базы)
+    const toNoNds = v => Math.round(v/1.16); const priceItems=[
+      {v:`${toNoNds(monthly[1].priceSellNds)} ₸`,l:'Продажа янв (б/НДС)',c:'var(--accent)'},
+      {v:`${toNoNds(PLAN_PRICE[0])} ₸`,l:'План янв (б/НДС)',c:'var(--amber)'},
+      {v:`${toNoNds(monthly[3].priceSellNds)} ₸`,l:'Продажа мар (б/НДС)',c:'var(--accent)'},
+      {v:`${toNoNds(PLAN_PRICE[2])} ₸`,l:'План мар (б/НДС)',c:'var(--amber)'},
+      {v:`${toNoNds(monthly[4].priceSellNds)} ₸`,l:'Продажа апр (б/НДС)',c:monthly[4].priceSellNds<PLAN_PRICE[3]?'var(--red)':'var(--green)'},
+      {v:`${toNoNds(PLAN_PRICE[3])} ₸`,l:'План апр (б/НДС)',c:'var(--amber)'},
+      {v:`${toNoNds(553)} ₸`,l:'Год. план (б/НДС)',c:'var(--amber)'},
     ];
     document.getElementById('priceHlRow').innerHTML=priceItems.map(i=>
       `<div class="hl-item"><div class="hl-v" style="color:${i.c}">${i.v}</div><div class="hl-l">${i.l}</div></div>`
@@ -446,7 +447,7 @@ async function init(){
     // ── CHARTS ────────────────────────────────────────────────
     const revData=[1,2,3,4].map(m=>+(monthly[m].rev/1e6).toFixed(1));
     const marData=[1,2,3,4].map(m=>+monthly[m].mar.toFixed(1));
-    const sellData=[1,2,3,4].map(m=>monthly[m].priceSellNds);
+    const sellData=[1,2,3,4].map(m=>monthly[m].priceSellNoNds||Math.round(monthly[m].priceSellNds/1.16));
     const zakupData=[1,2,3,4].map(m=>monthly[m].priceZakup);
     const execPcts=[12.8,61.1,81.7,37.9];
 
@@ -484,7 +485,7 @@ async function init(){
 
     new Chart(document.getElementById('cPrice'),{type:'line',
       data:{labels:M4,datasets:[
-        {label:'Цена продажи (с НДС)',data:sellData,borderColor:ac,backgroundColor:'rgba(0,200,255,.05)',fill:true,tension:0.3,borderWidth:2,pointRadius:4},
+        {label:'Цена продажи (без НДС)',data:sellData,borderColor:ac,backgroundColor:'rgba(0,200,255,.05)',fill:true,tension:0.3,borderWidth:2,pointRadius:4},
         {label:'Цена закупа',data:zakupData,borderColor:am,backgroundColor:'rgba(255,170,0,.05)',fill:true,tension:0.3,borderWidth:2,pointRadius:4},
         {label:'Год. план 553₸',data:[553,553,553,553],borderColor:'rgba(176,77,255,.5)',borderDash:[4,4],borderWidth:1.5,pointRadius:0,fill:false},
       ]},
