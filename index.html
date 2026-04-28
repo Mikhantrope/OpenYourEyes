@@ -536,13 +536,13 @@ const MCOLS=[
     doc:{formula:'Выручка строки ÷ Выручка ИТОГО × 100%',source:'Считается на сайте',meaning:'Показывает вклад этого контрагента/группы/SKU в общую выручку',example:'Кофейни 30 млн ÷ Всего 300 млн = 10%'}},
   {id:'priceZakup',lbl:'Цена закупа',key:'priceZakup', fmt:'full',on:true,
     tip:'Средняя закупочная цена за штуку',
-    doc:{formula:'Себестоимость (только строки продаж) ÷ Кол-во реализации (Реал.)',source:'Стоимость(без НДС) из строк где qtyReal>0 ÷ Кол-во реализации (колонка G)',meaning:'Закупочная цена за штуку. ВАЖНО: возвратные строки имеют отрицательную себестоимость — они исключены из расчёта чтобы не занижать цену',example:'Продали 5 шт за 1 659 ₸ себест → Цена закупа = 332 ₸/шт'}},
+    doc:{formula:'Себестоимость (только строки продаж) ÷ Кол-во реализации (Реал.)',source:'Себестоимость из прихода ÷ Кол-во реализации. Переключатель показывает с НДС или без НДС',meaning:'Закупочная цена за штуку. По умолчанию без НДС; при переключении НДС показывает цену прихода с НДС',example:'Продали 5 шт за 1 659 ₸ себест → Цена закупа = 332 ₸/шт'}},
   {id:'priceSell', lbl:'Цена продажи',key:'priceSellNds',fmt:'full',on:true,
     tip:'Средняя цена продажи (переключатель НДС/б.НДС)',
     doc:{formula:'с НДС: СуммаРеализации ÷ Кол-во | без НДС: (СуммаРеализации ÷ 1.16) ÷ Кол-во',source:'Сумма реализации из колонки J ÷ Кол-во из колонки G (без возвратов)',meaning:'Цена по которой продаём клиенту. С НДС — что видит покупатель в накладной. Без НДС — база для сравнения с закупочной ценой',example:'Продали на 116 000 ₸ с НДС ÷ 200 шт = 580 ₸/шт'}},
   {id:'profitUnit',lbl:'Профит/шт',  key:'profitUnitNds',fmt:'full',on:false,
     tip:'Заработок/убыток на одной штуке',
-    doc:{formula:'Цена продажи − Цена закупа',source:'Считается на сайте: (СуммаРеал/КолвоРеал) − (Себест/КолвоРеал)',meaning:'Заработок или убыток на одной штуке. Оба значения считаются только по строкам продаж без возвратов',example:'Цена продажи 395 ₸ − Закуп 332 ₸ = Профит +63 ₸/шт'}},
+    doc:{formula:'Цена продажи − Цена закупа',source:'Считается на сайте: (СуммаРеал/КолвоРеал) − (Себест/КолвоРеал)',meaning:'Заработок или убыток на одной штуке. В режиме б/НДС: цена продажи без НДС − закуп без НДС; в режиме НДС: цена продажи с НДС − закуп с НДС',example:'Цена продажи 395 ₸ − Закуп 332 ₸ = Профит +63 ₸/шт'}},
 ];
 let mColOn={}; MCOLS.forEach(c=>mColOn[c.id]=c.on);
 
@@ -570,7 +570,7 @@ let allGroups=[],allSkuGroups=[],allDays=[];
 let selectedDays=new Set();
 let sortKey='rev_d',avgMode='sku';
 let selectedMonths=new Set(['all']);  // 'all' или набор mk типа '2026-01'
-let priceNds=true;  // true = с НДС, false = без НДС (для колонок Цена продажи и Профит/шт)
+let priceNds=false; // false = без НДС по умолчанию: выручка, себестоимость, прибыль и маржа сравниваются без НДС
 let dayExpanded=new Set(),dayLevelState={};
 let focusedRow=null;   // имя строки в фокусе
 let focusedDepth=-1;   // глубина выбранной строки
@@ -584,11 +584,14 @@ const MO_SHORT=['Янв','Фев','Мар','Апр','Май','Июн','Июл','
 // Переключатель НДС для ценовых колонок
 function togglePriceNds() {
   priceNds = !priceNds;
-  const ndsKey  = priceNds ? 'priceSellNds'   : 'priceSellNoNds';
-  const profKey = priceNds ? 'profitUnitNds'  : 'profitUnitNoNds';
+  const ndsKey   = priceNds ? 'priceSellNds'   : 'priceSellNoNds';
+  const zakupKey = priceNds ? 'priceZakupNds'  : 'priceZakup';
+  const profKey  = priceNds ? 'profitUnitNds'  : 'profitUnitNoNds';
   MCOLS.find(c=>c.id==='priceSell').key        = ndsKey;
+  MCOLS.find(c=>c.id==='priceZakup').key       = zakupKey;
   MCOLS.find(c=>c.id==='profitUnit').key       = profKey;
   DAY_METRICS.find(c=>c.id==='priceSell').key  = ndsKey;
+  DAY_METRICS.find(c=>c.id==='priceZakup').key = zakupKey;
   DAY_METRICS.find(c=>c.id==='profitUnit').key = profKey;
   buildMHeader(); render();
 }
@@ -928,7 +931,7 @@ function buildMHeader(){
       const qBtn = (hintMode && c.doc)
         ? `<button class="info-btn" onclick="event.stopPropagation();showInfo('${c.id}',event)" title="Нажми — объяснение формулы">?</button>`
         : '';
-      if(c.id==='priceSell'||c.id==='profitUnit'){
+      if(c.id==='priceSell'||c.id==='priceZakup'||c.id==='profitUnit'){
         const tag=priceNds?'НДС':'б/НДС';
         const tagStyle=`font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;border:1px solid;margin-left:3px;cursor:pointer;background:${priceNds?'rgba(47,129,247,.2)':'rgba(210,153,34,.2)'};border-color:${priceNds?'#2f81f7':'#d29922'};color:${priceNds?'#58a6ff':'#d29922'}`;
         return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}${qBtn}<span onclick="event.stopPropagation();togglePriceNds()" style="${tagStyle}">${tag}</span></th>`;

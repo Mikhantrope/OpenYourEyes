@@ -82,12 +82,13 @@ const PF = {
 
   // ── АГРЕГАЦИЯ ────────────────────────────────────────────────
   agg(rows) {
-    let qty=0,rev=0,ret=0,seb=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0;
+    let qty=0,rev=0,ret=0,seb=0,sebWithNds=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0,sebWithNdsRealSum=0;
     for (const x of rows) {
       qty        += x.qtyN;
       rev        += x.sumBezNds;
       ret        += x.sumR;
       seb        += x.seb;
+      sebWithNds += (x.sebWithNds ?? x.seb);
       prof       += x.prof;
       kg         += x.kg;
       retKg      += x.retKg;
@@ -96,17 +97,19 @@ const PF = {
       if((x.qtyReal||0) > 0){
         qtyRealSum += x.qtyReal;
         sumRealSum += (x.sumReal||0);
-        sebRealSum += x.seb;   // себестоимость только из строк продаж
+        sebRealSum += x.seb;   // себестоимость без НДС только из строк продаж
+        sebWithNdsRealSum += (x.sebWithNds ?? x.seb); // себестоимость с НДС для режима цен «НДС»
       }
     }
     const mar            = rev  ? prof/rev*100  : 0;
     const retPct         = rev  ? ret/rev*100   : 0;
     const avg            = qty  ? rev/qty       : 0;
     const retKgPct       = kg   ? retKg/kg*100 : 0;
-    const priceZakup     = qtyRealSum ? sebRealSum/qtyRealSum    : 0;  // только из строк продаж
-    const priceSellNds   = qtyRealSum ? sumRealSum/qtyRealSum    : 0;
+    const priceZakup     = qtyRealSum ? sebRealSum/qtyRealSum            : 0;  // без НДС, только из строк продаж
+    const priceZakupNds  = qtyRealSum ? sebWithNdsRealSum/qtyRealSum     : 0;  // с НДС, только для режима отображения цен
+    const priceSellNds   = qtyRealSum ? sumRealSum/qtyRealSum            : 0;
     const priceSellNoNds = priceSellNds/1.16;
-    const profitUnitNds  = priceSellNds  - priceZakup;
+    const profitUnitNds  = priceSellNds  - priceZakupNds;
     const profitUnitNoNds= priceSellNoNds- priceZakup;
 
     return {
@@ -117,6 +120,7 @@ const PF = {
       ret:            Math.round(ret),
       retPct:         Math.round(retPct*10)/10,
       seb:            Math.round(seb),
+      sebWithNds:     Math.round(sebWithNds),
       prof:           Math.round(prof),
       mar:            Math.round(mar*10)/10,
       avg:            Math.round(avg),
@@ -126,6 +130,7 @@ const PF = {
       profKg:         kg?Math.round(prof/kg):0,
       sebKg:          kg?Math.round(seb/kg):0,
       priceZakup:     Math.round(priceZakup),
+      priceZakupNds:  Math.round(priceZakupNds),
       priceSellNds:   Math.round(priceSellNds),
       priceSellNoNds: Math.round(priceSellNoNds),
       profitUnitNds:  Math.round(profitUnitNds),
@@ -141,18 +146,72 @@ const PF = {
 
   // ── ОСНОВНАЯ ЗАГРУЗКА ПРОДАЖ ─────────────────────────────────
   // ── СЕБЕСТОИМОСТЬ ИЗ ПРИХОДА ─────────────────────────────
-  // Ищет ближайшую цену прихода ДО даты продажи
-  // Если прихода ДО нет — берёт первый имеющийся
-  getPrikhodPrice(sku, saleDate){
-    if(typeof PRIKHOD_PRICES === 'undefined') return null;
-    const entries = PRIKHOD_PRICES[sku];
-    if(!entries || entries.length === 0) return null;
-    let best = null;
-    for(const [dt, price] of entries){
-      if(dt <= saleDate) best = price;
+  // Ищет ближайшую цену прихода ДО даты продажи.
+  // Для финансовых расчётов возвращаем цену БЕЗ НДС:
+  //   если sum_nds > 0  → цена без НДС = (sum - sum_nds) / qty
+  //   если sum_nds = 0  → поставщик/строка без НДС, цену НЕ делим
+  // Отдельно храним цену с НДС для режима отображения цен «НДС».
+  _prikhodCostIndex: null,
+
+  _buildPrikhodCostIndex(){
+    if (this._prikhodCostIndex) return this._prikhodCostIndex;
+
+    const idx = {};
+    const push = (sku, dt, priceNoNds, priceWithNds) => {
+      sku = String(sku || '').trim();
+      dt = String(dt || '').trim().slice(0, 10);
+      priceNoNds = Number(priceNoNds) || 0;
+      priceWithNds = Number(priceWithNds) || 0;
+      if (!sku || !dt || priceNoNds <= 0) return;
+      (idx[sku] = idx[sku] || []).push({ dt, priceNoNds, priceWithNds: priceWithNds || priceNoNds });
+    };
+
+    if (typeof PRIKHOD_ROWS !== 'undefined' && Array.isArray(PRIKHOD_ROWS)) {
+      for (const row of PRIKHOD_ROWS) {
+        const qty = Number(row.qty) || 0;
+        const price = Number(row.price) || 0;      // обычно цена строки с НДС
+        const sum = Number(row.sum) || 0;          // сумма строки как в приходе
+        const nds = Number(row.sum_nds) || 0;      // НДС внутри суммы
+        let priceNoNds = price;
+
+        // Самый надёжный расчёт — из суммы и НДС строки.
+        // Так мы не делим на 1.16 строки без НДС и не ломаем поставщиков без НДС.
+        if (qty > 0 && nds > 0 && sum > nds) {
+          priceNoNds = (sum - nds) / qty;
+        }
+
+        push(row.sku, row.dt, priceNoNds, price);
+      }
+    } else if (typeof PRIKHOD_PRICES !== 'undefined') {
+      // Старый формат без sum_nds. Оставлен только как fallback.
+      // В нём нельзя понять поставщика без НДС, поэтому считаем, что цена с НДС.
+      for (const [sku, entries] of Object.entries(PRIKHOD_PRICES)) {
+        for (const [dt, price] of entries || []) {
+          const p = Number(price) || 0;
+          push(sku, dt, p / 1.16, p);
+        }
+      }
     }
-    if(best === null) best = entries[0][1]; // первый имеющийся
-    return best;
+
+    for (const entries of Object.values(idx)) {
+      entries.sort((a, b) => a.dt.localeCompare(b.dt));
+    }
+
+    this._prikhodCostIndex = idx;
+    return idx;
+  },
+
+  getPrikhodCostPrices(sku, saleDate){
+    const entries = this._buildPrikhodCostIndex()[sku];
+    if (!entries || entries.length === 0) return null;
+
+    let best = null;
+    for (const entry of entries) {
+      if (entry.dt <= saleDate) best = entry;
+      else break;
+    }
+
+    return best || entries[0]; // если прихода ДО продажи нет — берём первый имеющийся
   },
 
   async loadSales(onProgress) {
@@ -242,8 +301,10 @@ const PF = {
       const w        =skuWeight[sku]||1;
 
       // Себестоимость из прихода: цена ближайшего прихода ДО даты продажи
-      const prikhodPrice = this.getPrikhodPrice(sku, day);
-      const sebNew = prikhodPrice !== null ? prikhodPrice * qtyReal : seb;
+      // Основная себестоимость считается БЕЗ НДС, чтобы корректно сравнивать с выручкой без НДС.
+      const prikhodCost = this.getPrikhodCostPrices(sku, day);
+      const sebNew = prikhodCost ? prikhodCost.priceNoNds * qtyReal : seb;
+      const sebWithNds = prikhodCost ? prikhodCost.priceWithNds * qtyReal : seb;
       const profNew = sumBezNds - sebNew;
 
       rawRows.push({
@@ -255,6 +316,7 @@ const PF = {
         sumBezNds,
         sumR,
         seb: sebNew,
+        sebWithNds,
         prof: profNew,
         kg:    qtyN*w,
         retKg: qtyR*w,
