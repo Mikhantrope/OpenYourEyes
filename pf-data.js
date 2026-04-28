@@ -242,8 +242,9 @@ const PF = {
       const w        =skuWeight[sku]||1;
 
       // Себестоимость из прихода: цена ближайшего прихода ДО даты продажи
-      const prikhodPrice = getPrikhodPrice(sku, day);
-      const sebNew = prikhodPrice !== null ? prikhodPrice * parseFloat(r[iQtyReal]||0) : parseFloat(r[iSeb]||0);
+      const prikhodPrice = this.getPrikhodPrice(sku, day);
+      const sebNew = prikhodPrice !== null ? prikhodPrice * qtyReal : seb;
+      const profNew = sumBezNds - sebNew;
 
       rawRows.push({
         knt,sku,mk,day,
@@ -251,7 +252,10 @@ const PF = {
         skuGroup: skuGroup[sku]||'Прочее',
         weight:w,
         qtyN,qtyR,qtyReal,sumReal,
-        sumBezNds,sumR,seb,prof,
+        sumBezNds,
+        sumR,
+        seb: sebNew,
+        prof: profNew,
         kg:    qtyN*w,
         retKg: qtyR*w,
       });
