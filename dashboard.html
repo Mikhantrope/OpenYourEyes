@@ -68,6 +68,21 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 /* SECTION HEADER */
 .sh{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;margin-bottom:12px;color:var(--text);display:flex;align-items:center;gap:8px;}
 .sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent);}
+
+/* MANAGEMENT BLOCKS */
+.action-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(135deg,rgba(0,200,255,.06),rgba(0,230,118,.03));border:1px solid rgba(0,200,255,.22);border-radius:10px;padding:12px 14px;margin-bottom:14px;}
+.action-title{font-size:12px;font-weight:700;color:var(--text);}
+.action-sub{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.45;}
+.btn{padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--s2);color:var(--text);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.mini-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:13px;}
+.mini-card.warn{border-color:rgba(255,170,0,.35);background:rgba(255,170,0,.035);}
+.mini-card.good{border-color:rgba(0,230,118,.28);background:rgba(0,230,118,.025);}
+.mini-v{font-family:var(--mono);font-size:18px;font-weight:700;margin-bottom:4px;}
+.mini-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;}
+.mini-s{font-size:10px;color:var(--dim);margin-top:4px;line-height:1.4;}
+
 </style>
 </head>
 <body>
@@ -91,7 +106,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
   <div class="nav-r" id="navInfo">Загрузка...</div>
 </div>
 
-<div class="kpi-band">
+<div class="kpi-band"><div class="kpi-band">
   <div class="kpi bl"><div class="kpi-l">Выручка (без НДС)</div><div class="kpi-v" style="color:var(--accent)" id="kRev">—</div><div class="kpi-s">за весь период</div></div>
   <div class="kpi am"><div class="kpi-l">Себестоимость</div><div class="kpi-v" style="color:var(--amber)" id="kSeb">—</div><div class="kpi-s">из прихода (без НДС)</div></div>
   <div class="kpi" id="kProfCard"><div class="kpi-l">Валовая прибыль</div><div class="kpi-v" id="kProf">—</div><div class="kpi-s" id="kMarS">маржа</div></div>
@@ -104,6 +119,33 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
   <div id="alertList" style="display:flex;flex-direction:column;gap:4px;"></div>
 </div>
 <div class="main">
+
+  <div class="action-bar">
+    <div>
+      <div class="action-title">Управленческий summary</div>
+      <div class="action-sub" id="summaryText">Загрузка ключевых выводов...</div>
+    </div>
+    <button class="btn" onclick="copyDashboardReport()">📋 Скопировать отчёт</button>
+  </div>
+
+  <div class="mini-grid">
+    <div class="mini-card" id="forecastCard">
+      <div class="mini-l">Прогноз текущего месяца</div>
+      <div class="mini-v" id="forecastRev">—</div>
+      <div class="mini-s" id="forecastSub">по средней выручке в день</div>
+    </div>
+    <div class="mini-card warn">
+      <div class="mini-l">Потери от возвратов</div>
+      <div class="mini-v" id="returnLoss">—</div>
+      <div class="mini-s" id="returnSub">выручка, которая ушла в возвраты</div>
+    </div>
+    <div class="mini-card" id="priceCard">
+      <div class="mini-l">Ценовая дисциплина</div>
+      <div class="mini-v" id="priceIssues">—</div>
+      <div class="mini-s" id="priceSub">клиентские цены ниже средней по SKU</div>
+    </div>
+  </div>
+
 
   <!-- MONTHLY -->
   <div class="sh">По месяцам</div>
@@ -139,6 +181,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
     <table class="tbl" id="tKnt"></table>
   </div>
 
+
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Топ возвратов: контрагент × SKU</div>
+      <table class="tbl" id="tReturns"></table>
+    </div>
+    <div class="card">
+      <div class="ct">Ценовая дисциплина: продажи ниже средней цены SKU</div>
+      <table class="tbl" id="tPriceDiscipline"></table>
+    </div>
+  </div>
+
   <div class="card">
     <div class="ct">Топ-10 SKU категорий</div>
     <table class="tbl" id="tCat"></table>
@@ -151,8 +205,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 
 </div>
 
-<script src="pf-prikhod.js?v=20260429"></script>
-<script src="pf-data.js?v=20260429"></script>
+<script src="pf-prikhod.js?v=20260429-safe2"></script>
+<script src="pf-data.js?v=20260429-safe2"></script>
 <script>
 Chart.defaults.color='#5a7a96';
 Chart.defaults.borderColor='#1e2d40';
@@ -165,6 +219,7 @@ const fmtRev = v => {
   return Math.round(v)+'';
 };
 const fmtN = v => Math.round(v).toLocaleString('ru');
+window.PF_DASHBOARD_REPORT='';
 
 async function init(){
   const prog = p => document.getElementById('prog').style.width=p+'%';
@@ -248,6 +303,94 @@ async function init(){
       </div>`;
     }
     document.getElementById('monthCards').innerHTML=mcHtml;
+
+    // ── УПРАВЛЕНЧЕСКИЙ SUMMARY / ПРОГНОЗ / ВОЗВРАТЫ / ЦЕНЫ ─────
+    const latestMk = [...new Set(rows.map(r=>r.mk))].sort().pop();
+    const latestRows = rows.filter(r=>r.mk===latestMk);
+    const latestAg = PF.agg(latestRows);
+    const [ly,lm] = latestMk.split('-').map(Number);
+    const latestDaySet = new Set(latestRows.map(r=>r.day).filter(Boolean));
+    const daysPassed = Math.max(1, latestDaySet.size);
+    const daysInMonth = new Date(ly, lm, 0).getDate();
+    const forecastRev = latestAg.rev / daysPassed * daysInMonth;
+    const forecastProf = latestAg.prof / daysPassed * daysInMonth;
+    const monthTitle = `${mNm[lm]||latestMk} ${ly}`;
+
+    document.getElementById('forecastRev').textContent = `${fmtRev(forecastRev)} ₸`;
+    document.getElementById('forecastSub').textContent = `${monthTitle}: ${daysPassed}/${daysInMonth} дней · прибыль прогноз ${fmtRev(forecastProf)} ₸`;
+    document.getElementById('forecastCard').classList.toggle('good', forecastProf>=0);
+    document.getElementById('forecastCard').classList.toggle('warn', forecastProf<0);
+
+    const retMap = {};
+    for(const r of rows){
+      const retVal = Math.abs(r.sumR||0);
+      const retQty = Math.abs(r.qtyR||0);
+      if(retVal<=0 && retQty<=0) continue;
+      const key = r.knt+'|'+r.sku;
+      if(!retMap[key]) retMap[key]={knt:r.knt,sku:r.sku,ret:0,qty:0,rev:0};
+      retMap[key].ret += retVal;
+      retMap[key].qty += retQty;
+      retMap[key].rev += Math.abs(r.sumBezNds||0);
+    }
+    const topReturns = Object.values(retMap).sort((a,b)=>b.ret-a.ret).slice(0,8);
+    document.getElementById('returnLoss').textContent = `${fmtRev(total.ret)} ₸`;
+    document.getElementById('returnSub').textContent = `${total.retPct.toFixed(1)}% от выручки · ${topReturns.length} крупных связок в топе`;
+    document.getElementById('tReturns').innerHTML =
+      `<tr>${['Контрагент','SKU','Возврат','Кол-во'].map(h=>`<th>${h}</th>`).join('')}</tr>`+
+      (topReturns.length ? topReturns.map(x=>`<tr>
+        <td>${x.knt.length>24?x.knt.slice(0,24)+'…':x.knt}</td>
+        <td>${x.sku.length>26?x.sku.slice(0,26)+'…':x.sku}</td>
+        <td class="neg">${fmtRev(x.ret)} ₸</td>
+        <td>${fmtN(x.qty)}</td>
+      </tr>`).join('') : '<tr><td colspan="4" class="pos">Нет заметных возвратов</td></tr>');
+
+    const skuAvg = {}, kSku = {};
+    for(const r of rows){
+      if((r.qtyReal||0)<=0 || !(r.sumReal>0)) continue;
+      const saleNoNds = (r.sumReal||0)/1.16;
+      if(!skuAvg[r.sku]) skuAvg[r.sku]={sum:0,qty:0};
+      skuAvg[r.sku].sum += saleNoNds;
+      skuAvg[r.sku].qty += r.qtyReal;
+      const key = r.knt+'|'+r.sku;
+      if(!kSku[key]) kSku[key]={knt:r.knt,sku:r.sku,sum:0,qty:0};
+      kSku[key].sum += saleNoNds;
+      kSku[key].qty += r.qtyReal;
+    }
+    const priceDisc = Object.values(kSku).map(x=>{
+      const avg = skuAvg[x.sku]?.qty ? skuAvg[x.sku].sum/skuAvg[x.sku].qty : 0;
+      const price = x.qty ? x.sum/x.qty : 0;
+      const diffPct = avg ? (price/avg-1)*100 : 0;
+      const loss = Math.max(0, (avg-price)*x.qty);
+      return {...x,avg,price,diffPct,loss};
+    }).filter(x=>x.qty>=20 && x.avg>0 && x.price<x.avg*0.90 && x.loss>10000)
+      .sort((a,b)=>b.loss-a.loss).slice(0,8);
+
+    document.getElementById('priceIssues').textContent = priceDisc.length ? `${priceDisc.length} связок` : 'OK';
+    document.getElementById('priceSub').textContent = priceDisc.length ? `потенциальная потеря в топе: ${fmtRev(priceDisc.reduce((s,x)=>s+x.loss,0))} ₸` : 'сильных отклонений не найдено';
+    document.getElementById('priceCard').classList.toggle('warn', priceDisc.length>0);
+    document.getElementById('priceCard').classList.toggle('good', priceDisc.length===0);
+    document.getElementById('tPriceDiscipline').innerHTML =
+      `<tr>${['Контрагент','SKU','Цена','Средняя','Потеря'].map(h=>`<th>${h}</th>`).join('')}</tr>`+
+      (priceDisc.length ? priceDisc.map(x=>`<tr>
+        <td>${x.knt.length>22?x.knt.slice(0,22)+'…':x.knt}</td>
+        <td>${x.sku.length>25?x.sku.slice(0,25)+'…':x.sku}</td>
+        <td class="neg">${Math.round(x.price)} ₸</td>
+        <td>${Math.round(x.avg)} ₸</td>
+        <td class="neg">${fmtRev(x.loss)} ₸</td>
+      </tr>`).join('') : '<tr><td colspan="5" class="pos">Критичных отклонений нет</td></tr>');
+
+    const summaryLines = [
+      `PF summary: ${new Date().toLocaleString('ru')}`,
+      `Выручка: ${fmtRev(total.rev)} ₸`,
+      `Прибыль: ${fmtRev(total.prof)} ₸ · маржа ${total.mar.toFixed(1)}%`,
+      `Возвраты: ${fmtRev(total.ret)} ₸ · ${total.retPct.toFixed(1)}%`,
+      `Прогноз ${monthTitle}: ${fmtRev(forecastRev)} ₸ выручки, ${fmtRev(forecastProf)} ₸ прибыли`,
+      `Проблемы: ${belowCostA.length} SKU ниже закупа, ${negA.length} убыточных контрагентов, ${priceDisc.length} ценовых отклонений`
+    ];
+    window.PF_DASHBOARD_REPORT = summaryLines.join('\n');
+    document.getElementById('summaryText').innerHTML =
+      `Маржа <strong class="${total.mar>=0?'pos':'neg'}">${total.mar.toFixed(1)}%</strong>, возвраты <strong>${total.retPct.toFixed(1)}%</strong>, прогноз ${monthTitle}: <strong>${fmtRev(forecastRev)} ₸</strong>.`;
+
 
     // Charts
     const M=['Янв','Фев','Мар','Апр'];
@@ -367,7 +510,7 @@ async function init(){
         const rp=d.rev?d.ret/d.rev*100:0;
         const bw=maxDow?Math.round(avg/maxDow*100):0;
         const wknd=i===0||i===6;
-        return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;opacity:${wknd?.7:1}">
+        return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;opacity:${wknd ? .7 : 1}">
           <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${DOW_RU[i]}</div>
           <div style="font-family:var(--mono);font-size:13px;font-weight:600">${fmtRev(avg)} ₸</div>
           <div style="font-size:10px;margin-top:3px;color:${rp>3?'var(--red)':rp>1.5?'var(--amber)':'var(--green)'}">${rp.toFixed(1)}% возвр.</div>
@@ -384,6 +527,19 @@ async function init(){
     document.getElementById('lstep').textContent='Ошибка: '+err.message;
     document.getElementById('prog').style.background='var(--red)';
     console.error(err);
+  }
+}
+
+
+async function copyDashboardReport(){
+  const text = window.PF_DASHBOARD_REPORT || 'Отчёт ещё не сформирован';
+  try{
+    await navigator.clipboard.writeText(text);
+    alert('Отчёт скопирован');
+  }catch(e){
+    const ta=document.createElement('textarea');
+    ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    alert('Отчёт скопирован');
   }
 }
 

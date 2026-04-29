@@ -88,6 +88,24 @@ body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-ser
 .pi-action{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
 
 .pos{color:var(--green);}.neg{color:var(--red);}.neu{color:var(--amber);}
+
+/* DATA HEALTH */
+.health-wrap{display:grid;grid-template-columns:260px 1fr;gap:12px;margin-bottom:18px;}
+.health-card{background:linear-gradient(135deg,rgba(0,200,255,.06),rgba(0,230,118,.03));border:1px solid rgba(0,200,255,.25);border-radius:12px;padding:16px;}
+.health-score{font-family:'IBM Plex Mono',monospace;font-size:42px;font-weight:800;line-height:1;}
+.health-score.ok{color:var(--green);}
+.health-score.warn{color:var(--amber);}
+.health-score.err{color:var(--red);}
+.health-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:6px;}
+.health-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:10px;}
+.passport-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.pass-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:11px;}
+.pass-v{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;}
+.pass-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px;}
+.q-actions{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;}
+.qbtn{padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--s2);color:var(--text);font-size:11px;font-weight:700;cursor:pointer;}
+.qbtn:hover{border-color:var(--accent);color:var(--accent);}
+
 </style>
 </head>
 <body>
@@ -104,15 +122,34 @@ body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-ser
   <a href="index.html">📊 Таблица</a>
   <a href="dashboard.html">📈 Дашборд</a>
   <a href="prikhod.html">📦 Приход</a>
+  <a href="compare.html">📅 Сравнение</a>
+  <a href="pnl.html">💰 P&L</a>
   <a href="analytics.html">🔬 Аналитика</a>
   <a href="quality.html" class="active">🧪 Качество</a>
 </div>
 
-<div class="status-bar" id="statusBar">
+<div class="status-bar"<div class="status-bar" id="statusBar">
   <div class="stat-item"><div class="stat-dot ok"></div><span class="stat-lbl">Загрузка...</span></div>
 </div>
 
 <div class="main">
+
+
+  <!-- DATA HEALTH -->
+  <div class="section">
+    <div class="sh"><span class="sh-icon">🩺</span>Паспорт и качество данных</div>
+    <div class="health-wrap">
+      <div class="health-card">
+        <div class="health-score warn" id="healthScore">—</div>
+        <div class="health-label" id="healthLabel">Расчёт...</div>
+        <div class="health-note" id="healthNote">Итоговая оценка учитывает критичные ошибки: нет цены прихода, продажи ниже закупа, НДС-расхождения, дубли и конфликты цен.</div>
+        <div class="q-actions">
+          <button class="qbtn" onclick="copyQualityReport()">📋 Скопировать статус</button>
+        </div>
+      </div>
+      <div class="passport-grid" id="passportGrid"></div>
+    </div>
+  </div>
 
   <!-- ПРИОРИТЕТЫ -->
   <div class="section">
@@ -136,8 +173,8 @@ body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-ser
 
 </div>
 
-<script src="pf-prikhod.js?v=20260429"></script>
-<script src="pf-data.js?v=20260429"></script>
+<script src="pf-prikhod.js?v=20260429-safe2"></script>
+<script src="pf-data.js?v=20260429-safe2"></script>
 <script>
 const fmtRev = v => Math.abs(v)>=1e6?(v/1e6).toFixed(1)+' млн':Math.abs(v)>=1e3?(v/1e3).toFixed(0)+' тыс':Math.round(v)+'';
 const fmtN = v => Math.round(v).toLocaleString('ru');
@@ -216,6 +253,41 @@ async function init(){
       .sort((a,b)=>a.sell-a.zakup-(b.sell-b.zakup))
       .slice(0,20);
 
+    // 10. Ценовая дисциплина: цена контрагента ниже средней цены SKU
+    const skuAvgPD = {}, kSkuPD = {};
+    for(const r of rows){
+      if((r.qtyReal||0)<=0 || !(r.sumReal>0)) continue;
+      const saleNoNds = (r.sumReal||0)/1.16;
+      if(!skuAvgPD[r.sku]) skuAvgPD[r.sku]={sum:0,qty:0};
+      skuAvgPD[r.sku].sum += saleNoNds;
+      skuAvgPD[r.sku].qty += r.qtyReal;
+      const key = r.knt+'|'+r.sku;
+      if(!kSkuPD[key]) kSkuPD[key]={knt:r.knt,sku:r.sku,sum:0,qty:0};
+      kSkuPD[key].sum += saleNoNds;
+      kSkuPD[key].qty += r.qtyReal;
+    }
+    const priceDiscipline = Object.values(kSkuPD).map(x=>{
+      const avg = skuAvgPD[x.sku]?.qty ? skuAvgPD[x.sku].sum/skuAvgPD[x.sku].qty : 0;
+      const price = x.qty ? x.sum/x.qty : 0;
+      const diffPct = avg ? (price/avg-1)*100 : 0;
+      const loss = Math.max(0,(avg-price)*x.qty);
+      return {...x,avg,price,diffPct,loss};
+    }).filter(x=>x.qty>=20 && x.avg>0 && x.price<x.avg*0.90 && x.loss>10000)
+      .sort((a,b)=>b.loss-a.loss).slice(0,20);
+
+    // 11. Топ возвратов по контрагенту и SKU
+    const retMapQ = {};
+    for(const r of rows){
+      const retVal = Math.abs(r.sumR||0);
+      const retQty = Math.abs(r.qtyR||0);
+      if(retVal<=0 && retQty<=0) continue;
+      const key = r.knt+'|'+r.sku;
+      if(!retMapQ[key]) retMapQ[key]={knt:r.knt,sku:r.sku,ret:0,qty:0};
+      retMapQ[key].ret += retVal;
+      retMapQ[key].qty += retQty;
+    }
+    const topReturnPairs = Object.values(retMapQ).sort((a,b)=>b.ret-a.ret).slice(0,20);
+
     // ── ДНИ НЕДЕЛИ ────────────────────────────────────────────
     const DOW_RU=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
     const dowData={};
@@ -237,6 +309,22 @@ async function init(){
 
     // ── STATUS BAR ────────────────────────────────────────────
     const totalIssues = noGroupKnts.length + noPrikhodSkus.length + negMarKnts.length + belowCost.length + conflictCount;
+
+    const uniqueSku = new Set(rows.map(r=>r.sku)).size;
+    const uniqueKnt = new Set(rows.map(r=>r.knt)).size;
+    const prikhodSkuCount = typeof PRIKHOD_PRICES!=='undefined' ? Object.keys(PRIKHOD_PRICES).length : 0;
+
+    let healthScore = 100;
+    healthScore -= Math.min(25, noPrikhodSkus.length * 2);
+    healthScore -= Math.min(20, belowCost.length * 3);
+    healthScore -= Math.min(15, negMarKnts.length * 2);
+    healthScore -= Math.min(12, noGroupKnts.length);
+    healthScore -= Math.min(10, Math.ceil(ndsBad.length / 20));
+    healthScore -= Math.min(10, conflictCount);
+    healthScore -= Math.min(8, dupes.length);
+    healthScore = Math.max(0, Math.round(healthScore));
+    const healthCls = healthScore >= 90 ? 'ok' : healthScore >= 75 ? 'warn' : 'err';
+    const healthText = healthScore >= 90 ? 'Можно доверять' : healthScore >= 75 ? 'Есть замечания' : 'Сначала чистить данные';
     document.getElementById('statusBar').innerHTML = `
       <div class="stat-item"><div class="stat-dot ${noGroupKnts.length?'warn':'ok'}"></div>
         <span class="stat-val">${noGroupKnts.length}</span><span class="stat-lbl">без группы</span></div>
@@ -253,11 +341,43 @@ async function init(){
       <div class="last-upd">Данные: ${rows.length.toLocaleString('ru')} строк · Обновлено: ${now}</div>
     `;
 
+
+    const hs = document.getElementById('healthScore');
+    hs.textContent = healthScore + '/100';
+    hs.className = 'health-score ' + healthCls;
+    document.getElementById('healthLabel').textContent = healthText;
+    document.getElementById('healthNote').innerHTML =
+      healthScore >= 90
+        ? 'Критичных ошибок мало. Можно смотреть дашборд, но всё равно проверь возвраты и ценовые отклонения.'
+        : healthScore >= 75
+          ? 'Данные рабочие, но перед выводами проверь жёлтые и красные карточки ниже.'
+          : 'Сначала исправь красные ошибки: ниже закупа, нет прихода, большие расхождения и дубли.';
+    document.getElementById('passportGrid').innerHTML = [
+      ['Строк реализации', rows.length.toLocaleString('ru')],
+      ['SKU в реализации', uniqueSku.toLocaleString('ru')],
+      ['SKU с приходом', prikhodSkuCount.toLocaleString('ru')],
+      ['Контрагенты', uniqueKnt.toLocaleString('ru')],
+      ['Месяцев', months.length.toLocaleString('ru')],
+      ['Конфликтов цен', conflictCount.toLocaleString('ru')],
+      ['НДС-расхождений', ndsBad.length.toLocaleString('ru')],
+      ['Обновлено', now]
+    ].map(([l,v])=>`<div class="pass-card"><div class="pass-v">${v}</div><div class="pass-l">${l}</div></div>`).join('');
+
+    window.PF_QUALITY_REPORT = [
+      `PF Data Health: ${healthScore}/100 — ${healthText}`,
+      `Строк: ${rows.length.toLocaleString('ru')}; SKU: ${uniqueSku}; контрагенты: ${uniqueKnt}; SKU с приходом: ${prikhodSkuCount}`,
+      `Проблемы: без группы ${noGroupKnts.length}, без прихода ${noPrikhodSkus.length}, ниже закупа ${belowCost.length}, убыточных клиентов ${negMarKnts.length}, НДС-расхождений ${ndsBad.length}, дублей ${dupes.length}, конфликтов прихода ${conflictCount}`,
+      `Обновлено: ${now}`
+    ].join('\n');
+
     // ── ПРИОРИТЕТЫ ────────────────────────────────────────────
     const priorities = [];
     if(belowCost.length>0) priorities.push({cls:'err',icon:'🔴',
       text:`<strong>${belowCost.length} SKU</strong> продаются ниже цены закупа`,
       action:'Требует срочного пересмотра цен'});
+    if(priceDiscipline.length>0) priorities.push({cls:'warn',icon:'🟡',
+      text:`<strong>${priceDiscipline.length} связок</strong> контрагент×SKU дешевле средней цены SKU на 10%+`,
+      action:'Проверить ценовую дисциплину'});
     if(negMarKnts.length>0) priorities.push({cls:'err',icon:'🔴',
       text:`<strong>${negMarKnts.length} контрагентов</strong> с маржой хуже −5% и оборотом >500к`,
       action:'Переговоры или пересмотр условий'});
@@ -350,6 +470,28 @@ async function init(){
         rows: retBig.slice(0,20).map(r=>[r.knt.slice(0,30), r.sku.slice(0,30),
           `<span class="neg">${fmtN(r.qtyN)}</span>`])
       },
+
+      {
+        id:'priceDisc', title:'Ценовая дисциплина', count:priceDiscipline.length,
+        cls: priceDiscipline.length>0?'warn':'ok',
+        desc:'Цена у контрагента на 10%+ ниже средней цены по этой SKU. Это не всегда ошибка, но показывает возможную потерю выручки',
+        cols:['Контрагент','SKU','Цена','Средняя','Потеря'],
+        rows: priceDiscipline.map(x=>[
+          x.knt.slice(0,32), x.sku.slice(0,32),
+          Math.round(x.price)+' ₸', Math.round(x.avg)+' ₸',
+          `<span class="neg">${fmtRev(x.loss)} ₸</span>`
+        ])
+      },
+      {
+        id:'topReturns', title:'Топ возвратов', count:topReturnPairs.length,
+        cls: topReturnPairs.length>0?'warn':'ok',
+        desc:'Самые крупные возвраты по связке контрагент × SKU',
+        cols:['Контрагент','SKU','Возврат','Кол-во'],
+        rows: topReturnPairs.map(x=>[
+          x.knt.slice(0,32), x.sku.slice(0,32),
+          `<span class="neg">${fmtRev(x.ret)} ₸</span>`, fmtN(x.qty)
+        ])
+      },
       {
         id:'dupes', title:'Возможные дубли', count:dupes.length,
         cls: dupes.length>0?'warn':'ok',
@@ -412,6 +554,19 @@ async function init(){
 function toggleDetail(id){
   const panel = document.getElementById('detail_'+id);
   panel.classList.toggle('show');
+}
+
+
+async function copyQualityReport(){
+  const text = window.PF_QUALITY_REPORT || 'Статус ещё не сформирован';
+  try{
+    await navigator.clipboard.writeText(text);
+    alert('Статус качества скопирован');
+  }catch(e){
+    const ta=document.createElement('textarea');
+    ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    alert('Статус качества скопирован');
+  }
 }
 
 init();

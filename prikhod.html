@@ -80,7 +80,7 @@ td.conflict-cell{color:var(--red);font-weight:700;}
 <body>
 
 <div class="nav">
-  <span class="nl" style="font-family:serif;font-style:italic">PF</span>
+  <span class="nl">PF</span>
   <a href="index.html">📊 Таблица</a>
   <a href="dashboard.html">📈 Дашборд</a>
   <a href="prikhod.html" class="active">📦 Приход</a>
@@ -90,7 +90,7 @@ td.conflict-cell{color:var(--red);font-weight:700;}
   <a href="quality.html">🧪 Качество</a>
 </div>
 
-<div class="toolbar">
+<div class="toolbar"><div class="toolbar">
   <div class="filter-row">
     <select id="fSup" onchange="applyFilters()">
       <option value="">Все поставщики</option>
@@ -152,7 +152,7 @@ td.conflict-cell{color:var(--red);font-weight:700;}
   <span id="totalInfo" style="margin-left:auto;font-size:11px;color:var(--muted)"></span>
 </div>
 
-<script src="pf-prikhod.js?v=20260429"></script>
+<script src="pf-prikhod.js?v=20260429-safe2"></script>
 <script>
 const PAGE_SIZE = 200;
 const PUB_ID = '2PACX-1vTwyEj5Huy-avrqvCZj1rCqTBJObnOHNJ-GVdZic0J1_fwVafku2G0MpiZtGle8zOXzUUmEer26ylrO';
@@ -187,8 +187,7 @@ if(typeof PRIKHOD_CONFLICTS !== 'undefined'){
 
 // Parse CSV row
 function parseCSV(text){
-  const lines = text.split('
-');
+  const lines = text.split('\n');
   const rows = [];
   for(const line of lines){
     if(!line.trim()) continue;

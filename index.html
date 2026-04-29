@@ -337,7 +337,7 @@ tr.dt-dimmed{opacity:.25;}
       <a class="nt" href="compare.html">📅 Сравнение</a>
       <a class="nt" href="pnl.html">💰 P&L</a>
       <a class="nt" href="analytics.html">🔬 Аналитика</a>
-      <a href="quality.html">🧪 Качество</a>
+      <a class="nt" href="quality.html">🧪 Качество</a>
     </div>
     <div class="view-mode">
       <button class="vm-btn active" id="vmMonth" onclick="setViewMode('month')">📅 По месяцам</button>
@@ -521,8 +521,8 @@ tr.dt-dimmed{opacity:.25;}
   <div style="margin-left:auto">PF Analytics © 2026</div>
 </div>
 
-<script src="pf-prikhod.js?v=20260429"></script>
-<script src="pf-data.js?v=20260429"></script>
+<script src="pf-prikhod.js?v=20260429-safe2"></script>
+<script src="pf-data.js?v=20260429-safe2"></script>
 <script>
 // ── MONTH MODE COLUMNS (v2026-04-23 06:08) ──────────────────────────────────────
 const MCOLS=[
@@ -1369,9 +1369,13 @@ function swapH(){
   render();
 }
 
+let searchTimer=null;
 function onSearch(){
-  searchTerm=document.getElementById('srch').value.trim().toLowerCase();
-  render();
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>{
+    searchTerm=document.getElementById('srch').value.trim().toLowerCase();
+    render();
+  },220);
 }
 
 // ── INFO POPUP ────────────────────────────────────────────
