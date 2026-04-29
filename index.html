@@ -1060,7 +1060,7 @@ function renderMonth(){
   const parts=[`<tr class="tot"><td><div class="cnm"><span style="width:13px;display:inline-block"></span><span class="rnm totlbl">📊 ИТОГО</span></div></td>`+
     vis.map(c=>{
       const v=c.id==='share'?tot.rev:(tot[c.key]||0);
-      const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profKg')?(v>=0?'pos':'neg'):'';
+      const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profNet'||c.key==='profKg')?(v>=0?'pos':'neg'):'';
       const txt=c.id==='share'?'100%':fmtCell(v,c.fmt,tRev);
       return `<td class="${c2}">${txt}</td>`;
     }).join('')+'</tr>'];
@@ -1073,7 +1073,7 @@ function renderMonth(){
     const nc=n.isDate?'rnm date-name':(n.ng?'rnm nog':'rnm');
     const tds=vis.map(c=>{
       const v=c.id==='share'?m.rev:(m[c.key]||0);
-      const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profKg')?(v>0?'pos':v<0?'neg':''):(c.key==='ret'||c.key==='retKg')?v?'neg':'neu':'';
+      const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profNet'||c.key==='profKg')?(v>0?'pos':v<0?'neg':''):(c.key==='ret'||c.key==='retKg')?v?'neg':'neu':'';
       let txt;
       if(c.id==='share'){const pct=(m.rev/tRev*100).toFixed(1);const bw=Math.max(2,Math.round(m.rev/tRev*46));
         txt=`<div class="barw"><div class="bar" style="width:${bw}px;background:${m.prof>=0?'#3fb950':'#f85149'}"></div>${pct}%</div>`;}
