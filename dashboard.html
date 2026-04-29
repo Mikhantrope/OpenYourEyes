@@ -87,6 +87,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
   <a href="compare.html">📅 Сравнение</a>
   <a href="pnl.html">💰 P&L</a>
   <a href="analytics.html">🔬 Аналитика</a>
+  <a href="quality.html">🧪 Качество</a>
   <div class="nav-r" id="navInfo">Загрузка...</div>
 </div>
 
@@ -98,6 +99,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
   <div class="kpi gr"><div class="kpi-l">Кол-во (Реал.)</div><div class="kpi-v" style="color:var(--green)" id="kQty">—</div><div class="kpi-s">штук отгружено</div></div>
 </div>
 
+<div id="alertBar" style="display:none;padding:10px 18px;background:rgba(255,61,87,.06);border-bottom:1px solid rgba(255,61,87,.25);">
+  <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:8px">🔥 Требует внимания:</div>
+  <div id="alertList" style="display:flex;flex-direction:column;gap:4px;"></div>
+</div>
 <div class="main">
 
   <!-- MONTHLY -->
@@ -139,10 +144,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
     <table class="tbl" id="tCat"></table>
   </div>
 
+
+  <!-- DAYS OF WEEK -->
+  <div class="sh" style="margin-top:20px">📅 Продажи по дням недели</div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:20px" id="dowCards"></div>
+
 </div>
 
-<script src="pf-prikhod.js"></script>
-<script src="pf-data.js"></script>
+<script src="pf-prikhod.js?v=20260429"></script>
+<script src="pf-data.js?v=20260429"></script>
 <script>
 Chart.defaults.color='#5a7a96';
 Chart.defaults.borderColor='#1e2d40';
@@ -178,6 +188,39 @@ async function init(){
     document.getElementById('kRet').textContent = fmtRev(total.ret)+' ₸';
     document.getElementById('kRetPct').textContent = `${total.retPct.toFixed(1)}% от выручки`;
     document.getElementById('kQty').textContent = fmtN(total.qtyReal)+' шт';
+    // ── ЧТО ДЕЛАТЬ СЕГОДНЯ ───────────────────────────────────
+    const alerts = [];
+    // SKU ниже закупа
+    const skuMapA={};
+    for(const r of rows){
+      if(!skuMapA[r.sku]) skuMapA[r.sku]={sumReal:0,qtyReal:0,seb:0};
+      if((r.qtyReal||0)>0){
+        skuMapA[r.sku].sumReal+=(r.sumReal||0);
+        skuMapA[r.sku].qtyReal+=(r.qtyReal||0);
+        skuMapA[r.sku].seb+=(r.sebSale||r.seb||0);
+      }
+    }
+    const belowCostA = Object.entries(skuMapA).filter(([,d])=>d.qtyReal>50&&d.seb/d.qtyReal>d.sumReal/1.16/d.qtyReal*1.02);
+    if(belowCostA.length>0) alerts.push({cls:'err',icon:'🔴',msg:`<strong>${belowCostA.length} SKU</strong> продаются ниже цены закупа → <a href="quality.html" style="color:var(--accent)">Проверить</a>`});
+    // Убыточные контрагенты >500к
+    const kntMapA={};
+    for(const r of rows){ if(!kntMapA[r.knt]) kntMapA[r.knt]={rev:0,prof:0}; kntMapA[r.knt].rev+=r.sumBezNds; kntMapA[r.knt].prof+=r.prof; }
+    const negA = Object.values(kntMapA).filter(d=>d.rev>500000&&d.prof/d.rev<-0.05);
+    if(negA.length>0) alerts.push({cls:'err',icon:'🔴',msg:`<strong>${negA.length} контрагентов</strong> с маржой хуже −5% и оборотом >500к`});
+    // Без группы
+    const noGrA = [...new Set(rows.filter(r=>r.group.includes('Без группы')).map(r=>r.knt))];
+    if(noGrA.length>0) alerts.push({cls:'warn',icon:'🟡',msg:`<strong>${noGrA.length} контрагентов</strong> без группы — не отображаются в аналитике каналов`});
+    // Конфликты прихода
+    if(typeof PRIKHOD_CONFLICTS!=='undefined'&&PRIKHOD_CONFLICTS.length>0)
+      alerts.push({cls:'warn',icon:'🟡',msg:`<strong>${PRIKHOD_CONFLICTS.length} конфликтов цен</strong> в приходе → <a href="prikhod.html" style="color:var(--accent)">Приход ⚠️</a>`});
+    
+    if(alerts.length>0){
+      document.getElementById('alertBar').style.display='block';
+      document.getElementById('alertList').innerHTML = alerts.map(a=>
+        `<div style="font-size:11px;display:flex;align-items:center;gap:8px"><span>${a.icon}</span><span>${a.msg}</span></div>`
+      ).join('');
+    }
+
     document.getElementById('navInfo').textContent = `${rows.length.toLocaleString('ru')} строк · ${months.length} мес.`;
 
     // Monthly
@@ -301,6 +344,38 @@ async function init(){
         <td>${c.shr.toFixed(1)}%</td>
         <td class="${c.mar>=0?'pos':'neg'}">${c.mar>0?'+':''}${c.mar.toFixed(1)}%</td>
       </tr>`).join('');
+
+    // ── ДНИ НЕДЕЛИ ────────────────────────────────────────────
+    const DOW_RU=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+    const dowD={};
+    for(let i=0;i<7;i++) dowD[i]={rev:0,ret:0,days:new Set()};
+    for(const r of rows){
+      if(!r.day) continue;
+      const dt=new Date(r.day);
+      if(isNaN(dt)) continue;
+      const dow=dt.getDay();
+      dowD[dow].rev+=r.sumBezNds;
+      dowD[dow].ret+=Math.abs(r.sumR||0);
+      dowD[dow].days.add(r.day);
+    }
+    const maxDow=Math.max(...Object.values(dowD).map(d=>d.days.size?d.rev/d.days.size:0));
+    const dowEl=document.getElementById('dowCards');
+    if(dowEl){
+      dowEl.innerHTML=[1,2,3,4,5,6,0].map(i=>{
+        const d=dowD[i]; const cnt=d.days.size;
+        const avg=cnt?d.rev/cnt:0;
+        const rp=d.rev?d.ret/d.rev*100:0;
+        const bw=maxDow?Math.round(avg/maxDow*100):0;
+        const wknd=i===0||i===6;
+        return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;opacity:${wknd?.7:1}">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${DOW_RU[i]}</div>
+          <div style="font-family:var(--mono);font-size:13px;font-weight:600">${fmtRev(avg)} ₸</div>
+          <div style="font-size:10px;margin-top:3px;color:${rp>3?'var(--red)':rp>1.5?'var(--amber)':'var(--green)'}">${rp.toFixed(1)}% возвр.</div>
+          <div style="font-size:9px;color:var(--dim);margin-top:2px">${cnt} дней</div>
+          <div style="height:3px;background:var(--accent);border-radius:2px;margin-top:6px;width:${bw}%;max-width:100%"></div>
+        </div>`;
+      }).join('');
+    }
 
     prog(100); step('Готово!');
     setTimeout(()=>document.getElementById('ls').style.display='none',300);

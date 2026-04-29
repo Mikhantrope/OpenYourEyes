@@ -132,7 +132,6 @@ const PF = {
       profNet:        Math.round(revSaleOnly - sebSaleOnly), // прибыль без потерь от возвратов
       mar:            rev ? Math.round(prof/rev*1000)/10 : 0,
       marNet:         revSaleOnly ? Math.round((revSaleOnly-sebSaleOnly)/revSaleOnly*1000)/10 : 0,
-      mar:            Math.round(mar*10)/10,
       avg:            Math.round(avg),
       kg:             Math.round(kg*10)/10,
       retKg:          Math.round(retKg*10)/10,

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PF — Качество данных</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+:root{--bg:#07090f;--s1:#0d1219;--s2:#131a23;--border:#1e2d40;
+  --accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;
+  --text:#dde8f5;--muted:#5a7a96;--dim:#2d4055;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;}
+
+/* LOADING */
+#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+.ll{font-family:'Bebas Neue',sans-serif;font-size:52px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.pb{width:280px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .4s;width:0%;}
+
+/* NAV */
+.nav{display:flex;align-items:center;padding:7px 16px;background:var(--s1);border-bottom:1px solid var(--border);gap:3px;position:sticky;top:0;z-index:200;}
+.nl{font-family:'Bebas Neue',sans-serif;font-size:22px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px;letter-spacing:2px;}
+.nav a{padding:4px 8px;border-radius:5px;text-decoration:none;color:var(--muted);font-size:11px;font-weight:600;}
+.nav a:hover,.nav a.active{color:var(--text);}
+.nav a.active{background:var(--s2);}
+
+/* STATUS BAR */
+.status-bar{display:flex;gap:16px;padding:10px 18px;background:var(--s1);border-bottom:1px solid var(--border);align-items:center;flex-wrap:wrap;}
+.stat-item{display:flex;align-items:center;gap:6px;font-size:11px;}
+.stat-dot{width:8px;height:8px;border-radius:50%;}
+.stat-dot.ok{background:var(--green);}
+.stat-dot.warn{background:var(--amber);}
+.stat-dot.err{background:var(--red);}
+.stat-val{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+.stat-lbl{color:var(--muted);}
+.last-upd{margin-left:auto;font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+
+/* MAIN */
+.main{max-width:1380px;margin:0 auto;padding:20px 18px;}
+.section{margin-bottom:32px;}
+.sh{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent);}
+.sh-icon{font-size:18px;}
+
+/* ISSUE CARDS GRID */
+.issues-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+.issue-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:border-color .15s;}
+.issue-card:hover{border-color:var(--muted);}
+.issue-card.ok{border-left:3px solid var(--green);}
+.issue-card.warn{border-left:3px solid var(--amber);}
+.issue-card.err{border-left:3px solid var(--red);}
+.ic-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.ic-title{font-size:11px;font-weight:700;color:var(--text);}
+.ic-count{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;}
+.ic-count.ok{color:var(--green);}
+.ic-count.warn{color:var(--amber);}
+.ic-count.err{color:var(--red);}
+.ic-desc{font-size:10px;color:var(--muted);line-height:1.5;}
+
+/* DETAIL TABLE */
+.detail-panel{display:none;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:8px;}
+.detail-panel.show{display:block;}
+.detail-title{font-size:11px;font-weight:700;margin-bottom:10px;color:var(--accent);}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);}
+.tbl td{padding:5px 8px;font-size:10px;border-bottom:1px solid rgba(30,45,64,.4);font-family:'IBM Plex Mono',monospace;}
+.tbl td:first-child{font-family:'IBM Plex Sans',sans-serif;font-size:11px;}
+.tbl tr:hover td{background:rgba(255,255,255,.02);}
+
+/* DOW chart */
+.dow-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
+.dow-card{background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
+.dow-name{font-size:10px;color:var(--muted);margin-bottom:6px;}
+.dow-rev{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);}
+.dow-ret{font-size:10px;margin-top:4px;font-family:'IBM Plex Mono',monospace;}
+.dow-bar{height:4px;border-radius:2px;margin-top:6px;background:var(--accent);}
+
+/* PRIORITY LIST */
+.priority-list{display:flex;flex-direction:column;gap:8px;}
+.priority-item{display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--border);border-radius:8px;padding:10px 14px;}
+.priority-item.err{border-color:rgba(255,61,87,.4);background:rgba(255,61,87,.04);}
+.priority-item.warn{border-color:rgba(255,170,0,.4);background:rgba(255,170,0,.04);}
+.priority-item.ok{border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.03);}
+.pi-icon{font-size:16px;}
+.pi-text{flex:1;font-size:12px;}
+.pi-text strong{color:var(--text);}
+.pi-action{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+
+.pos{color:var(--green);}.neg{color:var(--red);}.neu{color:var(--amber);}
+</style>
+</head>
+<body>
+
+<div id="ls">
+  <div class="ll">PF</div>
+  <div style="font-size:12px;color:var(--muted)">Проверка качества данных...</div>
+  <div class="pb"><div class="pf" id="prog"></div></div>
+  <div style="font-size:10px;color:var(--dim)" id="lstep">Инициализация...</div>
+</div>
+
+<div class="nav">
+  <span class="nl">PF</span>
+  <a href="index.html">📊 Таблица</a>
+  <a href="dashboard.html">📈 Дашборд</a>
+  <a href="prikhod.html">📦 Приход</a>
+  <a href="analytics.html">🔬 Аналитика</a>
+  <a href="quality.html" class="active">🧪 Качество</a>
+</div>
+
+<div class="status-bar" id="statusBar">
+  <div class="stat-item"><div class="stat-dot ok"></div><span class="stat-lbl">Загрузка...</span></div>
+</div>
+
+<div class="main">
+
+  <!-- ПРИОРИТЕТЫ -->
+  <div class="section">
+    <div class="sh"><span class="sh-icon">🔥</span>Что требует внимания сейчас</div>
+    <div class="priority-list" id="priorityList"></div>
+  </div>
+
+  <!-- КАРТОЧКИ ПРОВЕРОК -->
+  <div class="section">
+    <div class="sh"><span class="sh-icon">🧪</span>Все проверки данных</div>
+    <div class="issues-grid" id="issuesGrid"></div>
+    <div id="detailPanels"></div>
+  </div>
+
+  <!-- ДНИ НЕДЕЛИ -->
+  <div class="section">
+    <div class="sh"><span class="sh-icon">📅</span>Продажи по дням недели</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Средняя выручка и % возвратов по каждому дню недели за весь период</div>
+    <div class="dow-grid" id="dowGrid"></div>
+  </div>
+
+</div>
+
+<script src="pf-prikhod.js?v=20260429"></script>
+<script src="pf-data.js?v=20260429"></script>
+<script>
+const fmtRev = v => Math.abs(v)>=1e6?(v/1e6).toFixed(1)+' млн':Math.abs(v)>=1e3?(v/1e3).toFixed(0)+' тыс':Math.round(v)+'';
+const fmtN = v => Math.round(v).toLocaleString('ru');
+
+async function init(){
+  const prog = p => document.getElementById('prog').style.width=p+'%';
+  const step = s => document.getElementById('lstep').textContent=s;
+
+  try{
+    const {rawRows, months} = await PF.loadSales((p,s)=>{prog(p*0.7);step(s);});
+    prog(75); step('Анализ качества...');
+
+    const rows = rawRows;
+    const now = new Date().toLocaleString('ru',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+    // ── ПРОВЕРКИ ─────────────────────────────────────────────
+
+    // 1. Строки без группы контрагента
+    const noGroup = rows.filter(r=>r.group.includes('Без группы'));
+    const noGroupKnts = [...new Set(noGroup.map(r=>r.knt))];
+
+    // 2. SKU без веса
+    const noWeight = rows.filter(r=>!r.weight||r.weight<=0);
+    const noWeightSkus = [...new Set(noWeight.map(r=>r.sku))];
+
+    // 3. SKU без цены прихода
+    const noPrikhod = rows.filter(r=>r.seb===0&&(r.qtyReal||0)>0);
+    const noPrikhodSkus = [...new Set(noPrikhod.map(r=>r.sku))];
+
+    // 4. НДС расхождение (только строки без возвратов)
+    const ndsBad = rows.filter(r=>r.ndsSuspect);
+    const ndsBadKnts = [...new Set(ndsBad.map(r=>r.knt))].slice(0,20);
+
+    // 5. Отрицательная маржа (по контрагентам)
+    const kntMap={};
+    for(const r of rows){
+      if(!kntMap[r.knt]) kntMap[r.knt]={rev:0,prof:0,ret:0};
+      kntMap[r.knt].rev+=r.sumBezNds;
+      kntMap[r.knt].prof+=r.prof;
+      kntMap[r.knt].ret+=r.sumR;
+    }
+    const negMarKnts = Object.entries(kntMap)
+      .filter(([,d])=>d.rev>500000&&d.prof/d.rev<-0.05)
+      .sort((a,b)=>a[1].prof/a[1].rev - b[1].prof/b[1].rev)
+      .slice(0,20)
+      .map(([knt,d])=>({knt,rev:d.rev,mar:d.prof/d.rev*100,prof:d.prof}));
+
+    // 6. Возвраты больше продаж (по SKU у контрагента)
+    const retBig = rows.filter(r=>r.qtyN<-10);
+    const retBigItems = [...new Set(retBig.map(r=>r.knt+'|'+r.sku))].slice(0,20);
+
+    // 7. Конфликты цен приход
+    const conflictCount = typeof PRIKHOD_CONFLICTS!=='undefined'?PRIKHOD_CONFLICTS.length:0;
+
+    // 8. Дубли (SKU + дата + контрагент несколько строк)
+    const dupeMap={};
+    for(const r of rows){
+      const key=r.knt+'|'+r.sku+'|'+r.day;
+      dupeMap[key]=(dupeMap[key]||0)+1;
+    }
+    const dupes=Object.entries(dupeMap).filter(([,n])=>n>2);
+
+    // 9. Продажа по цене ниже закупа
+    const skuMap={};
+    for(const r of rows){
+      if(!skuMap[r.sku]) skuMap[r.sku]={sumReal:0,qtyReal:0,seb:0};
+      if((r.qtyReal||0)>0){
+        skuMap[r.sku].sumReal+=(r.sumReal||0);
+        skuMap[r.sku].qtyReal+=(r.qtyReal||0);
+        skuMap[r.sku].seb+=(r.sebSale||r.seb||0);
+      }
+    }
+    const belowCost = Object.entries(skuMap)
+      .filter(([,d])=>d.qtyReal>50&&d.seb/d.qtyReal > d.sumReal/1.16/d.qtyReal*1.02)
+      .map(([sku,d])=>({sku,sell:Math.round(d.sumReal/1.16/d.qtyReal),zakup:Math.round(d.seb/d.qtyReal),qty:d.qtyReal}))
+      .sort((a,b)=>a.sell-a.zakup-(b.sell-b.zakup))
+      .slice(0,20);
+
+    // ── ДНИ НЕДЕЛИ ────────────────────────────────────────────
+    const DOW_RU=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+    const dowData={};
+    for(let i=0;i<7;i++) dowData[i]={rev:0,ret:0,days:new Set(),cnt:0};
+
+    for(const r of rows){
+      if(!r.day) continue;
+      const dt = new Date(r.day);
+      if(isNaN(dt)) continue;
+      const dow = dt.getDay();
+      dowData[dow].rev += r.sumBezNds;
+      dowData[dow].ret += Math.abs(r.sumR||0);
+      dowData[dow].days.add(r.day);
+    }
+
+    const maxRev = Math.max(...Object.values(dowData).map(d=>d.days.size?d.rev/d.days.size:0));
+
+    prog(90); step('Рендер...');
+
+    // ── STATUS BAR ────────────────────────────────────────────
+    const totalIssues = noGroupKnts.length + noPrikhodSkus.length + negMarKnts.length + belowCost.length + conflictCount;
+    document.getElementById('statusBar').innerHTML = `
+      <div class="stat-item"><div class="stat-dot ${noGroupKnts.length?'warn':'ok'}"></div>
+        <span class="stat-val">${noGroupKnts.length}</span><span class="stat-lbl">без группы</span></div>
+      <div class="stat-item"><div class="stat-dot ${noPrikhodSkus.length?'warn':'ok'}"></div>
+        <span class="stat-val">${noPrikhodSkus.length}</span><span class="stat-lbl">без прихода</span></div>
+      <div class="stat-item"><div class="stat-dot ${conflictCount?'warn':'ok'}"></div>
+        <span class="stat-val">${conflictCount}</span><span class="stat-lbl">конфликтов цен</span></div>
+      <div class="stat-item"><div class="stat-dot ${belowCost.length?'err':'ok'}"></div>
+        <span class="stat-val">${belowCost.length}</span><span class="stat-lbl">SKU ниже закупа</span></div>
+      <div class="stat-item"><div class="stat-dot ${negMarKnts.length?'err':'ok'}"></div>
+        <span class="stat-val">${negMarKnts.length}</span><span class="stat-lbl">убыточных клиентов</span></div>
+      <div class="stat-item"><div class="stat-dot ${ndsBad.length?'warn':'ok'}"></div>
+        <span class="stat-val">${ndsBad.length}</span><span class="stat-lbl">НДС-расхождений</span></div>
+      <div class="last-upd">Данные: ${rows.length.toLocaleString('ru')} строк · Обновлено: ${now}</div>
+    `;
+
+    // ── ПРИОРИТЕТЫ ────────────────────────────────────────────
+    const priorities = [];
+    if(belowCost.length>0) priorities.push({cls:'err',icon:'🔴',
+      text:`<strong>${belowCost.length} SKU</strong> продаются ниже цены закупа`,
+      action:'Требует срочного пересмотра цен'});
+    if(negMarKnts.length>0) priorities.push({cls:'err',icon:'🔴',
+      text:`<strong>${negMarKnts.length} контрагентов</strong> с маржой хуже −5% и оборотом >500к`,
+      action:'Переговоры или пересмотр условий'});
+    if(conflictCount>0) priorities.push({cls:'warn',icon:'🟡',
+      text:`<strong>${conflictCount} конфликтов</strong> в ценах прихода — одна SKU, одна дата, разные цены`,
+      action:'Проверить в разделе Приход → ⚠️'});
+    if(noGroupKnts.length>0) priorities.push({cls:'warn',icon:'🟡',
+      text:`<strong>${noGroupKnts.length} контрагентов</strong> без группы — не попадают в аналитику по каналам`,
+      action:'Добавить группы в КонтрагентыСправочник'});
+    if(noPrikhodSkus.length>0) priorities.push({cls:'warn',icon:'🟡',
+      text:`<strong>${noPrikhodSkus.length} SKU</strong> без цены прихода — себестоимость берётся из 1С`,
+      action:'Проверить лист Приход в Sheets'});
+    if(priorities.length===0) priorities.push({cls:'ok',icon:'✅',
+      text:'<strong>Все проверки пройдены</strong> — данные выглядят корректно',action:''});
+
+    document.getElementById('priorityList').innerHTML = priorities.map(p=>`
+      <div class="priority-item ${p.cls}">
+        <span class="pi-icon">${p.icon}</span>
+        <div class="pi-text">${p.text}</div>
+        <div class="pi-action">${p.action}</div>
+      </div>`).join('');
+
+    // ── КАРТОЧКИ ПРОВЕРОК ─────────────────────────────────────
+    const checks = [
+      {
+        id:'noGroup', title:'Без группы контрагента', count:noGroupKnts.length,
+        cls: noGroupKnts.length>0?'warn':'ok',
+        desc:'Контрагенты без группы не попадают в аналитику по каналам продаж',
+        cols:['Контрагент','Выручка'],
+        rows: [...new Set(noGroup.map(r=>r.knt))].map(knt=>{
+          const rv = noGroup.filter(r=>r.knt===knt).reduce((s,r)=>s+r.sumBezNds,0);
+          return [knt.slice(0,45), fmtRev(rv)+' ₸'];
+        }).sort((a,b)=>parseFloat(b[1])-parseFloat(a[1])).slice(0,20)
+      },
+      {
+        id:'noWeight', title:'SKU без веса', count:noWeightSkus.length,
+        cls: noWeightSkus.length>0?'warn':'ok',
+        desc:'Без веса не рассчитывается Объём кг, Приб./кг, Затр./кг',
+        cols:['SKU'],
+        rows: noWeightSkus.slice(0,20).map(s=>[s.slice(0,60)])
+      },
+      {
+        id:'noPrikhod', title:'SKU без цены прихода', count:noPrikhodSkus.length,
+        cls: noPrikhodSkus.length>0?'warn':'ok',
+        desc:'Для этих SKU себестоимость берётся из 1С (может быть неверной)',
+        cols:['SKU','Кол-во строк'],
+        rows: noPrikhodSkus.slice(0,20).map(s=>[
+          s.slice(0,50),
+          fmtN(noPrikhod.filter(r=>r.sku===s).length)
+        ])
+      },
+      {
+        id:'belowCost', title:'Продажа ниже закупа', count:belowCost.length,
+        cls: belowCost.length>0?'err':'ok',
+        desc:'Цена продажи (б/НДС) меньше цены закупа — прямой убыток на каждой штуке',
+        cols:['SKU','Цена прод.','Цена закупа','Разница','Кол-во'],
+        rows: belowCost.map(b=>[b.sku.slice(0,40), b.sell+' ₸', b.zakup+' ₸',
+          `<span class="neg">${b.sell-b.zakup} ₸</span>`, fmtN(b.qty)])
+      },
+      {
+        id:'negMar', title:'Убыточные контрагенты', count:negMarKnts.length,
+        cls: negMarKnts.length>0?'err':'ok',
+        desc:'Маржа хуже −5% при обороте >500к ₸ — значимые потери',
+        cols:['Контрагент','Выручка','Маржа','Убыток'],
+        rows: negMarKnts.map(k=>[k.knt.slice(0,40), fmtRev(k.rev)+' ₸',
+          `<span class="neg">${k.mar.toFixed(1)}%</span>`,
+          `<span class="neg">${fmtRev(k.prof)} ₸</span>`])
+      },
+      {
+        id:'conflicts', title:'Конфликты цен прихода', count:conflictCount,
+        cls: conflictCount>0?'warn':'ok',
+        desc:'Одна SKU, одна дата, один поставщик — разные цены. Может исказить себестоимость',
+        cols:['SKU','Дата','Цены'],
+        rows: (typeof PRIKHOD_CONFLICTS!=='undefined'?PRIKHOD_CONFLICTS:[]).slice(0,20).map(c=>[
+          c.sku.slice(0,40), c.dt, c.prices.join(' / ')+' ₸'
+        ])
+      },
+      {
+        id:'ndsBad', title:'НДС-расхождения', count:ndsBad.length,
+        cls: ndsBad.length>50?'warn':'ok',
+        desc:'|Сумма без налогов − Сумма реал./1.16| > 5 ₸ (только строки без возвратов)',
+        cols:['Контрагент','SKU','Дата'],
+        rows: ndsBad.slice(0,20).map(r=>[r.knt.slice(0,30), r.sku.slice(0,30), r.day])
+      },
+      {
+        id:'retBig', title:'Возвраты > продаж', count:retBig.length,
+        cls: retBig.length>0?'warn':'ok',
+        desc:'Строки где qtyN < −10 — аномальные возвраты превышающие продажи',
+        cols:['Контрагент','SKU','Кол-во нетто'],
+        rows: retBig.slice(0,20).map(r=>[r.knt.slice(0,30), r.sku.slice(0,30),
+          `<span class="neg">${fmtN(r.qtyN)}</span>`])
+      },
+      {
+        id:'dupes', title:'Возможные дубли', count:dupes.length,
+        cls: dupes.length>0?'warn':'ok',
+        desc:'Контрагент+SKU+дата встречается 3+ раз — возможны дубликаты строк',
+        cols:['Ключ','Кол-во строк'],
+        rows: dupes.slice(0,20).map(([k,n])=>[k.slice(0,60), n])
+      }
+    ];
+
+    const grid = document.getElementById('issuesGrid');
+    const panels = document.getElementById('detailPanels');
+
+    grid.innerHTML = checks.map(ch=>`
+      <div class="issue-card ${ch.cls}" onclick="toggleDetail('${ch.id}')">
+        <div class="ic-head">
+          <div class="ic-title">${ch.title}</div>
+          <div class="ic-count ${ch.count===0?'ok':ch.cls}">${ch.count===0?'✓':ch.count}</div>
+        </div>
+        <div class="ic-desc">${ch.desc}</div>
+      </div>`).join('');
+
+    panels.innerHTML = checks.map(ch=>`
+      <div class="detail-panel" id="detail_${ch.id}">
+        <div class="detail-title">${ch.title} — ${ch.count} записей</div>
+        ${ch.rows.length===0?'<div style="color:var(--green);font-size:11px">✅ Нет проблем</div>':
+        `<table class="tbl">
+          <tr>${ch.cols.map(c=>`<th>${c}</th>`).join('')}</tr>
+          ${ch.rows.map(r=>`<tr>${r.map(cell=>`<td>${cell}</td>`).join('')}</tr>`).join('')}
+        </table>`}
+        ${ch.rows.length>=20?'<div style="font-size:10px;color:var(--muted);margin-top:6px">Показаны первые 20 записей</div>':''}
+      </div>`).join('');
+
+    // ── ДНИ НЕДЕЛИ ────────────────────────────────────────────
+    const dowHtml = [1,2,3,4,5,6,0].map(i=>{
+      const d = dowData[i];
+      const cnt = d.days.size;
+      const avgRev = cnt ? d.rev/cnt : 0;
+      const retPct = d.rev ? d.ret/d.rev*100 : 0;
+      const barW = maxRev ? Math.round(avgRev/maxRev*100) : 0;
+      const isWeekend = i===0||i===6;
+      return `<div class="dow-card" style="${isWeekend?'opacity:.7':''}">
+        <div class="dow-name">${DOW_RU[i]}</div>
+        <div class="dow-rev">${fmtRev(avgRev)} ₸</div>
+        <div class="dow-ret ${retPct>3?'neg':retPct>1.5?'neu':'pos'}">${retPct.toFixed(1)}% возвр.</div>
+        <div style="font-size:9px;color:var(--dim);margin-top:2px">${cnt} дней</div>
+        <div class="dow-bar" style="width:${barW}%;max-width:100%"></div>
+      </div>`;
+    });
+    document.getElementById('dowGrid').innerHTML = dowHtml.join('');
+
+    prog(100);
+    setTimeout(()=>document.getElementById('ls').style.display='none',300);
+
+  }catch(err){
+    document.getElementById('lstep').textContent='Ошибка: '+err.message;
+    console.error(err);
+  }
+}
+
+function toggleDetail(id){
+  const panel = document.getElementById('detail_'+id);
+  panel.classList.toggle('show');
+}
+
+init();
+</script>
+</body>
+</html>
