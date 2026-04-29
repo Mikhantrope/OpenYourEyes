@@ -45,6 +45,8 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .price-vat-switch{display:flex;align-items:center;gap:4px;background:rgba(210,153,34,.10);border:1px solid rgba(210,153,34,.45);border-radius:8px;padding:3px 5px;box-shadow:0 0 0 1px rgba(210,153,34,.08) inset;}
 .pv-label{font-size:10px;color:var(--amber);font-weight:800;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;padding:0 4px;}
 .pv-btn{padding:4px 10px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;}
+.pv-btn#profModeStd.active{background:rgba(0,230,118,.15);color:var(--green);border-color:rgba(0,230,118,.5);}
+.pv-btn#profModeNet.active{background:rgba(176,77,255,.15);color:var(--purple);border-color:rgba(176,77,255,.5);}
 .pv-btn[data-vat-mode="no"].active{background:var(--accent);color:#07090f;border-color:var(--accent);}
 .pv-btn[data-vat-mode="yes"].active{background:var(--amber);color:#07090f;border-color:var(--amber);}
 .pv-btn:hover:not(.active){color:var(--text);border-color:rgba(210,153,34,.35);}
@@ -52,12 +54,12 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 /* Цветная нижняя линия у price-col-hdr через box-shadow */
 #monthView th.price-col-hdr{position:relative;}
 #monthView th.price-col-hdr.nds-active::after{
-  content:'';position:absolute;bottom:0;left:2px;right:2px;height:2px;
-  background:var(--amber);border-radius:1px;
+  content:'';position:absolute;bottom:0;left:4px;right:4px;height:2px;
+  background:var(--amber);border-radius:2px;opacity:.9;
 }
 #monthView th.price-col-hdr.no-nds-active::after{
-  content:'';position:absolute;bottom:0;left:2px;right:2px;height:2px;
-  background:var(--accent);border-radius:1px;
+  content:'';position:absolute;bottom:0;left:4px;right:4px;height:2px;
+  background:var(--accent);border-radius:2px;opacity:.9;
 }
 
 /* KPI BAR */
@@ -525,10 +527,10 @@ tr.dt-dimmed{opacity:.25;}
 const MCOLS=[
   {id:'qtyReal',  lbl:'Реал.',       key:'qtyReal',     fmt:'qty', on:true,
     tip:'Кол-во реализации (без возвратов)',
-    doc:{formula:'СУММ(«Количество реализации»)',source:'Колонка G в ИсхРеал',meaning:'Сколько штук реально отгрузили покупателям — возвраты НЕ вычитаются. Используется как знаменатель для расчёта цены продажи и закупа',example:'Продали 5 шт 04.03, ещё 5 шт 18.03 → Реал.=10. Возвраты сюда не входят'}},
+    doc:{formula:'СУММ(«Количество реализации»)',source:'Колонка G в ИсхРеал',meaning:'Сколько штук реально отгрузили — БЕЗ возвратов. Используется как знаменатель для расчёта цены закупа и продажи. Именно это количество умножается на цену прихода для цены закупа',example:'Продали 10 шт, вернули 3 → Реал.=10 (не 7). Цена закупа = Себест.продаж / 10'}},
   {id:'qty',      lbl:'С возвр.',    key:'qty',         fmt:'qty', on:true,
     tip:'Кол-во реализации с возвратами (продажи минус возвраты)',
-    doc:{formula:'СУММ(«Количество реализации (с возвратами)»)',source:'Колонка I в ИсхРеал из 1С',meaning:'Чистое количество = продажи минус возвраты. Это основной показатель сколько у клиента осталось нашего товара',example:'Продали 10 шт, вернули 3 → С возвр. = 7'}},
+    doc:{formula:'СУММ(«Количество реализации (с возвратами)»)',source:'Колонка I в ИсхРеал из 1С',meaning:'Чистое количество = продажи минус возвраты. Используется как множитель для расчёта финансовой Себестоимости (Себест. ₸ = цена прихода × qtyN)',example:'Продали 10 шт, вернули 3 → С возвр.=7. Себест.=цена_прихода × 7'}},
   {id:'qtyRet',   lbl:'Возвр.',      key:'qtyRet',      fmt:'qty', on:true,
     tip:'Количество возвратов (штук)',
     doc:{formula:'СУММ(«Количество возвратов»)',source:'Колонка H в ИсхРеал из 1С',meaning:'Сколько штук вернули покупатели. Отображается как отрицательное число',example:'Вернули 3 шт → Возвр. = −3'}},
@@ -547,6 +549,11 @@ const MCOLS=[
   {id:'prof',     lbl:'Прибыль ₸',  key:'prof',        fmt:'full',on:true,
     tip:'Валовая прибыль (до косвенных затрат)',
     doc:{formula:'Выручка без НДС − Себестоимость из прихода',source:'Считается на сайте после пересчёта себестоимости',meaning:'⚠️ Это ВАЛОВАЯ прибыль — только прямые затраты вычтены. ФОТ, аренда, логистика — НЕ учтены. Для полной картины смотри P&L',example:'Выручка 100 000 − Себест 80 000 = Прибыль 20 000 ₸'}},
+  {id:'profNet', lbl:'Приб.прод.', key:'profNet', fmt:'full', on:false,
+    tip:'Прибыль только от продаж — без финансовых потерь от возвратов',
+    doc:{formula:'Выручка(продажи) − Себест(продажи)',source:'Строки где qtyReal>0',
+      meaning:'Прибыль если бы не было возвратов. Разница с Прибылью = финансовые потери от возвратов',
+      example:'Прибыль(с возвр)=−385к, Приб.(прод)=+247к → потери=632к'}},
   {id:'mar',      lbl:'Маржа %',    key:'mar',         fmt:'pct', on:false,
     tip:'Маржинальность (рентабельность продаж)',
     doc:{formula:'Прибыль ÷ Выручка × 100%',source:'Считается на сайте',meaning:'Показывает сколько копеек прибыли на каждый тенге выручки. Без учёта косвенных расходов. Минус = продаём дешевле чем покупаем',example:'Прибыль 20 000 ÷ Выручка 100 000 = Маржа 20%'}},
@@ -582,14 +589,18 @@ let mColOn={}; MCOLS.forEach(c=>mColOn[c.id]=c.on);
 
 // Day mode metrics
 const DAY_METRICS=[
-  {id:'qty',  lbl:'Кол-во',  key:'qty',   fmt:'qty', on:true},
-  {id:'rev',  lbl:'Выручка', key:'rev',   fmt:'rev', on:true},
-  {id:'prof', lbl:'Прибыль', key:'prof',  fmt:'rev', on:true},
-  {id:'mar',  lbl:'Маржа %', key:'mar',   fmt:'pct', on:true},
-  {id:'kg',   lbl:'Объём кг',key:'kg',    fmt:'kg',  on:false},
-  {id:'seb',  lbl:'Себест.',  key:'seb',   fmt:'rev', on:false},
-  {id:'ret',  lbl:'Возврат', key:'ret',   fmt:'rev', on:false},
-  {id:'retPct',    lbl:'Возврат%',   key:'retPct',       fmt:'pct', on:false},
+  {id:'qty',     lbl:'С возвр.',  key:'qty',      fmt:'qty', on:true},
+  {id:'qtyReal', lbl:'Реал.',     key:'qtyReal',  fmt:'qty', on:true},
+  {id:'qtyRet',  lbl:'Возвр.',    key:'qtyRet',   fmt:'qty', on:false},
+  {id:'rev',     lbl:'Выручка',   key:'rev',      fmt:'rev', on:true},
+  {id:'prof',    lbl:'Прибыль',   key:'prof',     fmt:'rev', on:true},
+  {id:'profNet', lbl:'Приб.прод.',key:'profNet',  fmt:'rev', on:false},
+  {id:'mar',     lbl:'Маржа %',   key:'mar',      fmt:'pct', on:true},
+  {id:'kg',      lbl:'Объём кг',  key:'kg',       fmt:'kg',  on:false},
+  {id:'seb',     lbl:'Себест.',   key:'seb',      fmt:'rev', on:false},
+  {id:'ret',     lbl:'Возврат',   key:'ret',      fmt:'rev', on:false},
+  {id:'sumReal', lbl:'Сумма реал.',key:'sumReal', fmt:'rev', on:false},
+  {id:'retPct',  lbl:'Возврат%',  key:'retPct',   fmt:'pct', on:false},
   {id:'priceZakup', lbl:'Цена закупа', key:'priceZakup',   fmt:'full',on:false},
   {id:'priceSell',  lbl:'Цена продажи',key:'priceSellNds', fmt:'full',on:false},
   {id:'profitUnit', lbl:'Профит/шт',   key:'profitUnitNds',fmt:'full',on:false},
