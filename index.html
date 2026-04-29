@@ -654,11 +654,9 @@ function setProfMode(mode){
   profMode=mode;
   document.getElementById('profModeStd').classList.toggle('active', mode==='std');
   document.getElementById('profModeNet').classList.toggle('active', mode==='net');
-  // Переключаем видимость колонок прибыли
-  const mProf = MCOLS.find(c=>c.id==='prof');
-  const mProfNet = MCOLS.find(c=>c.id==='profNet');
-  if(mProf) mProf.on = mode==='std';
-  if(mProfNet) mProfNet.on = mode==='net';
+  // mColOn — это то что реально рендерится (отдельный объект от MCOLS.on)
+  mColOn['prof']    = (mode==='std');
+  mColOn['profNet'] = (mode==='net');
   buildMHeader();
   render();
 }
@@ -1011,9 +1009,8 @@ function buildMHeader(){
         ? `<button class="info-btn" onclick="event.stopPropagation();showInfo('${c.id}',event)" title="Нажми — объяснение формулы">?</button>`
         : '';
       if(c.id==='priceSell'||c.id==='priceZakup'||c.id==='profitUnit'){
-        const tag=priceNds?'НДС':'б/НДС';
-        const tagStyle=`font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;border:1px solid;margin-left:3px;cursor:pointer;background:${priceNds?'rgba(47,129,247,.2)':'rgba(210,153,34,.2)'};border-color:${priceNds?'#2f81f7':'#d29922'};color:${priceNds?'#58a6ff':'#d29922'}`;
-        return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}${qBtn}<span onclick="event.stopPropagation();togglePriceNds()" style="${tagStyle}" title="Нажми, чтобы переключить б/НДС ↔ с НДС">${tag}</span></th>`;
+        const lc=priceNds?'var(--amber)':'var(--accent)';
+        return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" style="box-shadow:inset 0 -2px 0 ${lc};position:relative" onclick="clickSort('${c.key||c.id}')">${c.lbl}${qBtn}</th>`;
       }
       return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}${qBtn}</th>`;
     }).join('');
