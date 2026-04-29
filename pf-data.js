@@ -103,8 +103,8 @@ const PF = {
       if((x.qtyReal||0) > 0){
         qtyRealSum += x.qtyReal;
         sumRealSum += (x.sumReal||0);
-        sebRealSum += x.seb;   // себестоимость без НДС только из строк продаж
-        sebWithNdsRealSum += (x.sebWithNds ?? x.seb); // себестоимость с НДС для режима цен «НДС»
+        sebRealSum        += (x.sebSale    ?? x.seb);  // себест. только продаж (qtyReal)
+        sebWithNdsRealSum += (x.sebSaleWithNds ?? x.sebWithNds ?? x.seb); // себестоимость с НДС для режима цен «НДС»
       }
     }
     const mar            = rev  ? prof/rev*100  : 0;
@@ -301,18 +301,20 @@ const PF = {
       // Себестоимость из прихода: цена ближайшего прихода ДО даты продажи
       // Основная себестоимость считается БЕЗ НДС, чтобы корректно сравнивать с выручкой без НДС.
       const prikhodCost = this.getPrikhodCostPrices(sku, day);
-      // Себест. ₸ = цена прихода × qtyN (с учётом возвратов, как и выручка)
-      // Цена закупа = seb/qtyReal в agg() — только по строкам продаж
-      const qtyForSeb = qtyN;  // используем qtyN чтобы сравнивать с выручкой (та тоже с возвратами)
-      const sebNew = prikhodCost ? prikhodCost.priceNoNds * qtyForSeb : seb;
-      const sebWithNds = prikhodCost ? prikhodCost.priceWithNds * qtyForSeb : seb;
+      // Себест. ₸ = цена прихода × qtyN (финансовая себест., как и выручка — с возвратами)
+      const sebNew      = prikhodCost ? prikhodCost.priceNoNds  * qtyN    : seb;
+      const sebWithNds  = prikhodCost ? prikhodCost.priceWithNds * qtyN   : seb;
+      // Для цены закупа — только строки продаж (qtyReal), не смешиваем с возвратами
+      const sebSale         = prikhodCost ? prikhodCost.priceNoNds  * qtyReal : seb;
+      const sebSaleWithNds  = prikhodCost ? prikhodCost.priceWithNds * qtyReal : seb;
       const profNew = sumBezNds - sebNew;
 
       rawRows.push({
         knt,sku,mk,day,
         ndsSuspect: (() => {
-          // Проверка: |sumBezNds - sumReal/1.16| > 5 ₸ → подозрительная строка
-          if(sumReal && Math.abs(sumBezNds - sumReal/1.16) > 5) return true;
+          // Проверяем только строки без возвратов (для строк с возвратами формула другая)
+          const hasReturn = Math.abs(qtyR) > 0 || Math.abs(sumR) > 0;
+          if(!hasReturn && sumReal && Math.abs(sumBezNds - sumReal/1.16) > 5) return true;
           return false;
         })(),
         group:    groupMap[knt]||'⚠️ Без группы',
@@ -321,8 +323,10 @@ const PF = {
         qtyN,qtyR,qtyReal,sumReal,
         sumBezNds,
         sumR,
-        seb: sebNew,
+        seb:          sebNew,
         sebWithNds,
+        sebSale,
+        sebSaleWithNds,
         prof: profNew,
         kg:    qtyN*w,
         retKg: qtyR*w,
