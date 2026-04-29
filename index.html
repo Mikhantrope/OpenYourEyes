@@ -348,10 +348,10 @@ tr.dt-dimmed{opacity:.25;}
       <button class="pv-btn active" data-vat-mode="no" onclick="setPriceNds(false)">б/НДС</button>
       <button class="pv-btn" data-vat-mode="yes" onclick="setPriceNds(true)">с НДС</button>
     </div>
-    <div class="price-vat-switch" title="Прибыль: учитывать ли финансовые потери от возвратов. С возвр. = выручка уже включает вычет возвратов. Без возвр. = только прямые продажи без потерь на возврате." style="margin-left:4px">
+    <div class="price-vat-switch" title="Факт = реальная прибыль после возвратов. Без возвр. = прибыльность чистых продаж (потенциал без потерь на возвратах)." style="margin-left:4px">
       <span class="pv-label">Прибыль</span>
-      <button class="pv-btn active" id="profModeStd" onclick="setProfMode('std')">с возвр.</button>
-      <button class="pv-btn" id="profModeNet" onclick="setProfMode('net')">без возвр.</button>
+      <button class="pv-btn active" id="profModeStd" onclick="setProfMode('std')">Факт</button>
+      <button class="pv-btn" id="profModeNet" onclick="setProfMode('net')">Без возвр.</button>
     </div>
     <div class="live-b"><div class="ldot"></div>Live</div>
     <button class="ibtn" onclick="reloadData()">⟳</button>

@@ -207,6 +207,22 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
   <div class="card"><div class="ct">Детальное сравнение план/факт по месяцам</div><table class="tbl" id="tPlan"></table></div>
 </div>
 
+<!-- 05b ABC-АНАЛИЗ -->
+<div class="sec">
+  <div class="sl"><span class="sl-n">05b</span><span class="sl-t">ABC-анализ по прибыли</span><div class="sl-l"></div></div>
+  <div class="sl-d">Не по выручке, а по прибыли — показывает кто реально зарабатывает, а кто только создаёт оборот.</div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">ABC контрагентов по прибыли</div>
+      <table class="tbl" id="tAbcKnt"></table>
+    </div>
+    <div class="card">
+      <div class="ct">ABC категорий по прибыли</div>
+      <table class="tbl" id="tAbcCat"></table>
+    </div>
+  </div>
+</div>
+
 <!-- 06 ВЫВОДЫ -->
 <div class="sec">
   <div class="sl"><span class="sl-n">06</span><span class="sl-t">Ключевые выводы</span><div class="sl-l"></div></div>
@@ -421,6 +437,60 @@ async function init(){
         <td><strong>${total.priceSellNds} ₸</strong></td><td><strong>510 ₸</strong></td>
         <td class="${total.priceSellNds>=510?'pos':'neg'}"><strong>${total.priceSellNds>=510?'+':''}${((total.priceSellNds/510-1)*100).toFixed(1)}%</strong></td>
       </tr>`;
+
+    // ── ABC ANALYSIS ───────────────────────────────────────
+    // ABC по прибыли контрагентов
+    const profKnts=Object.entries(kntMap)
+      .map(([knt,d])=>({knt,rev:d.rev,prof:d.prof,mar:d.rev?d.prof/d.rev*100:0}))
+      .filter(k=>k.prof>0)
+      .sort((a,b)=>b.prof-a.prof);
+    const totalProf=profKnts.reduce((s,k)=>s+k.prof,0);
+    let cumProf=0;
+    for(const k of profKnts){
+      cumProf+=k.prof;
+      k.cumPct=cumProf/totalProf*100;
+      k.abc=k.cumPct<=80?'A':k.cumPct<=95?'B':'C';
+    }
+    const lossKnts=Object.entries(kntMap)
+      .map(([knt,d])=>({knt,rev:d.rev,prof:d.prof,mar:d.rev?d.prof/d.rev*100:0,abc:'Убыток'}))
+      .filter(k=>k.prof<0)
+      .sort((a,b)=>a.prof-b.prof);
+    const allAbcKnts=[...profKnts.slice(0,15),...lossKnts.slice(0,5)];
+    
+    document.getElementById('tAbcKnt').innerHTML=
+      '<tr><th>Контрагент</th><th>Прибыль</th><th>Маржа</th><th>ABC</th></tr>'+
+      allAbcKnts.map(k=>{
+        const cls=k.abc==='A'?'pos':k.abc==='B'?'neu':k.abc==='C'?'':'neg';
+        const bg=k.abc==='A'?'rgba(0,230,118,.06)':k.abc==='Убыток'?'rgba(255,61,87,.06)':'';
+        return `<tr style="background:${bg}"><td>${k.knt.slice(0,35)}</td>
+          <td class="${k.prof>=0?'pos':'neg'}">${PF.fmtRev(k.prof)} ₸</td>
+          <td class="${k.mar>=0?'pos':'neg'}">${k.mar>0?'+':''}${k.mar.toFixed(1)}%</td>
+          <td><span style="font-weight:700;color:${k.abc==='A'?'var(--green)':k.abc==='B'?'var(--amber)':k.abc==='Убыток'?'var(--red)':'var(--muted)'}">${k.abc}</span></td>
+        </tr>`;
+      }).join('');
+
+    // ABC по категориям
+    const profCats=cats.filter(c=>c.prof>0).sort((a,b)=>b.prof-a.prof);
+    const totalCatProf=profCats.reduce((s,c)=>s+c.prof,0);
+    let cumCatProf=0;
+    for(const c of profCats){
+      cumCatProf+=c.prof;
+      c.cumPct=cumCatProf/totalCatProf*100;
+      c.abc=c.cumPct<=80?'A':c.cumPct<=95?'B':'C';
+    }
+    const lossCats=cats.filter(c=>c.prof<0).sort((a,b)=>a.prof-b.prof).map(c=>({...c,abc:'Убыток'}));
+    const allAbcCats=[...profCats,...lossCats];
+    
+    document.getElementById('tAbcCat').innerHTML=
+      '<tr><th>Категория</th><th>Прибыль</th><th>Маржа</th><th>ABC</th></tr>'+
+      allAbcCats.map(c=>{
+        const bg=c.abc==='A'?'rgba(0,230,118,.06)':c.abc==='Убыток'?'rgba(255,61,87,.06)':'';
+        return `<tr style="background:${bg}"><td>${c.cat}</td>
+          <td class="${c.prof>=0?'pos':'neg'}">${PF.fmtRev(c.prof)} ₸</td>
+          <td class="${c.mar>=0?'pos':'neg'}">${c.mar>0?'+':''}${c.mar.toFixed(1)}%</td>
+          <td><span style="font-weight:700;color:${c.abc==='A'?'var(--green)':c.abc==='B'?'var(--amber)':c.abc==='Убыток'?'var(--red)':'var(--muted)'}">${c.abc}</span></td>
+        </tr>`;
+      }).join('');
 
     // ── SIGNALS ───────────────────────────────────────────────
     const sigs=[

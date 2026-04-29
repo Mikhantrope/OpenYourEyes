@@ -114,9 +114,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
   <div class="kpi gr"><div class="kpi-l">Кол-во (Реал.)</div><div class="kpi-v" style="color:var(--green)" id="kQty">—</div><div class="kpi-s">штук отгружено</div></div>
 </div>
 
-<div id="alertBar" style="display:none;padding:10px 18px;background:rgba(255,61,87,.06);border-bottom:1px solid rgba(255,61,87,.25);">
-  <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:8px">🔥 Требует внимания:</div>
-  <div id="alertList" style="display:flex;flex-direction:column;gap:4px;"></div>
+<div id="alertBar" style="display:none;padding:8px 18px;background:rgba(255,61,87,.04);border-bottom:1px solid rgba(255,61,87,.2);">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span style="font-size:11px;font-weight:700;color:var(--red);white-space:nowrap">🔥 Внимание:</span>
+    <div id="alertList" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+  </div>
 </div>
 <div class="main">
 
@@ -199,6 +201,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
   </div>
 
 
+  <!-- ПОТЕРИ ОТ ВОЗВРАТОВ -->
+  <div class="sh" style="margin-top:20px">📉 Топ по возвратам</div>
+  <div class="g2" style="margin-bottom:14px">
+    <div class="card"><div class="ct">Топ-5 SKU по сумме возвратов</div><table class="tbl" id="tRetSku"></table></div>
+    <div class="card"><div class="ct">Топ-5 контрагентов по сумме возвратов</div><table class="tbl" id="tRetKnt"></table></div>
+  </div>
+
+  <!-- ЦЕНОВАЯ ДИСЦИПЛИНА -->
+  <div class="sh">💰 Ценовая дисциплина</div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="ct">Контрагенты с ценой продажи значительно ниже средней по SKU</div>
+    <table class="tbl" id="tPriceDisc"></table>
+  </div>
+
   <!-- DAYS OF WEEK -->
   <div class="sh" style="margin-top:20px">📅 Продажи по дням недели</div>
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:20px" id="dowCards"></div>
@@ -272,7 +288,7 @@ async function init(){
     if(alerts.length>0){
       document.getElementById('alertBar').style.display='block';
       document.getElementById('alertList').innerHTML = alerts.map(a=>
-        `<div style="font-size:11px;display:flex;align-items:center;gap:8px"><span>${a.icon}</span><span>${a.msg}</span></div>`
+        `<span style="font-size:10px;display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);white-space:nowrap">${a.icon} ${a.msg}</span>`
       ).join('');
     }
 
@@ -487,6 +503,60 @@ async function init(){
         <td>${c.shr.toFixed(1)}%</td>
         <td class="${c.mar>=0?'pos':'neg'}">${c.mar>0?'+':''}${c.mar.toFixed(1)}%</td>
       </tr>`).join('');
+
+    // ── ТОП ВОЗВРАТОВ ──────────────────────────────────────
+    const retSkuMap={}, retKntMap={};
+    for(const r of rows){
+      const absRet = Math.abs(r.sumR||0);
+      if(!retSkuMap[r.sku]) retSkuMap[r.sku]={ret:0,rev:0};
+      retSkuMap[r.sku].ret+=absRet; retSkuMap[r.sku].rev+=r.sumBezNds;
+      if(!retKntMap[r.knt]) retKntMap[r.knt]={ret:0,rev:0};
+      retKntMap[r.knt].ret+=absRet; retKntMap[r.knt].rev+=r.sumBezNds;
+    }
+    const topRetSku=Object.entries(retSkuMap).sort((a,b)=>b[1].ret-a[1].ret).slice(0,5);
+    const topRetKnt=Object.entries(retKntMap).sort((a,b)=>b[1].ret-a[1].ret).slice(0,5);
+    
+    document.getElementById('tRetSku').innerHTML=
+      '<tr><th>SKU</th><th>Возврат ₸</th><th>% от выр.</th></tr>'+
+      topRetSku.map(([sku,d])=>`<tr><td>${sku.slice(0,40)}</td><td class="neg">${fmtRev(d.ret)} ₸</td><td class="neg">${d.rev?(d.ret/d.rev*100).toFixed(1):'0'}%</td></tr>`).join('');
+    document.getElementById('tRetKnt').innerHTML=
+      '<tr><th>Контрагент</th><th>Возврат ₸</th><th>% от выр.</th></tr>'+
+      topRetKnt.map(([knt,d])=>`<tr><td>${knt.slice(0,35)}</td><td class="neg">${fmtRev(d.ret)} ₸</td><td class="neg">${d.rev?(d.ret/d.rev*100).toFixed(1):'0'}%</td></tr>`).join('');
+
+    // ── ЦЕНОВАЯ ДИСЦИПЛИНА ─────────────────────────────────
+    const skuAvgPrice={};
+    for(const r of rows){
+      if((r.qtyReal||0)<=0) continue;
+      if(!skuAvgPrice[r.sku]) skuAvgPrice[r.sku]={sumReal:0,qtyReal:0,byKnt:{}};
+      skuAvgPrice[r.sku].sumReal+=(r.sumReal||0);
+      skuAvgPrice[r.sku].qtyReal+=r.qtyReal;
+      if(!skuAvgPrice[r.sku].byKnt[r.knt]) skuAvgPrice[r.sku].byKnt[r.knt]={sumReal:0,qtyReal:0};
+      skuAvgPrice[r.sku].byKnt[r.knt].sumReal+=(r.sumReal||0);
+      skuAvgPrice[r.sku].byKnt[r.knt].qtyReal+=r.qtyReal;
+    }
+    const discRows=[];
+    for(const [sku,d] of Object.entries(skuAvgPrice)){
+      const avgP=d.sumReal/d.qtyReal;
+      for(const [knt,kd] of Object.entries(d.byKnt)){
+        if(kd.qtyReal<30) continue;
+        const kntP=kd.sumReal/kd.qtyReal;
+        const diff=(kntP-avgP)/avgP*100;
+        if(diff<-10){
+          const loss=Math.round((avgP-kntP)*kd.qtyReal);
+          discRows.push({sku,knt,avgP:Math.round(avgP),kntP:Math.round(kntP),diff:Math.round(diff),qty:kd.qtyReal,loss});
+        }
+      }
+    }
+    discRows.sort((a,b)=>a.loss-b.loss);
+    const tPD=document.getElementById('tPriceDisc');
+    if(discRows.length===0){
+      tPD.innerHTML='<tr><td colspan="6" style="color:var(--green);text-align:center">✅ Нет значительных отклонений (>10%)</td></tr>';
+    } else {
+      tPD.innerHTML='<tr><th>Контрагент</th><th>SKU</th><th>Ср.цена</th><th>Цена конт.</th><th>Откл.</th><th>Потеря ₸</th></tr>'+
+        discRows.slice(0,10).map(r=>`<tr><td>${r.knt.slice(0,25)}</td><td>${r.sku.slice(0,30)}</td>
+          <td>${fmtN(r.avgP)} ₸</td><td class="neg">${fmtN(r.kntP)} ₸</td>
+          <td class="neg">${r.diff}%</td><td class="neg">${fmtRev(Math.abs(r.loss))} ₸</td></tr>`).join('');
+    }
 
     // ── ДНИ НЕДЕЛИ ────────────────────────────────────────────
     const DOW_RU=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
