@@ -90,6 +90,13 @@ select.sel{background:var(--surface2);border:1px solid var(--border);color:var(-
 .ctog{padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--muted);font-size:10px;cursor:pointer;white-space:nowrap;}
 .ctog.on{background:rgba(47,129,247,.15);border-color:var(--accent);color:#58a6ff;}
 
+.col-chip{display:inline-flex;align-items:center;gap:4px;cursor:grab;user-select:none;}
+.col-chip:active{cursor:grabbing;}
+.col-chip.dragging{opacity:.45;border-style:dashed;}
+.col-n{font-family:'Consolas',monospace;font-size:9px;color:var(--dim);}
+.col-chip .dim-x{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:0 1px;}
+.col-chip .dim-x:hover{color:var(--red);}
+
 /* AVG WIDGET */
 .avgw{position:relative;}
 .avgdd{display:none;position:absolute;top:calc(100%+4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;z-index:500;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,.4);}
@@ -186,6 +193,19 @@ tr.tot td{font-weight:700;}
 .metric-chooser{display:flex;gap:3px;flex-wrap:wrap;}
 .mchip{padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--muted);font-size:10px;cursor:pointer;transition:all .15s;white-space:nowrap;}
 .mchip.on{background:rgba(47,129,247,.15);border-color:var(--accent);color:#58a6ff;}
+
+/* Pivot hierarchy builder */
+.pivot-builder{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:260px;}
+.dim-list{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.dim-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border:1px solid rgba(47,129,247,.45);border-radius:6px;background:rgba(47,129,247,.12);color:#58a6ff;font-size:11px;font-weight:700;white-space:nowrap;cursor:grab;user-select:none;}
+.dim-chip:active{cursor:grabbing;}
+.dim-chip.dragging{opacity:.45;border-style:dashed;}
+.dim-chip .dim-n{font-family:'Consolas',monospace;font-size:9px;color:var(--dim);}
+.dim-chip .dim-x{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:0 1px;}
+.dim-chip .dim-x:hover{color:var(--red);}
+.dim-move{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:10px;padding:0;}
+.dim-move:hover{color:var(--accent);}
+.dim-empty{font-size:10px;color:var(--amber);border:1px dashed var(--amber);padding:3px 8px;border-radius:6px;}
 
 /* Horizontal day table */
 .day-table-outer{flex:1;overflow-x:scroll;overflow-y:auto;position:relative;scroll-behavior:smooth;}
@@ -352,14 +372,15 @@ tr.dt-dimmed{opacity:.25;}
       <button class="pv-btn active" data-vat-mode="no" onclick="setPriceNds(false)">б/НДС</button>
       <button class="pv-btn" data-vat-mode="yes" onclick="setPriceNds(true)">с НДС</button>
     </div>
-    <div class="price-vat-switch" title="Факт = все суммы с учётом возвратов (нетто). Без возвр. = только продажи без вычета возвратов (валовые)." style="margin-left:4px">
+    <div class="price-vat-switch" title="Факт = реальная прибыль после возвратов. Без возвр. = прибыльность чистых продаж (потенциал без потерь на возвратах)." style="margin-left:4px">
       <span class="pv-label">Прибыль</span>
       <button class="pv-btn active" id="profModeStd" onclick="setProfMode('std')">Факт</button>
       <button class="pv-btn" id="profModeNet" onclick="setProfMode('net')">Без возвр.</button>
     </div>
     <div class="live-b"><div class="ldot"></div>Live</div>
     <button class="ibtn" onclick="reloadData()">⟳</button>
-    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:4px;">
+      <span style="font-size:9px;color:var(--dim)">Ctrl+клик=мульти</span>
       <div class="pills" id="periodPills"><button class="pill active" data-m="all">Все</button></div>
       <div style="display:flex;align-items:center;gap:3px;font-size:10px;color:var(--muted)">
         <span>Период:</span>
@@ -399,30 +420,23 @@ tr.dt-dimmed{opacity:.25;}
 
 <!-- TOOLBAR (shared) -->
 <div class="toolbar">
-  <span class="tlbl">Иерархия:</span>
-  <button class="swbtn" onclick="swapH()"><span id="swLbl">👥 Контрагент → SKU</span> ⇄</button>
+  <div class="pivot-builder">
+    <span class="tlbl">Иерархия:</span>
+    <div class="dim-list" id="rowDimList"></div>
+    <select class="sel" id="dimAddSel" onchange="addRowDimFromSelect(this)"></select>
+    <button class="ebtn" onclick="resetRowDims()" title="Вернуть стандартную иерархию">Сброс</button>
+  </div>
   
   <div class="sep"></div>
   <!-- Month mode expand buttons -->
   <div id="monthExpand" style="display:flex;align-items:center;gap:5px;">
     <span class="tlbl">Раскрыть:</span>
-    <div class="expbtns">
-      <button class="ebtn" id="btn0" onclick="toggleLv(0)">Группы</button>
-      <button class="ebtn" id="btn1" onclick="toggleLv(1)">Контрагенты</button>
-      <button class="ebtn" id="btn2" onclick="toggleLv(2)">SKU</button>
-      <button class="ebtn" id="dateBtn" onclick="toggleMonthDates()" title="Добавить даты под SKU/контрагентом. Даты открываются только у раскрытой строки.">📅 По датам</button>
-      <button class="ebtn" onclick="collapseAll()">Свернуть</button>
-    </div>
+    <div class="expbtns" id="monthExpandBtns"></div>
   </div>
   <!-- Day mode expand buttons -->
   <div id="dayExpand" style="display:none;align-items:center;gap:5px;">
     <span class="tlbl">Раскрыть:</span>
-    <div class="expbtns">
-      <button class="ebtn" id="dbtn0" onclick="toggleDayLv(0)">Группы</button>
-      <button class="ebtn" id="dbtn1" onclick="toggleDayLv(1)">Контрагенты</button>
-      <button class="ebtn" id="dbtn2" onclick="toggleDayLv(2)">SKU</button>
-      <button class="ebtn" onclick="collapseAllDay()">Свернуть</button>
-    </div>
+    <div class="expbtns" id="dayExpandBtns"></div>
   </div>
   <div class="sep"></div>
   <button class="ibtn" onclick="toggleFP()" id="fBtn">🔽 Фильтры</button>
@@ -561,6 +575,9 @@ const MCOLS=[
   {id:'retPct',   lbl:'Возврат %',  key:'retPct',      fmt:'pct', on:true,
     tip:'Процент возврата от выручки',
     doc:{formula:'|Сумма возвратов| ÷ Выручка × 100%',source:'Считается на сайте из колонок O и K',meaning:'Показывает какой % выручки "уходит" обратно через возвраты. Норма для молочки — до 2-3%. Выше — проблема с качеством или приёмкой',example:'Выручка 1 млн, возвраты 30 тыс → Возврат% = 3.0%'}},
+  {id:'retKg',    lbl:'Возвр. кг',  key:'retKg',       fmt:'kg',  on:false,
+    tip:'Физический объём возвратов в кг',
+    doc:{formula:'Количество возвратов × Вес единицы SKU',source:'Колонка H в ИсхРеал × Вес из SKUСправочник',meaning:'Показывает, сколько кг товара вернули. Колонка скрыта по умолчанию и включается в Столбцах',example:'Вернули 3 шт по 1 кг → Возвр. кг = 3.0 кг'}},
   {id:'seb',      lbl:'Себест. ₸',  key:'seb',         fmt:'full',on:true,
     tip:'Себестоимость (прямые затраты на закупку)',
     doc:{formula:'Цена прихода по SKU на дату продажи × Кол-во реализации. Если цены прихода нет: fallback на «Стоимость (без НДС)» из 1С',source:'pf-prikhod.js / PRIKHOD_PRICES + ИсхРеал',meaning:'Прямые затраты на товар пересчитываются из прихода: берётся ближайшая цена прихода до даты продажи. ФОТ, аренда, логистика и прочие косвенные расходы сюда не входят',example:'Цена прихода 390 ₸ × 100 шт = Себест. 39 000 ₸'}},
@@ -587,8 +604,8 @@ const MCOLS=[
   {id:'sebKg',    lbl:'Затр./кг',   key:'sebKg',       fmt:'full',on:false,
     tip:'Прямые затраты на 1 кг продукции',
     doc:{formula:'Себестоимость ÷ Объём(кг)',source:'Считается на сайте',meaning:'Сколько тенге себестоимости на каждый кг — удобно для сравнения эффективности SKU',example:'Себест 80 000 ÷ 200 кг = 400 ₸/кг'}},
-  {id:'share',    lbl:'Доля %',     key:'_sh',         fmt:'share',on:true,
-    tip:'Доля в общей выручке',
+  {id:'share',    lbl:'Доля(выр.)',  key:'_sh',         fmt:'share',on:true,
+    tip:'Доля в общей выручке без НДС',
     doc:{formula:'Выручка строки ÷ Выручка ИТОГО × 100%',source:'Считается на сайте',meaning:'Показывает вклад этого контрагента/группы/SKU в общую выручку',example:'Кофейни 30 млн ÷ Всего 300 млн = 10%'}},
   {id:'priceZakup',lbl:'Цена закупа',key:'priceZakup', fmt:'full',on:true,
     tip:'Средняя закупочная цена за штуку',
@@ -603,7 +620,51 @@ const MCOLS=[
     tip:'Заработок/убыток на одной штуке',
     doc:{formula:'Цена продажи − Цена закупа',source:'Считается на сайте: (СуммаРеал/КолвоРеал) − (Себест/КолвоРеал)',meaning:'Заработок или убыток на одной штуке. В режиме б/НДС: цена продажи без НДС − закуп без НДС; в режиме НДС: цена продажи с НДС − закуп с НДС',example:'Цена продажи 395 ₸ − Закуп 332 ₸ = Профит +63 ₸/шт'}},
 ];
-let mColOn={}; MCOLS.forEach(c=>mColOn[c.id]=c.on);
+const MCOL_STORAGE_KEY='pf.monthCols.v1';
+const ALWAYS_MONTH_COLS=['share'];
+
+function normalizeToggleOrder(order,defs,onMap,alwaysIds=[]){
+  const valid=new Set(defs.map(d=>d.id));
+  const always=new Set(alwaysIds);
+  const seen=new Set();
+  const out=[];
+  for(const id of (order||[])){
+    if(valid.has(id)&&!seen.has(id)&&(onMap[id]||always.has(id))){out.push(id);seen.add(id);}
+  }
+  for(const d of defs){
+    if((onMap[d.id]||always.has(d.id))&&!seen.has(d.id)){out.push(d.id);seen.add(d.id);}
+  }
+  return out;
+}
+function loadToggleState(storageKey,defs,alwaysIds=[]){
+  const on={}; defs.forEach(d=>on[d.id]=!!d.on);
+  let order=defs.filter(d=>d.on||alwaysIds.includes(d.id)).map(d=>d.id);
+  try{
+    const saved=JSON.parse(localStorage.getItem(storageKey)||'null');
+    if(saved&&typeof saved==='object'){
+      if(saved.on&&typeof saved.on==='object'){
+        for(const d of defs){
+          if(Object.prototype.hasOwnProperty.call(saved.on,d.id)) on[d.id]=!!saved.on[d.id];
+        }
+      }
+      if(Array.isArray(saved.order)) order=saved.order;
+    }
+  }catch(e){}
+  for(const id of alwaysIds) on[id]=true;
+  order=normalizeToggleOrder(order,defs,on,alwaysIds);
+  return {on,order};
+}
+function saveToggleState(storageKey,order,onMap){
+  try{localStorage.setItem(storageKey,JSON.stringify({order,on:onMap}));}catch(e){}
+}
+function orderedDefs(defs,order,onMap,alwaysIds=[]){
+  const map=Object.fromEntries(defs.map(d=>[d.id,d]));
+  return normalizeToggleOrder(order,defs,onMap,alwaysIds).map(id=>map[id]).filter(Boolean);
+}
+
+const monthColState=loadToggleState(MCOL_STORAGE_KEY,MCOLS,ALWAYS_MONTH_COLS);
+let mColOn=monthColState.on;
+let mColOrder=monthColState.order;
 
 // Day mode metrics
 const DAY_METRICS=[
@@ -617,27 +678,55 @@ const DAY_METRICS=[
   {id:'kg',      lbl:'Объём кг',  key:'kg',       fmt:'kg',  on:false},
   {id:'seb',     lbl:'Себест.',   key:'seb',      fmt:'rev', on:false},
   {id:'ret',     lbl:'Возврат',   key:'ret',      fmt:'rev', on:false},
+  {id:'retKg',   lbl:'Возвр. кг', key:'retKg',    fmt:'kg',  on:false},
   {id:'sumReal', lbl:'Сумма реал.',key:'sumRealS', fmt:'rev', on:false},
   {id:'retPct',  lbl:'Возврат%',  key:'retPct',   fmt:'pct', on:false},
   {id:'priceZakup', lbl:'Цена закупа', key:'priceZakup',   fmt:'full',on:false},
   {id:'priceSell',  lbl:'Цена продажи',key:'priceSellNds', fmt:'full',on:false},
   {id:'profitUnit', lbl:'Профит/шт',   key:'profitUnitNds',fmt:'full',on:false},
 ];
-let dmOn={}; DAY_METRICS.forEach(m=>dmOn[m.id]=m.on);
+const DMETRIC_STORAGE_KEY='pf.dayMetrics.v1';
+const dayMetricState=loadToggleState(DMETRIC_STORAGE_KEY,DAY_METRICS,[]);
+let dmOn=dayMetricState.on;
+let dmOrder=dayMetricState.order;
+
+// ── PIVOT DIMENSIONS ────────────────────────────────────────
+const DIM_STORAGE_KEY='pf.rowDims.v2';
+const DEFAULT_ROW_DIMS=['group','knt','sku'];
+const DIMENSIONS=[
+  {id:'group',    label:'Группа контр.', full:'Группа контрагента'},
+  {id:'knt',      label:'Контрагент',    full:'Контрагент'},
+  {id:'skuGroup', label:'Группа SKU',    full:'Группа SKU'},
+  {id:'sku',      label:'SKU',           full:'Номенклатура / SKU'},
+  {id:'mk',       label:'Месяц',         full:'Месяц продажи'},
+  {id:'day',      label:'День',          full:'День продажи'},
+];
+function loadRowDims(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(DIM_STORAGE_KEY)||'null');
+    if(Array.isArray(saved)){
+      const valid=saved.filter(id=>DIMENSIONS.some(d=>d.id===id));
+      if(valid.length) return [...new Set(valid)];
+    }
+  }catch(e){}
+  return [...DEFAULT_ROW_DIMS];
+}
 
 // ── STATE ──────────────────────────────────────────────────
-let rawRows=[],hierarchy='k',currentMonth='all',viewMode='month';
+let rawRows=[],currentMonth='all',viewMode='month';
+let rowDims=loadRowDims();
 let expanded=new Set(),levelState={},searchTerm='';
 let filterGrp=new Set(['ALL']),filterSkuGrp=new Set(['ALL']);
 let allGroups=[],allSkuGroups=[],allDays=[];
 let selectedDays=new Set();
 let sortKey='rev_d',avgMode='sku';
 let selectedMonths=new Set(['all']);
-let dateFrom='', dateTo='';  // фильтр по периоду дат  // 'all' или набор mk типа '2026-01'
+let dateFrom='', dateTo='';  // 'all' или набор mk типа '2026-01'
 let priceNds=false;
 let profMode='std'; // 'std' = с возвратами (текущий), 'net' = только продажи без потерь возврата // false = без НДС по умолчанию: выручка, себестоимость, прибыль и маржа сравниваются без НДС
 let dayExpanded=new Set(),dayLevelState={};
-let focusedRow=null;   // имя строки в фокусе
+let focusedRow=null;   // key строки в фокусе
+let focusedName=null;  // имя строки в фокусе для подписи
 let focusedDepth=-1;   // глубина выбранной строки
 let showCumulative=true; // показывать ли кумулятивную строку
 let showMonthDates=false; // в месячной таблице показывать даты под SKU/контрагентом
@@ -673,23 +762,15 @@ function setProfMode(mode){
   profMode=mode;
   document.getElementById('profModeStd').classList.toggle('active', mode==='std');
   document.getElementById('profModeNet').classList.toggle('active', mode==='net');
-  // Факт = Сумма реал с возвратами (L=J+K), Прибыль с возвратами
-  // Без возвр. = Сумма реал без возвратов (J), Прибыль без возвратов
-  // Переключаем ключи в MCOLS чтобы брать нужные поля из agg()
-  // Переключаем и в месячном и в дневном режимах
+  setMonthColState('prof', mode==='std', false);
+  setMonthColState('profNet', mode==='net', false);
+  // Переключаем Сумму реал: Факт=с возвратами (sumRealS), Без возвр.=только продажи (sumReal)
   const mSumReal = MCOLS.find(c=>c.id==='sumReal');
   const dSumReal = DAY_METRICS.find(c=>c.id==='sumReal');
-  if(mSumReal){
-    mSumReal.key = mode==='std' ? 'sumRealS' : 'sumReal';
-    mSumReal.lbl = mode==='std' ? 'Сумма реал.(факт)' : 'Сумма реал.';
-  }
-  if(dSumReal){
-    dSumReal.key = mode==='std' ? 'sumRealS' : 'sumReal';
-    dSumReal.lbl = mode==='std' ? 'Сумма реал.(факт)' : 'Сумма реал.';
-  }
-  // Прибыль тоже переключаем
-  mColOn['prof']    = (mode==='std');
-  mColOn['profNet'] = (mode==='net');
+  if(mSumReal){ mSumReal.key = mode==='std' ? 'sumRealS' : 'sumReal'; mSumReal.lbl = mode==='std' ? 'Сумма реал.(факт)' : 'Сумма реал.'; }
+  if(dSumReal){ dSumReal.key = mode==='std' ? 'sumRealS' : 'sumReal'; dSumReal.lbl = mode==='std' ? 'Сумма реал.(факт)' : 'Сумма реал.'; }
+  saveMonthCols();
+  buildCtogs();
   buildMHeader();
   render();
 }
@@ -697,7 +778,6 @@ function setProfMode(mode){
 function applyDateRange(){
   dateFrom=document.getElementById('dateFrom').value||'';
   dateTo=document.getElementById('dateTo').value||'';
-  // Сбрасываем месяцы если выбран период
   if(dateFrom||dateTo){
     selectedMonths=new Set(['all']);
     document.querySelectorAll('#periodPills .pill').forEach(b=>b.classList.remove('active'));
@@ -713,6 +793,25 @@ function clearDateRange(){
   document.getElementById('dateTo').value='';
   expanded.clear();levelState={};
   updateAvailableDays();render();
+}
+function applyDayDateRange(){
+  const from=document.getElementById('dayDateFrom').value||'';
+  const to=document.getElementById('dayDateTo').value||'';
+  if(from||to){
+    selectedDays.clear();
+    allDays.forEach(d=>{
+      if(from && d<from) return;
+      if(to && d>to) return;
+      selectedDays.add(d);
+    });
+  }
+  renderDay();
+}
+function clearDayDateRange(){
+  document.getElementById('dayDateFrom').value='';
+  document.getElementById('dayDateTo').value='';
+  selectedDays=new Set(allDays);
+  renderDay();
 }
 
 function setPriceNds(value) {
@@ -763,13 +862,13 @@ async function loadData(){
       // Backward compat
       currentMonth=selectedMonths.has('all')?'all':[...selectedMonths][0]||'all';
       expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};
-      focusedRow=null; focusedDepth=-1;  // сбрасываем фокус при смене месяца
+      focusedRow=null; focusedName=null; focusedDepth=-1;  // сбрасываем фокус при смене месяца
       updateAvailableDays();render();
     });
 
     allGroups=[...new Set(rawRows.map(r=>r.group))].sort();
     allSkuGroups=[...new Set(rawRows.map(r=>r.skuGroup))].sort();
-    buildFilterChips();buildCtogs();buildMetricChooser();buildMHeader();
+    buildFilterChips();buildCtogs();buildMetricChooser();buildRowDimControls();buildExpandButtons();buildMHeader();
     updateAvailableDays();
 
     const uK=new Set(rawRows.map(r=>r.knt)).size;
@@ -803,7 +902,7 @@ function updateAvailableDays(){
 // ── VIEW MODE ─────────────────────────────────────────────
 function setViewMode(mode){
   viewMode=mode;
-  focusedRow=null; focusedDepth=-1;  // сбрасываем фокус при смене режима
+  focusedRow=null; focusedName=null; focusedDepth=-1;  // сбрасываем фокус при смене режима
   document.getElementById('vmMonth').classList.toggle('active',mode==='month');
   document.getElementById('vmDay').classList.toggle('active',false);
   document.getElementById('vmDay').classList.toggle('day-active',mode==='day');
@@ -882,21 +981,215 @@ function toggleFP(){
 }
 
 // ── COLUMNS / METRICS ─────────────────────────────────────
-function buildCtogs(){
-  document.getElementById('ctogs').innerHTML=
-    MCOLS.filter(c=>c.id!=='share').map(c=>
-      `<button class="ctog ${mColOn[c.id]?'on':''}" title="${c.tip}" onclick="toggleMCol('${c.id}',this)">${c.lbl}</button>`
-    ).join('');
+let monthColDragFrom=null;
+let dayMetricDragFrom=null;
+function mColById(id){return MCOLS.find(c=>c.id===id);}
+function dMetricById(id){return DAY_METRICS.find(m=>m.id===id);}
+function getVisibleMonthCols(){
+  mColOrder=normalizeToggleOrder(mColOrder,MCOLS,mColOn,ALWAYS_MONTH_COLS);
+  return orderedDefs(MCOLS,mColOrder,mColOn,ALWAYS_MONTH_COLS);
 }
-function toggleMCol(id,btn){mColOn[id]=!mColOn[id];btn.classList.toggle('on',mColOn[id]);buildMHeader();renderMonth();}
+function getVisibleDayMetrics(){
+  dmOrder=normalizeToggleOrder(dmOrder,DAY_METRICS,dmOn,[]);
+  return orderedDefs(DAY_METRICS,dmOrder,dmOn,[]);
+}
+function saveMonthCols(){saveToggleState(MCOL_STORAGE_KEY,mColOrder,mColOn);}
+function saveDayMetrics(){saveToggleState(DMETRIC_STORAGE_KEY,dmOrder,dmOn);}
+function setMonthColState(id,on,append=true){
+  if(id==='share') return;
+  mColOn[id]=!!on;
+  mColOrder=mColOrder.filter(x=>x!==id);
+  if(mColOn[id]){
+    if(append) mColOrder.push(id);
+    else{
+      const baseIndex=MCOLS.findIndex(c=>c.id===id);
+      let inserted=false;
+      for(let i=0;i<mColOrder.length;i++){
+        const curIndex=MCOLS.findIndex(c=>c.id===mColOrder[i]);
+        if(curIndex>baseIndex){mColOrder.splice(i,0,id);inserted=true;break;}
+      }
+      if(!inserted) mColOrder.push(id);
+    }
+  }
+  mColOrder=normalizeToggleOrder(mColOrder,MCOLS,mColOn,ALWAYS_MONTH_COLS);
+}
+function setDayMetricState(id,on,append=true){
+  dmOn[id]=!!on;
+  dmOrder=dmOrder.filter(x=>x!==id);
+  if(dmOn[id]){
+    if(append) dmOrder.push(id);
+    else{
+      const baseIndex=DAY_METRICS.findIndex(m=>m.id===id);
+      let inserted=false;
+      for(let i=0;i<dmOrder.length;i++){
+        const curIndex=DAY_METRICS.findIndex(m=>m.id===dmOrder[i]);
+        if(curIndex>baseIndex){dmOrder.splice(i,0,id);inserted=true;break;}
+      }
+      if(!inserted) dmOrder.push(id);
+    }
+  }
+  dmOrder=normalizeToggleOrder(dmOrder,DAY_METRICS,dmOn,[]);
+}
+function buildCtogs(){
+  const el=document.getElementById('ctogs');
+  const active=getVisibleMonthCols().filter(c=>c.id!=='share');
+  const inactive=MCOLS.filter(c=>c.id!=='share'&&!mColOn[c.id]);
+  const activeHtml=active.map((c,i)=>
+    `<span class="ctog on col-chip" draggable="true" title="${escHtml(c.tip||'')} · Перетащи или двигай стрелками" ondragstart="onMonthColDragStart(event,${i})" ondragend="onMonthColDragEnd(event)" ondragover="onMonthColDragOver(event)" ondrop="onMonthColDrop(event,${i})">`+
+    `<span class="col-n">${i+1}</span><span onclick="toggleMCol('${c.id}',this)">${c.lbl}</span>`+
+    `<button class="dim-move" onclick="event.stopPropagation();moveMonthCol('${c.id}',-1)" title="Левее">‹</button>`+
+    `<button class="dim-move" onclick="event.stopPropagation();moveMonthCol('${c.id}',1)" title="Правее">›</button>`+
+    `<button class="dim-x" onclick="event.stopPropagation();toggleMCol('${c.id}',this)" title="Убрать столбец">×</button></span>`
+  ).join('');
+  const inactiveHtml=inactive.map(c=>
+    `<button class="ctog" title="${escHtml(c.tip||'')}" onclick="toggleMCol('${c.id}',this)">+ ${c.lbl}</button>`
+  ).join('');
+  el.innerHTML=activeHtml+(activeHtml&&inactiveHtml?'<span style="width:1px;height:18px;background:var(--border);margin:0 2px"></span>':'')+inactiveHtml;
+}
+function toggleMCol(id,btn){
+  const next=!mColOn[id];
+  setMonthColState(id,next,true);
+  saveMonthCols();
+  buildCtogs();
+  buildMHeader();
+  renderMonth();
+}
+function moveMonthCol(id,dir){
+  mColOrder=normalizeToggleOrder(mColOrder,MCOLS,mColOn,ALWAYS_MONTH_COLS);
+  const movable=mColOrder.filter(x=>x!=='share');
+  const idx=movable.indexOf(id); if(idx<0)return;
+  const ni=idx+dir; if(ni<0||ni>=movable.length)return;
+  [movable[idx],movable[ni]]=[movable[ni],movable[idx]];
+  const sharePos=mColOrder.indexOf('share');
+  mColOrder=movable;
+  if(mColOn.share){
+    const insertAt=sharePos>=0?Math.min(sharePos,mColOrder.length):mColOrder.length;
+    mColOrder.splice(insertAt,0,'share');
+  }
+  saveMonthCols();buildCtogs();buildMHeader();renderMonth();
+}
+function onMonthColDragStart(ev,idx){monthColDragFrom=idx;ev.currentTarget.classList.add('dragging');ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(idx));}
+function onMonthColDragEnd(ev){ev.currentTarget.classList.remove('dragging');monthColDragFrom=null;}
+function onMonthColDragOver(ev){ev.preventDefault();ev.dataTransfer.dropEffect='move';}
+function onMonthColDrop(ev,idx){
+  ev.preventDefault();
+  const from=monthColDragFrom ?? Number(ev.dataTransfer.getData('text/plain'));
+  const active=mColOrder.filter(id=>id!=='share'&&mColOn[id]);
+  if(Number.isNaN(from)||from===idx||from<0||from>=active.length)return;
+  const [moved]=active.splice(from,1);
+  active.splice(idx,0,moved);
+  const sharePos=mColOrder.indexOf('share');
+  mColOrder=active;
+  if(mColOn.share){
+    const insertAt=sharePos>=0?Math.min(sharePos,mColOrder.length):mColOrder.length;
+    mColOrder.splice(insertAt,0,'share');
+  }
+  saveMonthCols();buildCtogs();buildMHeader();renderMonth();
+}
 
 function buildMetricChooser(){
-  document.getElementById('metricChooser').innerHTML=
-    DAY_METRICS.map(m=>
-      `<button class="mchip ${dmOn[m.id]?'on':''}" onclick="toggleDayMetric('${m.id}',this)">${m.lbl}</button>`
-    ).join('');
+  const el=document.getElementById('metricChooser');
+  const active=getVisibleDayMetrics();
+  const inactive=DAY_METRICS.filter(m=>!dmOn[m.id]);
+  const activeHtml=active.map((m,i)=>
+    `<span class="mchip on col-chip" draggable="true" title="Перетащи или двигай стрелками" ondragstart="onDayMetricDragStart(event,${i})" ondragend="onDayMetricDragEnd(event)" ondragover="onDayMetricDragOver(event)" ondrop="onDayMetricDrop(event,${i})">`+
+    `<span class="col-n">${i+1}</span><span onclick="toggleDayMetric('${m.id}',this)">${m.lbl}</span>`+
+    `<button class="dim-move" onclick="event.stopPropagation();moveDayMetric('${m.id}',-1)" title="Левее">‹</button>`+
+    `<button class="dim-move" onclick="event.stopPropagation();moveDayMetric('${m.id}',1)" title="Правее">›</button>`+
+    `<button class="dim-x" onclick="event.stopPropagation();toggleDayMetric('${m.id}',this)" title="Убрать метрику">×</button></span>`
+  ).join('');
+  const inactiveHtml=inactive.map(m=>
+    `<button class="mchip" onclick="toggleDayMetric('${m.id}',this)">+ ${m.lbl}</button>`
+  ).join('');
+  el.innerHTML=activeHtml+(activeHtml&&inactiveHtml?'<span style="width:1px;height:18px;background:var(--border);margin:0 2px"></span>':'')+inactiveHtml;
 }
-function toggleDayMetric(id,btn){dmOn[id]=!dmOn[id];btn.classList.toggle('on',dmOn[id]);if(viewMode==='day')renderDay();}
+function toggleDayMetric(id,btn){
+  const next=!dmOn[id];
+  setDayMetricState(id,next,true);
+  saveDayMetrics();
+  buildMetricChooser();
+  if(viewMode==='day')renderDay();
+}
+function moveDayMetric(id,dir){
+  dmOrder=normalizeToggleOrder(dmOrder,DAY_METRICS,dmOn,[]);
+  const idx=dmOrder.indexOf(id); if(idx<0)return;
+  const ni=idx+dir; if(ni<0||ni>=dmOrder.length)return;
+  [dmOrder[idx],dmOrder[ni]]=[dmOrder[ni],dmOrder[idx]];
+  saveDayMetrics();buildMetricChooser();if(viewMode==='day')renderDay();
+}
+function onDayMetricDragStart(ev,idx){dayMetricDragFrom=idx;ev.currentTarget.classList.add('dragging');ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(idx));}
+function onDayMetricDragEnd(ev){ev.currentTarget.classList.remove('dragging');dayMetricDragFrom=null;}
+function onDayMetricDragOver(ev){ev.preventDefault();ev.dataTransfer.dropEffect='move';}
+function onDayMetricDrop(ev,idx){
+  ev.preventDefault();
+  const from=dayMetricDragFrom ?? Number(ev.dataTransfer.getData('text/plain'));
+  dmOrder=normalizeToggleOrder(dmOrder,DAY_METRICS,dmOn,[]);
+  if(Number.isNaN(from)||from===idx||from<0||from>=dmOrder.length)return;
+  const [moved]=dmOrder.splice(from,1);
+  dmOrder.splice(idx,0,moved);
+  saveDayMetrics();buildMetricChooser();if(viewMode==='day')renderDay();
+}
+
+// ── PIVOT HIERARCHY BUILDER ───────────────────────────────
+let dimDragFrom=null;
+function getDim(id){ return DIMENSIONS.find(d=>d.id===id); }
+function escJs(s){ return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' '); }
+function escHtml(s){ return String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+function saveRowDims(){ localStorage.setItem(DIM_STORAGE_KEY, JSON.stringify(rowDims)); }
+function clearPivotState(){
+  expanded.clear(); levelState={}; dayExpanded.clear(); dayLevelState={};
+  focusedRow=null; focusedName=null; focusedDepth=-1;
+}
+function onRowDimsChanged(){
+  rowDims=[...new Set(rowDims)].filter(id=>DIMENSIONS.some(d=>d.id===id));
+  if(!rowDims.length) rowDims=[...DEFAULT_ROW_DIMS];
+  saveRowDims(); clearPivotState(); buildRowDimControls(); buildExpandButtons(); render();
+}
+function buildRowDimControls(){
+  const list=document.getElementById('rowDimList');
+  const sel=document.getElementById('dimAddSel');
+  if(!list||!sel)return;
+  list.innerHTML=rowDims.map((id,i)=>{
+    const d=getDim(id);
+    const rm=rowDims.length>1?`<button class="dim-x" onclick="removeRowDim(${i})" title="Убрать поле">×</button>`:'';
+    return `<span class="dim-chip" draggable="true" title="Перетащи, чтобы поменять порядок" ondragstart="onDimDragStart(event,${i})" ondragend="onDimDragEnd(event)" ondragover="onDimDragOver(event)" ondrop="onDimDrop(event,${i})">`+
+      `<span class="dim-n">${i+1}</span><span>${escHtml(d?.label||id)}</span>`+
+      `<button class="dim-move" onclick="moveRowDim(${i},-1)" title="Левее">‹</button>`+
+      `<button class="dim-move" onclick="moveRowDim(${i},1)" title="Правее">›</button>${rm}</span>`;
+  }).join('') || '<span class="dim-empty">Добавь поле</span>';
+  const available=DIMENSIONS.filter(d=>!rowDims.includes(d.id));
+  sel.innerHTML='<option value="">+ Добавить поле</option>'+available.map(d=>`<option value="${d.id}">${escHtml(d.full)}</option>`).join('');
+  sel.disabled=!available.length;
+}
+function buildExpandButtons(){
+  const month=document.getElementById('monthExpandBtns');
+  const day=document.getElementById('dayExpandBtns');
+  const btns=rowDims.map((id,i)=>`<button class="ebtn lvl-month" id="btn${i}" onclick="toggleLv(${i})">${escHtml(getDim(id)?.label||id)}</button>`).join('');
+  const dateBtn=!rowDims.includes('day')?`<button class="ebtn" id="dateBtn" onclick="toggleMonthDates()" title="Добавить даты под последним уровнем. Даты открываются только у раскрытой строки.">📅 По датам</button>`:'';
+  if(month) month.innerHTML=btns+dateBtn+'<button class="ebtn" onclick="collapseAll()">Свернуть</button>';
+  const dbtns=rowDims.map((id,i)=>`<button class="ebtn lvl-day" id="dbtn${i}" onclick="toggleDayLv(${i})">${escHtml(getDim(id)?.label||id)}</button>`).join('');
+  if(day) day.innerHTML=dbtns+'<button class="ebtn" onclick="collapseAllDay()">Свернуть</button>';
+  const db=document.getElementById('dateBtn');
+  if(db) db.classList.toggle('lit',showMonthDates);
+}
+function addRowDimFromSelect(sel){ const id=sel.value; if(id&&!rowDims.includes(id)){rowDims.push(id);onRowDimsChanged();} sel.value=''; }
+function removeRowDim(idx){ if(rowDims.length<=1)return; rowDims.splice(idx,1); onRowDimsChanged(); }
+function moveRowDim(idx,dir){
+  const ni=idx+dir; if(ni<0||ni>=rowDims.length)return;
+  [rowDims[idx],rowDims[ni]]=[rowDims[ni],rowDims[idx]]; onRowDimsChanged();
+}
+function resetRowDims(){ rowDims=[...DEFAULT_ROW_DIMS]; showMonthDates=false; onRowDimsChanged(); }
+function onDimDragStart(ev,idx){ dimDragFrom=idx; ev.currentTarget.classList.add('dragging'); ev.dataTransfer.effectAllowed='move'; ev.dataTransfer.setData('text/plain',String(idx)); }
+function onDimDragEnd(ev){ ev.currentTarget.classList.remove('dragging'); dimDragFrom=null; }
+function onDimDragOver(ev){ ev.preventDefault(); ev.dataTransfer.dropEffect='move'; }
+function onDimDrop(ev,idx){
+  ev.preventDefault();
+  const from=dimDragFrom ?? Number(ev.dataTransfer.getData('text/plain'));
+  if(Number.isNaN(from)||from===idx)return;
+  const [moved]=rowDims.splice(from,1);
+  rowDims.splice(idx,0,moved);
+  onRowDimsChanged();
+}
 
 // ── AVG ───────────────────────────────────────────────────
 function toggleAvgDD(e){e.stopPropagation();document.getElementById('avgDD').classList.toggle('open');}
@@ -1012,50 +1305,63 @@ function fmtDayLabel(day){
   return String(d).padStart(2,'0')+'.'+String(m).padStart(2,'0')+' '+wd;
 }
 
-function buildDateChildren(rows){
-  return Object.entries(PF.groupBy(rows,r=>r.day))
-    .sort((a,b)=>a[0].localeCompare(b[0]))
-    .map(([day,dr])=>({name:fmtDayLabel(day),dayKey:day,isDate:true,ng:false,m:PF.agg(dr),ch:[]}));
+function fmtDimValue(dimId,value){
+  if(value==null || value==='') return '—';
+  if(dimId==='day') return fmtDayLabel(value);
+  if(dimId==='mk'){
+    const [y,m]=String(value).split('-');
+    return (MO_SHORT[(+m||1)-1]||String(value))+' '+(y||'');
+  }
+  return String(value);
+}
+function getDimValue(row,dimId){
+  if(dimId==='mk') return row.mk||'—';
+  if(dimId==='day') return row.day||'—';
+  return row[dimId] || '—';
+}
+function makeNodeKey(path){
+  return path.map(p=>p.dim+':'+encodeURIComponent(String(p.value))).join('|');
 }
 
-function buildInnerTree(rows,sf,expSet,prefix=''){
-  const mk=(name,rows,ng=false,isDate=false)=>({name,ng,isDate,m:PF.agg(rows),ch:[]});
-  if(hierarchy==='k'){
-    return Object.entries(PF.groupBy(rows,r=>r.group)).map(([g,gr])=>{
-      const n=mk(g,gr,g.startsWith('⚠️'));
-      n.ch=Object.entries(PF.groupBy(gr,r=>r.knt)).map(([k,kr])=>{
-        const kn=mk(k,kr);
-        kn.ch=Object.entries(PF.groupBy(kr,r=>r.sku)).map(([s,sr])=>{
-          const sn=mk(s,sr);
-          if(showMonthDates&&viewMode==='month') sn.ch=buildDateChildren(sr);
-          return sn;
-        }).sort(sf);
-        return kn;
-      }).sort(sf);
-      return n;
-    }).sort(sf);
-  } else {
-    return Object.entries(PF.groupBy(rows,r=>r.skuGroup)).map(([sg,sgr])=>{
-      const n=mk(sg,sgr);
-      n.ch=Object.entries(PF.groupBy(sgr,r=>r.sku)).map(([s,sr])=>{
-        const sn=mk(s,sr);
-        sn.ch=Object.entries(PF.groupBy(sr,r=>r.knt)).map(([k,kr])=>{
-          const kn=mk(k,kr);
-          if(showMonthDates&&viewMode==='month') kn.ch=buildDateChildren(kr);
-          return kn;
-        }).sort(sf);
-        return sn;
-      }).sort(sf);
-      return n;
+function buildDateChildren(rows,parentPath=[]){
+  return Object.entries(PF.groupBy(rows,r=>r.day))
+    .sort((a,b)=>a[0].localeCompare(b[0]))
+    .map(([day,dr])=>{
+      const path=[...parentPath,{dim:'dayAuto',value:day}];
+      return {name:fmtDayLabel(day),value:day,dimId:'dayAuto',path,key:makeNodeKey(path),rows:dr,dayKey:day,isDate:true,ng:false,m:PF.agg(dr),ch:[]};
+    });
+}
+
+function buildInnerTree(rows,sf){
+  const dims=rowDims.length?rowDims:[...DEFAULT_ROW_DIMS];
+  const dateAsAuto=showMonthDates&&viewMode==='month'&&!dims.includes('day');
+  function build(levelRows,depth,path){
+    if(depth>=dims.length){
+      return dateAsAuto?buildDateChildren(levelRows,path):[];
+    }
+    const dimId=dims[depth];
+    return Object.entries(PF.groupBy(levelRows,r=>getDimValue(r,dimId))).map(([value,gr])=>{
+      const nPath=[...path,{dim:dimId,value}];
+      const name=fmtDimValue(dimId,value);
+      const node={
+        name,value,dimId,path:nPath,key:makeNodeKey(nPath),rows:gr,
+        ng:dimId==='group'&&String(value).startsWith('⚠️'),
+        isDate:dimId==='day',
+        m:PF.agg(gr),ch:[]
+      };
+      const children=build(gr,depth+1,nPath);
+      node.ch=(dateAsAuto&&depth+1>=dims.length)?children:children.sort(sf);
+      return node;
     }).sort(sf);
   }
+  return build(rows,0,[]);
 }
 
 // ══════════════════════════════════════════════════════════
 // MONTH MODE RENDER
 // ══════════════════════════════════════════════════════════
 function buildMHeader(){
-  const vis=MCOLS.filter(c=>mColOn[c.id]||c.id==='share');
+  const vis=getVisibleMonthCols();
   const [sk,sd]=sortKey.split('_');
   document.querySelector('#mThead tr').innerHTML=
     `<th style="text-align:left" onclick="clickSort('rev')">Наименование</th>`+
@@ -1084,19 +1390,19 @@ function renderMonth(){
   const tot=PF.agg(rows);
   const tRev=tot.rev||1;
   const sf=getSF();
-  const tree=buildInnerTree(rows,sf,expanded);
-  const vis=MCOLS.filter(c=>mColOn[c.id]||c.id==='share');
+  const tree=buildInnerTree(rows,sf);
+  const vis=getVisibleMonthCols();
 
   const flat=[];
   function anyMatch(ns,t){return ns.some(n=>n.name.toLowerCase().includes(t)||(n.ch.length&&anyMatch(n.ch,t)));}
   function flatten(ns,d){
     for(const n of ns){
-      const key=n.name+'_d'+d;const hasC=n.ch.length>0;const isE=expanded.has(key);
+      const key=n.key;const hasC=n.ch.length>0;const isE=expanded.has(key);
       if(searchTerm){const m=n.name.toLowerCase().includes(searchTerm);if(!m&&!(hasC&&anyMatch(n.ch,searchTerm)))continue;}
       // Focus filter: показываем только строку в фокусе + её детей
       if(focusedRow){
         if(d===focusedDepth){
-          if(n.name!==focusedRow) continue;
+          if(n.key!==focusedRow) continue;
           // Нашли нужную строку — добавляем и раскрываем детей
           flat.push({n,d,key,hasC,isE:true});
           if(hasC) flatten(n.ch,d+1);
@@ -1137,10 +1443,11 @@ function renderMonth(){
       else txt=fmtCell(v,c.fmt,tRev);
       return `<td class="${c2}">${txt}</td>`;
     }).join('');
-    const mSafe=n.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const mFocused=focusedRow===n.name&&focusedDepth===d;
+    const mSafe=escJs(n.key);
+    const mNameSafe=escJs(n.name);
+    const mFocused=focusedRow===n.key&&focusedDepth===d;
     const mHint=mFocused?'Нажми чтобы снять фильтр':'Нажми чтобы оставить только эту строку';
-    parts.push(`<tr class="lv${lv}"><td><div class="cnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickMonthRow('${mSafe}',${d})" title="${mHint}">${n.name}${mFocused?' <span style=\"color:var(--accent);font-size:9px\">✕</span>':''}</span></div></td>${tds}</tr>`);
+    parts.push(`<tr class="lv${lv}"><td><div class="cnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickMonthRow('${mSafe}','${mNameSafe}',${d})" title="${mHint}">${n.name}${mFocused?' <span style=\"color:var(--accent);font-size:9px\">✕</span>':''}</span></div></td>${tds}</tr>`);
   }
   document.getElementById('mTbody').innerHTML=parts.join('');
   document.getElementById('stRows').textContent=flat.length;
@@ -1160,7 +1467,7 @@ function mtoggle(key,btn){
 // ══════════════════════════════════════════════════════════
 function renderDay(){
   let rows=filtered();
-  const visMetrics=DAY_METRICS.filter(m=>dmOn[m.id]);
+  const visMetrics=getVisibleDayMetrics();
   if(!visMetrics.length){
     document.getElementById('dThead').innerHTML='';
     document.getElementById('dTbody').innerHTML='<tr><td class="row-hdr" style="padding:12px;color:var(--dim)">Выберите хотя бы одну метрику ↑</td></tr>';
@@ -1179,14 +1486,14 @@ function renderDay(){
 
   // Build row tree (ITOGO + hierarchy)
   const sf=getSF();
-  const tree=buildInnerTree(rows,sf,dayExpanded);
+  const tree=buildInnerTree(rows,sf);
 
   // Flatten tree for rows
   const flat=[];
   function anyMatch(ns,t){return ns.some(n=>n.name.toLowerCase().includes(t)||(n.ch.length&&anyMatch(n.ch,t)));}
   function flatten(ns,d){
     for(const n of ns){
-      const key='d_'+n.name+'_d'+d;const hasC=n.ch.length>0;const isE=dayExpanded.has(key);
+      const key=n.key;const hasC=n.ch.length>0;const isE=dayExpanded.has(key);
       if(searchTerm){const m=n.name.toLowerCase().includes(searchTerm);if(!m&&!(hasC&&anyMatch(n.ch,searchTerm)))continue;}
       flat.push({n,d,key,hasC,isE});
       if(isE&&hasC)flatten(n.ch,d+1);
@@ -1199,34 +1506,18 @@ function renderDay(){
   // Simpler: aggregate the rows that belong to each node by day
   // We'll do a smarter approach: for each row store group/knt/sku so we can match nodes
 
-  // Build node row data
-  function getNodeRows(node, depth, parentRows){
-    // Root nodes come from full `rows`
-    if(hierarchy==='k'){
-      if(depth===0) return rows.filter(r=>r.group===node.name);
-      if(depth===1) return parentRows.filter(r=>r.knt===node.name);
-      if(depth===2) return parentRows.filter(r=>r.sku===node.name);
-    } else {
-      if(depth===0) return rows.filter(r=>r.skuGroup===node.name);
-      if(depth===1) return parentRows.filter(r=>r.sku===node.name);
-      if(depth===2) return parentRows.filter(r=>r.knt===node.name);
-    }
-    return parentRows;
-  }
-
   // Pre-compute node->day->agg
-  // For efficiency, store nodeRows in flat items
+  // Каждый node уже хранит свои исходные строки: node.rows
   const flatWithRows=[];
-  function flattenWithRows(ns,d,parentR){
+  function flattenWithRows(ns,d){
     for(const n of ns){
-      const key='d_'+n.name+'_d'+d;const hasC=n.ch.length>0;const isE=dayExpanded.has(key);
+      const key=n.key;const hasC=n.ch.length>0;const isE=dayExpanded.has(key);
       if(searchTerm){const m=n.name.toLowerCase().includes(searchTerm);if(!m&&!(hasC&&anyMatch(n.ch,searchTerm)))continue;}
-      const nodeR=getNodeRows(n,d,parentR);
-      flatWithRows.push({n,d,key,hasC,isE,nodeR});
-      if(isE&&hasC)flattenWithRows(n.ch,d+1,nodeR);
+      flatWithRows.push({n,d,key,hasC,isE,nodeR:n.rows||[]});
+      if(isE&&hasC)flattenWithRows(n.ch,d+1);
     }
   }
-  flattenWithRows(tree,0,rows);
+  flattenWithRows(tree,0);
 
   // THEAD — two rows: [row header | day1 colspan=metrics | day2 colspan=metrics ...]
   // Row 1: blank + day headers
@@ -1262,7 +1553,7 @@ function renderDay(){
     const da=PF.agg(dayR);
     visMetrics.forEach((m,mi)=>{
       const v=da[m.key]||0;
-      const c2=m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):(m.key==='ret'?v?'neg':'neu':'');
+      const c2=m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):((m.key==='ret'||m.key==='retKg')?v?'neg':'neu':'');
       const isFirst=mi===0;const isLast=mi===numM-1;
       const bLeft=di>0&&isFirst?'border-left:2px solid var(--border);':'';
       const bRight=isLast?'border-right:2px solid var(--border);':'';
@@ -1275,7 +1566,7 @@ function renderDay(){
   // Если выбрана строка — показываем только её и её дочерние строки
   let visRows;
   if(focusedRow && focusedDepth >= 0){
-    const focusIdx = flatWithRows.findIndex(({n,d}) => n.name===focusedRow && d===focusedDepth);
+    const focusIdx = flatWithRows.findIndex(({n,d}) => n.key===focusedRow && d===focusedDepth);
     if(focusIdx >= 0){
       // Берём саму строку + все строки ГЛУБЖЕ (дочерние)
       const result = [flatWithRows[focusIdx]];
@@ -1305,9 +1596,10 @@ function renderDay(){
     const expBtn=hasC?`<button class="dt-exp${isE?' open':''}" onclick="dayToggle('${sk2}',this)">${isE?'▾':'▸'}</button>`:
                       `<span style="width:13px;display:inline-block"></span>`;
     const nc=n.ng?'dt-name dt-nog':'dt-name';
-    const isFocused=focusedRow===n.name;
+    const isFocused=focusedRow===n.key;
     const rowCls=`dt-lv${lv}${isFocused?' dt-focused':''}`;
-    const safeName=n.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const safeKey=escJs(n.key);
+    const safeName=escJs(n.name);
 
     // Day cells for this node
     const nodeByDay=PF.groupBy(nodeR,r=>r.day);
@@ -1318,15 +1610,15 @@ function renderDay(){
       visMetrics.forEach((m,mi)=>{
         const v=da?da[m.key]||0:null;
         const hasVal=da&&dayNodeRows.length>0;
-        const c2=hasVal?(m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):(m.key==='ret'?v?'neg':'neu':'')):'';
+        const c2=hasVal?(m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):((m.key==='ret'||m.key==='retKg')?v?'neg':'neu':'')):'';
         const bLeft=di>0&&mi===0?'border-left:2px solid var(--border);':'';
         const txt=hasVal&&v!==0?fmtCell(v,m.fmt,tRev):'<span class="empty-cell">—</span>';
         tds+=`<td class="dcell ${c2}" style="${bLeft}">${txt}</td>`;
       });
     });
 
-    const focusHint=(focusedRow===n.name&&focusedDepth===d)?'Нажми чтобы снять фильтр':'Нажми чтобы оставить только эту строку';
-    parts.push(`<tr class="${rowCls}"><td class="row-hdr"><div class="dt-rnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickRowName('${safeName}',${d})" title="${focusHint}">${n.name}${(focusedRow===n.name&&focusedDepth===d)?' <span style=\"font-size:9px;color:var(--accent);margin-left:4px\">✕</span>':''}</span></div></td>${tds}</tr>`);
+    const focusHint=(focusedRow===n.key&&focusedDepth===d)?'Нажми чтобы снять фильтр':'Нажми чтобы оставить только эту строку';
+    parts.push(`<tr class="${rowCls}"><td class="row-hdr"><div class="dt-rnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickRowName('${safeKey}','${safeName}',${d})" title="${focusHint}">${n.name}${(focusedRow===n.key&&focusedDepth===d)?' <span style=\"font-size:9px;color:var(--accent);margin-left:4px\">✕</span>':''}</span></div></td>${tds}</tr>`);
   }
 
   // CUMULATIVE ROW — нарастающий итог
@@ -1341,7 +1633,7 @@ function renderDay(){
 
       if(focusedRow){
         // Считаем по выбранной строке (только top-level, без дочерних дублей)
-        const focusedItem=flatWithRows.find(({n})=>n.name===focusedRow);
+        const focusedItem=flatWithRows.find(({n})=>n.key===focusedRow);
         if(focusedItem){
           const nodeByDay=PF.groupBy(focusedItem.nodeR,r=>r.day);
           const dayNodeRows=nodeByDay[day]||[];
@@ -1360,16 +1652,15 @@ function renderDay(){
       visMetrics.forEach((m,mi)=>{
         const isPrice=m.key==='priceZakup'||m.key==='priceZakupNds'||m.key==='priceSellNds'||m.key==='priceSellNoNds'||m.key==='profitUnitNds'||m.key==='profitUnitNoNds';
         if(!isPrice) cumAcc[m.key]+=(dayV[m.key]||0);
-        // Для цен: показываем текущее среднее из накопленных rev/qty
         const v=isPrice ? (dayV[m.key]||0) : cumAcc[m.key];
         const bLeft=di>0&&mi===0?'border-left:2px solid var(--border);':'';
-        const c2=(m.key==='prof'||m.key==='profNet'||m.id==='profitUnit')?(v>0?'pos':v<0?'neg':'pur'):isPrice?'':'pur';
+        const c2=(m.key==='prof'||m.id==='profitUnit')?(v>0?'pos':v<0?'neg':'pur'):'pur';
         cumTds+=`<td class="dcell ${c2}" style="${bLeft}font-size:10px;">${fmtCell(v,m.fmt,tRev)}</td>`;
       });
     });
 
-    const cumLabel=focusedRow?`Σ ${focusedRow.slice(0,20)}...`:'Σ нараст.';
-    parts.push(`<tr class="dt-cumul"><td class="row-hdr"><div class="dt-rnm"><span style="width:13px;display:inline-block"></span><span class="dt-cumul-name" title="Нарастающий итог${focusedRow?' по: '+focusedRow:''}">${cumLabel}</span></div></td>${cumTds}</tr>`);
+    const cumLabel=focusedName?`Σ ${focusedName.slice(0,20)}...`:'Σ нараст.';
+    parts.push(`<tr class="dt-cumul"><td class="row-hdr"><div class="dt-rnm"><span style="width:13px;display:inline-block"></span><span class="dt-cumul-name" title="Нарастающий итог${focusedName?' по: '+focusedName:''}">${cumLabel}</span></div></td>${cumTds}</tr>`);
   }
 
   document.getElementById('dTbody').innerHTML=parts.join('');
@@ -1386,46 +1677,49 @@ function dayToggle(key,btn){
 function toggleLv(depth){
   const btn=document.getElementById('btn'+depth);
   const isOpen=levelState[depth]==='open';
-  const tree=buildInnerTree(filtered(),getSF(),expanded);
-  // Если включён режим дат, кнопка «SKU» раскрывает только до SKU/контрагентов.
-  // Даты открываются вручную через ▸ у конкретного SKU/контрагента — так не создаём 43 000 строк сразу.
-  const maxDepth=(showMonthDates&&depth===2)?1:depth;
-  function set(ns,d){if(d>maxDepth)return;for(const n of ns){if(n.ch&&n.ch.length){isOpen?expanded.delete(n.name+'_d'+d):expanded.add(n.name+'_d'+d);set(n.ch,d+1);}}}
+  const tree=buildInnerTree(filtered(),getSF());
+  // Если включён режим дат, последняя кнопка иерархии не раскрывает сразу все даты.
+  const maxDepth=(showMonthDates&&depth>=rowDims.length-1&&!rowDims.includes('day'))?rowDims.length-2:depth;
+  function set(ns,d){
+    if(d>maxDepth)return;
+    for(const n of ns){
+      if(n.ch&&n.ch.length){isOpen?expanded.delete(n.key):expanded.add(n.key);set(n.ch,d+1);}
+    }
+  }
   set(tree,0);
   levelState[depth]=isOpen?'closed':'open';
-  btn.classList.toggle('lit',levelState[depth]==='open');
+  if(btn)btn.classList.toggle('lit',levelState[depth]==='open');
   renderMonth();
 }
 
-function collapseAll(){expanded.clear();levelState={};focusedRow=null;focusedDepth=-1;document.querySelectorAll('#btn0,#btn1,#btn2').forEach(b=>b.classList.remove('lit'));renderMonth();}
+function collapseAll(){expanded.clear();levelState={};focusedRow=null;focusedName=null;focusedDepth=-1;document.querySelectorAll('.lvl-month').forEach(b=>b.classList.remove('lit'));renderMonth();}
 
 function toggleMonthDates(){
   showMonthDates=!showMonthDates;
   const btn=document.getElementById('dateBtn');
   if(btn)btn.classList.toggle('lit',showMonthDates);
+  clearPivotState();
+  buildExpandButtons();
   renderMonth();
 }
 
 function toggleDayLv(depth){
   const btn=document.getElementById('dbtn'+depth);
   const isOpen=dayLevelState[depth]==='open';
-  const tree=buildInnerTree(filtered(),getSF(),dayExpanded);
-  function set(ns,d){if(d>depth)return;for(const n of ns){if(n.ch&&n.ch.length){const k='d_'+n.name+'_d'+d;isOpen?dayExpanded.delete(k):dayExpanded.add(k);set(n.ch,d+1);}}}
+  const tree=buildInnerTree(filtered(),getSF());
+  function set(ns,d){
+    if(d>depth)return;
+    for(const n of ns){
+      if(n.ch&&n.ch.length){isOpen?dayExpanded.delete(n.key):dayExpanded.add(n.key);set(n.ch,d+1);}
+    }
+  }
   set(tree,0);
   dayLevelState[depth]=isOpen?'closed':'open';
-  btn.classList.toggle('lit',dayLevelState[depth]==='open');
+  if(btn)btn.classList.toggle('lit',dayLevelState[depth]==='open');
   renderDay();
 }
 
-function collapseAllDay(){dayExpanded.clear();dayLevelState={};document.querySelectorAll('#dbtn0,#dbtn1,#dbtn2').forEach(b=>b.classList.remove('lit'));renderDay();}
-
-function swapH(){
-  hierarchy=hierarchy==='k'?'s':'k';
-  expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};
-  focusedRow=null;focusedDepth=-1;
-  document.getElementById('swLbl').textContent=hierarchy==='k'?'👥 Контрагент → SKU':'📦 SKU → Контрагент';
-  render();
-}
+function collapseAllDay(){dayExpanded.clear();dayLevelState={};document.querySelectorAll('.lvl-day').forEach(b=>b.classList.remove('lit'));renderDay();}
 
 let searchTimer=null;
 function onSearch(){
@@ -1476,45 +1770,23 @@ document.addEventListener('click', e => {
 });
 
 // ── ROW FOCUS FILTER ──────────────────────────────────────
-function clickRowName(name, depth){
-  if(focusedRow===name && focusedDepth===depth){
-    focusedRow=null; focusedDepth=-1;
+function clickRowName(key, name, depth){
+  if(focusedRow===key && focusedDepth===depth){
+    focusedRow=null; focusedName=null; focusedDepth=-1;
   } else {
-    focusedRow=name; focusedDepth=depth;
+    focusedRow=key; focusedName=name; focusedDepth=depth;
   }
   renderDay();
 }
-function clickMonthRow(name, depth){
-  // Глубина 3 — это строки дат в режиме «📅 По датам»; по ним фокус не включаем.
-  if(depth>=3)return;
-  if(focusedRow===name && focusedDepth===depth){
-    // Повторный клик — снимаем фокус
-    focusedRow=null; focusedDepth=-1;
+function clickMonthRow(key, name, depth){
+  // Авто-даты под последним уровнем не фокусируем, чтобы не путать фильтр строки с датой.
+  if(String(key).includes('dayAuto:'))return;
+  if(focusedRow===key && focusedDepth===depth){
+    focusedRow=null; focusedName=null; focusedDepth=-1;
   } else {
-    focusedRow=name; focusedDepth=depth;
+    focusedRow=key; focusedName=name; focusedDepth=depth;
   }
   renderMonth();
-}
-
-function applyDayDateRange(){
-  const from=document.getElementById('dayDateFrom').value||'';
-  const to=document.getElementById('dayDateTo').value||'';
-  // Filter selectedDays by range
-  if(from||to){
-    selectedDays.clear();
-    allDays.forEach(d=>{
-      if(from && d<from) return;
-      if(to && d>to) return;
-      selectedDays.add(d);
-    });
-  }
-  renderDay();
-}
-function clearDayDateRange(){
-  document.getElementById('dayDateFrom').value='';
-  document.getElementById('dayDateTo').value='';
-  selectedDays=new Set(allDays);
-  renderDay();
 }
 
 function toggleCumulative(){
@@ -1527,7 +1799,7 @@ function toggleCumulative(){
 async function reloadData(){
   document.getElementById('ls').style.display='flex';
   document.getElementById('prog').style.width='0%';
-  rawRows=[];expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};
+  rawRows=[];expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};focusedRow=null;focusedName=null;focusedDepth=-1;
   await loadData();
 }
 
