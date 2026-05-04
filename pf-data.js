@@ -82,16 +82,17 @@ const PF = {
 
   // ── АГРЕГАЦИЯ ────────────────────────────────────────────────
   agg(rows) {
-    let qty=0,rev=0,ret=0,seb=0,sebWithNds=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0,sebWithNdsRealSum=0,sumRealTotal=0,revSaleOnly=0,sebSaleOnly=0;
+    let qty=0,rev=0,ret=0,seb=0,sebWithNds=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0,sebWithNdsRealSum=0,sumRealTotal=0,sumRealSTotal=0,revSaleOnly=0,sebSaleOnly=0;
     for (const x of rows) {
       qty        += x.qtyN;
       rev        += x.sumBezNds;
       ret        += x.sumR;
       sumRealTotal += (x.sumReal||0);
+      sumRealSTotal += (x.sumRealS||0);   // Сумма реал с возвратами (колонка L)
       // Для profNet: только строки продаж (не возвратов)
       if((x.qtyReal||0) > 0){
-        revSaleOnly += (x.sumBezNds||0);  // выручка только от продаж
-        sebSaleOnly += (x.seb||0);        // себест только от продаж
+        revSaleOnly += (x.sumBezNds||0);  // выручка только от продаж (без НДС)
+        sebSaleOnly += (x.sebSale||x.seb||0);  // себест только от продаж (priceNoNds × qtyReal)
       }
       seb        += x.seb;
       sebWithNds += (x.sebWithNds ?? x.seb);
@@ -123,7 +124,8 @@ const PF = {
       qtyReal:        Math.round(qtyRealSum), // Кол-во реализации (без возвратов)
       qtyRet:         Math.round(qty - qtyRealSum < 0 ? qty - qtyRealSum : 0), // Кол-во возвратов
       rev:            Math.round(rev),
-      sumReal:        Math.round(sumRealSum),    // Сумма реализации с НДС (из строк продаж)
+      sumReal:        Math.round(sumRealTotal),   // Сумма реализации с НДС (колонка J, все строки)
+      sumRealS:       Math.round(sumRealSTotal),  // Сумма реализации с возвратами (колонка L = J+K)
       ret:            Math.round(ret),
       retPct:         Math.round(retPct*10)/10,
       seb:            Math.round(seb),
@@ -264,6 +266,7 @@ const PF = {
     // Точный поиск без скобок — для цен
     const iQtyReal  = rH.findIndex(h=>h==='количествореализации');
     const iSumReal  = rH.findIndex(h=>h==='суммареализации');
+    const iSumRealS = rH.findIndex(h=>h==='суммареализации(свозвратами)');
 
     p(65,'Обработка строк...');
     const rawRows=[];
@@ -289,6 +292,7 @@ const PF = {
 
       const qtyReal  =this.toNum(r[iQtyReal]);
       const sumReal  =this.toNum(r[iSumReal]);
+      const sumRealS =iSumRealS>=0 ? this.toNum(r[iSumRealS]) : (sumReal + sumR);  // J+K или колонка L
       const qtyN     =this.toNum(r[iQtyN]);
       const qtyR     =Math.abs(this.toNum(r[iQtyR]));
       const sumBezNds=this.toNum(r[iSumBezNds]);
@@ -319,7 +323,7 @@ const PF = {
         group:    groupMap[knt]||'⚠️ Без группы',
         skuGroup: skuGroup[sku]||'Прочее',
         weight:w,
-        qtyN,qtyR,qtyReal,sumReal,
+        qtyN,qtyR,qtyReal,sumReal,sumRealS,
         sumBezNds,
         sumR,
         seb:          sebNew,
