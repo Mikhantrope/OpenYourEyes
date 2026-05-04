@@ -242,11 +242,33 @@ const PF = {
     const kH=kRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
     const ki=(...ns)=>this.findCol(kH,...ns);
     const groupMap={};
+    const groupMapNorm={};  // нормализованный ключ для нечёткого сопоставления
+    const normKey = s => s.toLowerCase().replace(/\s+/g,' ').replace(/[«»"'`]/g,'').trim();
     for (let i=1;i<kRows.length;i++) {
       const knt=String(kRows[i][ki('контрагент','kontragent')]||'').trim();
       const grp=String(kRows[i][ki('новаягруппа','новая','группа')]||'').trim();
-      if (knt) groupMap[knt]=grp||'⚠️ Без группы';
+      if (knt) {
+        groupMap[knt]=grp||'⚠️ Без группы';
+        groupMapNorm[normKey(knt)]=grp||'⚠️ Без группы';
+      }
     }
+    // Функция поиска группы: 3 уровня
+    // 1) точное совпадение
+    // 2) нормализованное (lowercase, без кавычек, trim)
+    // 3) fallback по первым 20 символам (нечёткое)
+    const groupMapPrefix={};
+    for(const [k,v] of Object.entries(groupMap)){
+      const pfx = normKey(k).slice(0,20);
+      if(!groupMapPrefix[pfx]) groupMapPrefix[pfx]=v;
+    }
+    const findGroup = knt => {
+      if(groupMap[knt]) return groupMap[knt];
+      const nk = normKey(knt);
+      if(groupMapNorm[nk]) return groupMapNorm[nk];
+      const pfx = nk.slice(0,20);
+      if(groupMapPrefix[pfx]) return groupMapPrefix[pfx];
+      return '⚠️ Без группы';
+    };
 
     // 3. ИсхРеал
     p(45,'Данные реализации...');
@@ -320,7 +342,7 @@ const PF = {
           if(!hasReturn && sumReal && Math.abs(sumBezNds - sumReal/1.16) > 5) return true;
           return false;
         })(),
-        group:    groupMap[knt]||'⚠️ Без группы',
+        group:    findGroup(knt),
         skuGroup: skuGroup[sku]||'Прочее',
         weight:w,
         qtyN,qtyR,qtyReal,sumReal,sumRealS,
