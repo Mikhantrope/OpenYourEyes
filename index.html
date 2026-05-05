@@ -1385,9 +1385,14 @@ function buildInnerTree(rows,sf){
         m:PF.agg(gr),ch:[]
       };
       const children=build(gr,depth+1,nPath);
-      node.ch=(dateAsAuto&&depth+1>=dims.length)?children:children.sort(sf);
+      // Даты сортируем по хронологии, остальное по выбранной сортировке
+      if(dateAsAuto && depth+1>=dims.length){
+        node.ch=children.sort((a,b)=>(a.value||'').localeCompare(b.value||''));
+      } else {
+        node.ch=children.sort(sf);
+      }
       return node;
-    }).sort(sf);
+    }).sort((a,b)=>a.isDate ? (a.value||'').localeCompare(b.value||'') : sf(a,b));
   }
   return build(rows,0,[]);
 }
