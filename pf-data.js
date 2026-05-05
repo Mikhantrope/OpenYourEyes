@@ -264,11 +264,18 @@ const PF = {
     const findGroup = knt => {
       // Торговые точки — всегда группа "Торговые точки"
       if(knt.startsWith('ТТ ')) return 'Торговые точки';
+      // 1) Точное совпадение
       if(groupMap[knt]) return groupMap[knt];
       const nk = normKey(knt);
+      // 2) Нормализованное
       if(groupMapNorm[nk]) return groupMapNorm[nk];
+      // 3) По первым 20 символам
       const pfx = nk.slice(0,20);
       if(groupMapPrefix[pfx]) return groupMapPrefix[pfx];
+      // 4) Substring: если справочник содержит наше имя или наоборот
+      for(const [k,v] of Object.entries(groupMapNorm)){
+        if(k.length>5 && nk.length>5 && (k.includes(nk) || nk.includes(k))) return v;
+      }
       return '⚠️ Без группы';
     };
 
