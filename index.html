@@ -475,6 +475,8 @@ tr.dt-dimmed{opacity:.25;}
       <span style="font-size:10px;color:var(--muted)">❓ Подсказки</span>
     </label>
     <span style="font-size:10px;color:var(--dim)" id="luTime"></span>
+    <button onclick="copyReport()" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:var(--s2);color:var(--muted);font-size:10px;cursor:pointer" title="Скопировать отчёт для WhatsApp">📋 Копировать</button>
+    <button onclick="screenshotTable()" style="padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:var(--s2);color:var(--muted);font-size:10px;cursor:pointer" title="Скриншот таблицы">📸 Скрин</button>
   </div>
 </div>
 
@@ -1782,6 +1784,106 @@ function onSearch(){
 
 // ── INFO POPUP ────────────────────────────────────────────
 let hintMode = true;
+
+function copyReport(){
+  const rows = filtered();
+  const tot = PF.agg(rows);
+  const mNames = {1:'Январь',2:'Февраль',3:'Март',4:'Апрель',5:'Май',6:'Июнь',7:'Июль',8:'Август',9:'Сентябрь',10:'Октябрь',11:'Ноябрь',12:'Декабрь'};
+  
+  // Определяем период
+  let period = 'Все месяцы';
+  if(!selectedMonths.has('all') && selectedMonths.size > 0){
+    const ms = [...selectedMonths].map(m => {
+      const n = parseInt(m.split('-')[1]);
+      return mNames[n] || m;
+    });
+    period = ms.join(', ');
+  }
+  if(dateFrom || dateTo) period = `${dateFrom||'...'} — ${dateTo||'...'}`;
+
+  // Топ-5 контрагентов
+  const kntMap = {};
+  for(const r of rows){
+    if(!kntMap[r.knt]) kntMap[r.knt] = {rev:0, prof:0};
+    kntMap[r.knt].rev += r.sumBezNds;
+    kntMap[r.knt].prof += r.prof;
+  }
+  const topKnts = Object.entries(kntMap)
+    .sort((a,b) => b[1].rev - a[1].rev)
+    .slice(0,5)
+    .map(([knt,d]) => {
+      const mar = d.rev ? (d.prof/d.rev*100).toFixed(1) : '0';
+      return `  ${knt.slice(0,30)}: ${PF.fmtRev(d.rev)}₸ (${mar}%)`;
+    });
+
+  // Проблемы
+  const problems = [];
+  const negKnts = Object.entries(kntMap).filter(([,d]) => d.rev > 500000 && d.prof/d.rev < -0.05);
+  if(negKnts.length > 0) problems.push(`${negKnts.length} убыточных клиентов (>500к)`);
+  if(tot.retPct > 3) problems.push(`Возвраты ${tot.retPct}% (норма <3%)`);
+
+  const text = [
+    `📊 PF Analytics — ${period}`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `Выручка: ${PF.fmtRev(tot.rev)} ₸`,
+    `Себестоимость: ${PF.fmtRev(tot.seb)} ₸`,
+    `Прибыль: ${PF.fmtRev(tot.prof)} ₸`,
+    `Маржа: ${tot.mar > 0 ? '+' : ''}${tot.mar.toFixed(1)}%`,
+    `Возвраты: ${PF.fmtRev(Math.abs(tot.ret))} ₸ (${tot.retPct}%)`,
+    `Кол-во: ${PF.fmtQty(tot.qtyReal)} шт (реал.)`,
+    ``,
+    `🏆 Топ-5 контрагентов:`,
+    ...topKnts,
+    problems.length > 0 ? `\n⚠️ Проблемы:\n  ${problems.join('\n  ')}` : '\n✅ Критических проблем нет',
+    ``,
+    `PF Analytics · ${new Date().toLocaleDateString('ru')}`
+  ].join('\n');
+
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const old = btn.textContent;
+    btn.textContent = '✅ Скопировано!';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => { btn.textContent = old; btn.style.color = 'var(--muted)'; }, 2000);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('Скопировано!');
+  });
+}
+
+function screenshotTable(){
+  const el = document.getElementById('monthView') || document.getElementById('dayView');
+  if(!el) return alert('Таблица не найдена');
+  
+  // Use html2canvas if available, otherwise simple approach
+  if(typeof html2canvas !== 'undefined'){
+    html2canvas(el, {backgroundColor:'#07090f'}).then(canvas => {
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'pf-report-' + new Date().toISOString().slice(0,10) + '.png';
+        a.click(); URL.revokeObjectURL(url);
+      });
+    });
+  } else {
+    // Fallback: select table content for manual screenshot
+    const range = document.createRange();
+    range.selectNode(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    
+    const btn = event.target;
+    const old = btn.textContent;
+    btn.textContent = '📸 Выделено — нажми Ctrl+C';
+    btn.style.color = 'var(--amber)';
+    setTimeout(() => { btn.textContent = old; btn.style.color = 'var(--muted)'; sel.removeAllRanges(); }, 3000);
+  }
+}
 
 function toggleHintMode(on) {
   hintMode = on;
