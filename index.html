@@ -564,9 +564,9 @@ tr.dt-dimmed{opacity:.25;}
 // ── MONTH MODE COLUMNS (v2026-04-23 06:08) ──────────────────────────────────────
 
 // Сброс порядка колонок при новой версии
-const MCOL_VER='20260505';
+const MCOL_VER='20260505b';
 if(typeof localStorage!=='undefined'&&localStorage.getItem('mcolVer')!==MCOL_VER){
-  try{localStorage.removeItem('monthColOrder');localStorage.removeItem('monthColState');localStorage.setItem('mcolVer',MCOL_VER);}catch(e){}
+  try{localStorage.removeItem('pf.monthCols.v1');localStorage.removeItem('pf.dayCols.v1');localStorage.setItem('mcolVer',MCOL_VER);}catch(e){}
 }
 const MCOLS=[
   {id:'qtyReal',  lbl:'Реал.',       key:'qtyReal',     fmt:'qty', on:true,
@@ -633,7 +633,7 @@ const MCOLS=[
     doc:{formula:'Цена продажи − Цена закупа',source:'Считается на сайте: (СуммаРеал/КолвоРеал) − (Себест/КолвоРеал)',meaning:'Заработок или убыток на одной штуке. В режиме б/НДС: цена продажи без НДС − закуп без НДС; в режиме НДС: цена продажи с НДС − закуп с НДС',example:'Цена продажи 395 ₸ − Закуп 332 ₸ = Профит +63 ₸/шт'}}
 ];;
 const MCOL_STORAGE_KEY='pf.monthCols.v1';
-const ALWAYS_MONTH_COLS=['share'];
+const ALWAYS_MONTH_COLS=[];  // все колонки опциональные
 
 function normalizeToggleOrder(order,defs,onMap,alwaysIds=[]){
   const valid=new Set(defs.map(d=>d.id));
