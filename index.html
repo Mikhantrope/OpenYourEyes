@@ -653,8 +653,8 @@ const MCOLS=[
     tip:'Физический объём возвратов в кг',
     doc:{formula:'Количество возвратов × Вес единицы SKU',source:'Колонка H в ИсхРеал × Вес из SKUСправочник',meaning:'Показывает, сколько кг товара вернули. Колонка скрыта по умолчанию и включается в Столбцах',example:'Вернули 3 шт по 1 кг → Возвр. кг = 3.0 кг'}},
   {id:'avg',      lbl:'Ср.цена ₸',  key:'avg',         fmt:'full',on:false,
-    tip:'Средняя цена продажи',
-    doc:{formula:'Выручка ÷ Кол-во (с возвратами)',source:'Считается на сайте',meaning:'Средняя цена за единицу товара по данной группе/контрагенту/SKU',example:'Выручка 100 000 ÷ 200 шт = 500 ₸/шт'}},
+    tip:'Ср. цена продажи = Выручка продаж ÷ Реал. (без возвратов)',
+    doc:{formula:'Выручка продаж ÷ Кол-во реал. (только строки продаж, без возвратов)',source:'Считается на сайте',meaning:'Средняя цена за единицу товара по данной группе/контрагенту/SKU',example:'Выручка 100 000 ÷ 200 шт = 500 ₸/шт'}},
   {id:'share',    lbl:'Доля %',      key:'_sh',         fmt:'share',on:false,
     tip:'Доля — переключается через кнопку: по выручке / по кг / по сумме реал.',
     doc:{formula:'Выручка строки ÷ Выручка ИТОГО × 100%',source:'Считается на сайте',meaning:'Показывает вклад этого контрагента/группы/SKU в общую выручку',example:'Кофейни 30 млн ÷ Всего 300 млн = 10%'}},
@@ -1105,8 +1105,8 @@ function setDayMetricState(id,on,append=true){
 }
 function buildCtogs(){
   const el=document.getElementById('ctogs');
-  const active=getVisibleMonthCols().filter(c=>c.id!=='share');
-  const inactive=MCOLS.filter(c=>c.id!=='share'&&!mColOn[c.id]);
+  const active=getVisibleMonthCols();
+  const inactive=MCOLS.filter(c=>!mColOn[c.id]);
   const activeHtml=active.map((c,i)=>
     `<span class="ctog on col-chip" draggable="true" title="${escHtml(c.tip||'')} · Перетащи или двигай стрелками" ondragstart="onMonthColDragStart(event,${i})" ondragend="onMonthColDragEnd(event)" ondragover="onMonthColDragOver(event)" ondrop="onMonthColDrop(event,${i})">`+
     `<span class="col-n">${i+1}</span><span onclick="toggleMCol('${c.id}',this)">${c.lbl}</span>`+
@@ -1298,9 +1298,15 @@ function setAvgMode(mode,el){
   document.getElementById('avgDD').classList.remove('open');render();
 }
 function calcAvg(rows){
+  // Ср.цена считается ТОЛЬКО по строкам продаж (qtyReal>0), без возвратов
   const fn=avgMode==='sku'?r=>r.sku:avgMode==='knt'?r=>r.knt:r=>r.group;
   const byG=PF.groupBy(rows,fn);
-  const avgs=Object.values(byG).map(g=>{const q=g.reduce((s,r)=>s+r.qtyN,0);const v=g.reduce((s,r)=>s+r.sumBezNds,0);return q?v/q:0;}).filter(v=>v>0);
+  const avgs=Object.values(byG).map(g=>{
+    const saleRows=g.filter(r=>(r.qtyReal||0)>0);
+    const q=saleRows.reduce((s,r)=>s+(r.qtyReal||0),0);
+    const v=saleRows.reduce((s,r)=>s+(r.sumBezNds||0),0);
+    return q?v/q:0;
+  }).filter(v=>v>0);
   return avgs.length?Math.round(avgs.reduce((s,v)=>s+v,0)/avgs.length):0;
 }
 
