@@ -291,6 +291,7 @@ const PF = {
     const iQtyReal  = rH.findIndex(h=>h==='количествореализации');
     const iSumReal  = rH.findIndex(h=>h==='суммареализации');
     const iSumRealS = rH.findIndex(h=>h==='суммареализации(свозвратами)');
+    const iSklad    = ri('склад');
 
     p(65,'Обработка строк...');
     const rawRows=[];
