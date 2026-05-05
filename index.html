@@ -460,6 +460,8 @@ tr.dt-dimmed{opacity:.25;}
       <div class="avo" onclick="setAvgMode('grp',this)">🏢 По группе</div>
     </div>
   </div>
+  <div class="kpi"><div class="kpi-lbl">АКБ</div><div class="kpi-val grn" id="k-akb">—</div><div class="kpi-sub">активная база</div><div class="ktip">Уникальные контрагенты с продажами в текущем периоде</div></div>
+  <div class="kpi"><div class="kpi-lbl">Контрагентов</div><div class="kpi-val blue" id="k-kntcnt">—</div><div class="kpi-sub">всего в выборке</div></div>
 </div>
 
 <!-- TOOLBAR (shared) -->
@@ -1000,6 +1002,11 @@ function updateKPIs(){
   document.getElementById('k-ret').textContent=PF.fmtRev(tot.ret)+' ₸';
   document.getElementById('k-retpct').textContent=PF.fmtPctAbs(tot.retPct);
   document.getElementById('k-avg').textContent=PF.fmtFull(calcAvg(rows))+' ₸';
+  // АКБ — уникальные контрагенты с продажами
+  const akbSet=new Set(); const kntSet=new Set();
+  for(const r of rows){ kntSet.add(r.knt); if((r.qtyReal||0)>0) akbSet.add(r.knt); }
+  document.getElementById('k-akb').textContent=akbSet.size;
+  document.getElementById('k-kntcnt').textContent=kntSet.size;
 }
 
 // ── FILTERS ───────────────────────────────────────────────
@@ -1244,7 +1251,32 @@ function moveRowDim(idx,dir){
   const ni=idx+dir; if(ni<0||ni>=rowDims.length)return;
   [rowDims[idx],rowDims[ni]]=[rowDims[ni],rowDims[idx]]; onRowDimsChanged();
 }
-function resetRowDims(){ rowDims=[...DEFAULT_ROW_DIMS]; showMonthDates=false; onRowDimsChanged(); }
+function resetRowDims(){
+  rowDims=[...DEFAULT_ROW_DIMS]; showMonthDates=false;
+  // Сброс колонок к дефолту
+  const defaultOn = ['qtyReal','qty','qtyRet','rev','sumReal','ret','seb','prof'];
+  MCOLS.forEach(c => { mColOn[c.id] = defaultOn.includes(c.id); });
+  // Сброс sumReal key
+  const mSR = MCOLS.find(c=>c.id==='sumReal');
+  if(mSR){ mSR.key='sumRealS'; mSR.lbl='Сумма реал.(факт)'; }
+  // Сброс profMode
+  profMode='std';
+  mColOn['prof']=true; mColOn['profNet']=false;
+  document.getElementById('profModeStd').classList.add('active');
+  document.getElementById('profModeNet').classList.remove('active');
+  // Сброс shareMode
+  shareMode='rev';
+  const mSh=MCOLS.find(c=>c.id==='share');
+  if(mSh) mSh.lbl='Доля(выр.)';
+  document.getElementById('shareModeRev').classList.add('active');
+  document.getElementById('shareModeKg').classList.remove('active');
+  document.getElementById('shareModeProf').classList.remove('active');
+  // Сохранить и перерисовать
+  if(typeof saveMonthCols==='function') saveMonthCols();
+  onRowDimsChanged();
+  buildMHeader();
+  render();
+}
 function onDimDragStart(ev,idx){ dimDragFrom=idx; ev.currentTarget.classList.add('dragging'); ev.dataTransfer.effectAllowed='move'; ev.dataTransfer.setData('text/plain',String(idx)); }
 function onDimDragEnd(ev){ ev.currentTarget.classList.remove('dragging'); dimDragFrom=null; }
 function onDimDragOver(ev){ ev.preventDefault(); ev.dataTransfer.dropEffect='move'; }
