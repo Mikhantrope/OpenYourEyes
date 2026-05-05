@@ -90,6 +90,13 @@ select.sel{background:var(--surface2);border:1px solid var(--border);color:var(-
 .ctog{padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--muted);font-size:10px;cursor:pointer;white-space:nowrap;}
 .ctog.on{background:rgba(47,129,247,.15);border-color:var(--accent);color:#58a6ff;}
 
+.col-chip{display:inline-flex;align-items:center;gap:4px;cursor:grab;user-select:none;}
+.col-chip:active{cursor:grabbing;}
+.col-chip.dragging{opacity:.45;border-style:dashed;}
+.col-n{font-family:'Consolas',monospace;font-size:9px;color:var(--dim);}
+.col-chip .dim-x{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:0 1px;}
+.col-chip .dim-x:hover{color:var(--red);}
+
 /* AVG WIDGET */
 .avgw{position:relative;}
 .avgdd{display:none;position:absolute;top:calc(100%+4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;z-index:500;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,.4);}
@@ -187,7 +194,6 @@ tr.tot td{font-weight:700;}
 .mchip{padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--muted);font-size:10px;cursor:pointer;transition:all .15s;white-space:nowrap;}
 .mchip.on{background:rgba(47,129,247,.15);border-color:var(--accent);color:#58a6ff;}
 
-
 /* Pivot hierarchy builder */
 .pivot-builder{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:260px;}
 .dim-list{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
@@ -202,7 +208,11 @@ tr.tot td{font-weight:700;}
 .dim-empty{font-size:10px;color:var(--amber);border:1px dashed var(--amber);padding:3px 8px;border-radius:6px;}
 
 /* Horizontal day table */
-.day-table-outer{flex:1;overflow:auto;position:relative;}
+.day-table-outer{flex:1;overflow-x:scroll;overflow-y:auto;position:relative;scroll-behavior:smooth;}
+.day-table-outer::-webkit-scrollbar{height:10px;}
+.day-table-outer::-webkit-scrollbar-track{background:var(--s2);border-radius:5px;}
+.day-table-outer::-webkit-scrollbar-thumb{background:var(--muted);border-radius:5px;border:2px solid var(--s2);}
+.day-table-outer::-webkit-scrollbar-thumb:hover{background:var(--accent);}
 .day-table-container{min-width:100%;}
 
 table.dtable{border-collapse:collapse;table-layout:auto;width:max-content;min-width:100%;}
@@ -322,21 +332,42 @@ tr.dt-dimmed{opacity:.25;}
 .ip-toggle input{cursor:pointer;}
 .hint-mode-off .info-btn{display:none;}
 
-.copy-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+/* Export buttons */
+
 .copy-btn{padding:4px 9px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;}
+
 .copy-btn:hover{border-color:var(--accent);color:var(--accent);}
+
 .copy-btn.busy{opacity:.75;pointer-events:none;}
+
 .copy-btn.ok{border-color:rgba(63,185,80,.45);color:var(--green);}
+
 .copy-btn.err{border-color:rgba(248,81,73,.45);color:var(--red);}
+
+/* Export screenshot */
+
 .export-shot{position:fixed;left:0;top:0;transform:translateX(-150vw);z-index:-1;background:#0d1117;color:#e6edf3;padding:14px;font-family:'Segoe UI',system-ui,sans-serif;max-width:none;}
+
 .export-shot-title{font-size:14px;font-weight:800;margin-bottom:8px;color:#e6edf3;}
+
 .export-shot-sub{font-size:10px;color:#8b949e;margin-bottom:10px;}
+
 .export-shot table{border-collapse:collapse!important;table-layout:auto!important;width:auto!important;min-width:auto!important;background:#0d1117!important;}
+
 .export-shot th,.export-shot td{position:static!important;left:auto!important;top:auto!important;z-index:auto!important;padding:5px 8px!important;border:1px solid #30363d!important;white-space:nowrap!important;font-size:11px!important;}
+
 .export-shot th{background:#21262d!important;color:#8b949e!important;font-weight:800!important;text-align:right!important;}
+
 .export-shot th:first-child,.export-shot td:first-child{text-align:left!important;min-width:210px!important;max-width:360px!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+
 .export-shot td{background:#161b22!important;color:#e6edf3!important;}
+
 .export-shot tr.tot td,.export-shot tr.dt-tot td{background:#0f2018!important;color:#e6edf3!important;font-weight:800!important;}
+
+.export-shot .pos{color:#3fb950!important}
+
+.export-shot .pos{color:#3fb950!important}.export-shot .neg{color:#f85149!important}
+
 .export-shot .pos{color:#3fb950!important}.export-shot .neg{color:#f85149!important}.export-shot .neu{color:#d29922!important}
 </style>
 </head>
@@ -379,22 +410,29 @@ tr.dt-dimmed{opacity:.25;}
       <button class="pv-btn active" data-vat-mode="no" onclick="setPriceNds(false)">б/НДС</button>
       <button class="pv-btn" data-vat-mode="yes" onclick="setPriceNds(true)">с НДС</button>
     </div>
-    <div class="price-vat-switch" title="Факт = валовая прибыль с учётом возвратов. Только продажи = валовая прибыль по строкам продаж, возвраты исключены." style="margin-left:4px">
-      <span class="pv-label">Вид прибыли</span>
+    <div class="price-vat-switch" title="Факт = все суммы с учётом возвратов. Без возвр. = только продажи." style="margin-left:4px">
+      <span class="pv-label">Реализация</span>
       <button class="pv-btn active" id="profModeStd" onclick="setProfMode('std')">Факт</button>
-      <button class="pv-btn" id="profModeNet" onclick="setProfMode('net')">Только продажи</button>
+      <button class="pv-btn" id="profModeNet" onclick="setProfMode('net')">Без возвр.</button>
     </div>
-    <div class="price-vat-switch" title="Меняет базу расчёта колонки Доля %" style="margin-left:4px">
+    <div class="price-vat-switch" title="Переключает расчёт колонки Доля %" style="margin-left:4px">
       <span class="pv-label">Доля по</span>
       <button class="pv-btn active" id="shareModeRev" onclick="setShareMode('rev')">Выручка</button>
       <button class="pv-btn" id="shareModeKg" onclick="setShareMode('kg')">Кг</button>
-      <button class="pv-btn" id="shareModeSumR" onclick="setShareMode('sumReal')">Сумма реал.</button>
+      <button class="pv-btn" id="shareModeProf" onclick="setShareMode('prof')">Прибыль</button>
     </div>
     <div class="live-b"><div class="ldot"></div>Live</div>
     <button class="ibtn" onclick="reloadData()">⟳</button>
     <div style="display:flex;align-items:center;gap:4px;">
       <span style="font-size:9px;color:var(--dim)">Ctrl+клик=мульти</span>
       <div class="pills" id="periodPills"><button class="pill active" data-m="all">Все</button></div>
+      <div style="display:flex;align-items:center;gap:3px;font-size:10px;color:var(--muted)">
+        <span>Период:</span>
+        <input type="date" id="dateFrom" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:10px;font-family:var(--mono)" onchange="applyDateRange()">
+        <span>—</span>
+        <input type="date" id="dateTo" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:10px;font-family:var(--mono)" onchange="applyDateRange()">
+        <button class="pill" onclick="clearDateRange()" style="font-size:9px;padding:2px 6px" title="Сбросить период">✕</button>
+      </div>
     </div>
   </div>
 </div>
@@ -405,13 +443,10 @@ tr.dt-dimmed{opacity:.25;}
   <div class="kpi"><div class="kpi-lbl">Кол-во (шт)</div><div class="kpi-val blue" id="k-qty">—</div><div class="kpi-sub">целых единиц</div></div>
   <div class="kpi"><div class="kpi-lbl">Объём (кг)</div><div class="kpi-val blue" id="k-kg">—</div><div class="kpi-sub">кг = кол-во × вес</div></div>
   <div class="kpi"><div class="kpi-lbl" id="k-seb-lbl">Себестоимость (б/НДС)</div><div class="kpi-val amb" id="k-seb">—</div><div class="kpi-sub" id="k-seb-sub">финансовая база без НДС</div><div class="ktip">Себестоимость пересчитывается по цене прихода без НДС: если в приходе есть НДС, он вычитается; если НДС нет — цена не делится. Это база для прибыли и маржи.</div></div>
-  <div class="kpi"><div class="kpi-lbl">Вал.прибыль факт</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">с учётом возвратов</div><div class="ktip">Валовая прибыль ФАКТ = выручка без НДС уже после возвратов − себестоимость из прихода. Это прибыль ДО зарплаты, аренды, логистики и прочих расходов P&amp;L.</div></div>
+  <div class="kpi"><div class="kpi-lbl">Прибыль</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">Выручка − Себест.</div><div class="ktip">«Profit» из 1С = Выручка без НДС − Себестоимость<br>⚠️ Валовая прибыль, ДО косвенных затрат</div></div>
   <div class="kpi"><div class="kpi-lbl">Маржа %</div><div class="kpi-val" id="k-mar">—</div><div class="kpi-sub">Прибыль ÷ Выручка</div></div>
   <div class="kpi"><div class="kpi-lbl">Возвраты</div><div class="kpi-val red" id="k-ret">—</div><div class="kpi-sub">сумма возвратов</div></div>
   <div class="kpi"><div class="kpi-lbl">Возврат %</div><div class="kpi-val red" id="k-retpct">—</div><div class="kpi-sub">|Возврат| ÷ Выручка</div></div>
-  <div class="kpi"><div class="kpi-lbl">Возврат кг</div><div class="kpi-val red" id="k-retkg">—</div><div class="kpi-sub">объём возврата</div><div class="ktip">Сумма веса возвратов: количество возврата × вес SKU</div></div>
-  <div class="kpi"><div class="kpi-lbl">АКБ</div><div class="kpi-val grn" id="k-akb">—</div><div class="kpi-sub">активная база</div><div class="ktip">Уникальные контрагенты, у которых были продажи в выбранном периоде/фильтре</div></div>
-  <div class="kpi"><div class="kpi-lbl">Контрагентов</div><div class="kpi-val blue" id="k-kntcnt">—</div><div class="kpi-sub">в текущем фильтре</div><div class="ktip">Все уникальные контрагенты в текущей выборке, включая строки с возвратами</div></div>
   <div class="kpi avgw" id="avgW" onclick="toggleAvgDD(event)">
     <div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
       <span id="avgLbl">Ср. цена</span><span style="color:var(--accent);font-size:10px">▾</span>
@@ -456,7 +491,7 @@ tr.dt-dimmed{opacity:.25;}
     <span class="tlbl">Сортировка:</span>
     <select class="sel" id="sortSel" onchange="renderMonth()">
       <option value="rev_d">Выручка ↓</option>
-      <option value="prof_d">Вал.прибыль факт ↓</option>
+      <option value="prof_d">Прибыль ↓</option>
       <option value="qty_d">Кол-во ↓</option>
       <option value="kg_d">Объём кг ↓</option>
       <option value="mar_d">Маржа ↓</option>
@@ -478,10 +513,7 @@ tr.dt-dimmed{opacity:.25;}
       <span style="font-size:10px;color:var(--muted)">❓ Подсказки</span>
     </label>
     <span style="font-size:10px;color:var(--dim)" id="luTime"></span>
-    <div class="copy-actions">
-      <button class="copy-btn" onclick="copyTableImage(event)" title="Копирует текущую таблицу картинкой в буфер. Потом можно вставить в WhatsApp/чат Ctrl+V">📸 Скрин таблицы</button>
-      <button class="copy-btn" onclick="copyTableText(event)" title="Копирует короткий понятный отчёт для WhatsApp">📋 Текст WhatsApp</button>
-    </div>
+    
   </div>
 </div>
 
@@ -519,6 +551,13 @@ tr.dt-dimmed{opacity:.25;}
       </div>
     </div>
     <div class="day-filter-info">Показано: <span id="dayShowCount">—</span> дн. из <span id="dayTotalCount">—</span></div>
+    <div style="display:flex;align-items:center;gap:3px;font-size:10px;color:var(--muted)">
+      <span>Период:</span>
+      <input type="date" id="dayDateFrom" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:2px 5px;border-radius:4px;font-size:10px;font-family:var(--mono)" onchange="applyDayDateRange()">
+      <span>—</span>
+      <input type="date" id="dayDateTo" style="background:var(--s2);border:1px solid var(--border);color:var(--text);padding:2px 5px;border-radius:4px;font-size:10px;font-family:var(--mono)" onchange="applyDayDateRange()">
+      <button class="pill" onclick="clearDayDateRange()" style="font-size:9px;padding:2px 5px">✕</button>
+    </div>
     <button class="cumul-btn" id="cumulBtn" onclick="toggleCumulative()" title="Показать/скрыть нарастающий итог под каждым днём">
       Σ Нарастающий итог
     </button>
@@ -543,9 +582,9 @@ tr.dt-dimmed{opacity:.25;}
   </div>
   <div class="ip-body">
     <div class="ip-row"><div class="ip-label">📐 Формула</div><div class="ip-val" id="ipFormula">—</div></div>
-    <div class="ip-row"><div class="ip-label">📋 Откуда берётся</div><div class="ip-val" id="ipSource">—</div></div>
-    <div class="ip-row"><div class="ip-label">💡 Как читать показатель</div><div class="ip-val meaning" id="ipMeaning">—</div></div>
-    <div class="ip-row"><div class="ip-label">🔢 Простой пример</div><div class="ip-val example" id="ipExample">—</div></div>
+    <div class="ip-row"><div class="ip-label">📋 Источник в 1С</div><div class="ip-val" id="ipSource">—</div></div>
+    <div class="ip-row"><div class="ip-label">💡 Что означает</div><div class="ip-val meaning" id="ipMeaning">—</div></div>
+    <div class="ip-row"><div class="ip-label">🔢 Пример</div><div class="ip-val example" id="ipExample">—</div></div>
   </div>
 </div>
 
@@ -563,6 +602,12 @@ tr.dt-dimmed{opacity:.25;}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 // ── MONTH MODE COLUMNS (v2026-04-23 06:08) ──────────────────────────────────────
+
+// Сброс порядка колонок при новой версии
+const MCOL_VER='20260505b';
+if(typeof localStorage!=='undefined'&&localStorage.getItem('mcolVer')!==MCOL_VER){
+  try{localStorage.removeItem('pf.monthCols.v1');localStorage.removeItem('pf.dayCols.v1');localStorage.setItem('mcolVer',MCOL_VER);}catch(e){}
+}
 const MCOLS=[
   {id:'qtyReal',  lbl:'Реал.',       key:'qtyReal',     fmt:'qty', on:true,
     tip:'Кол-во реализации (без возвратов)',
@@ -576,61 +621,102 @@ const MCOLS=[
   {id:'rev',      lbl:'Выручка ₸',  key:'rev',         fmt:'full',on:true,
     tip:'Выручка без НДС',
     doc:{formula:'СУММ(«Сумма без налогов»)',source:'Колонка O в ИсхРеал из 1С',meaning:'Выручка без НДС = основа для маржи и прибыли. Включает возвраты (уже вычтены 1С). Колонка «Сумма реализации» (J) содержит НДС — мы её НЕ используем для выручки',example:'Продали на 116 000 ₸ с НДС → Выручка без НДС = 100 000 ₸'}},
+  {id:'sumReal',   lbl:'Сумма реал.(факт)',key:'sumRealS', fmt:'rev',  on:true,
+    tip:'Сумма реализации с НДС (колонка J из 1С)',
+    doc:{formula:'СУММ(«Сумма реализации»)',source:'Колонка J в ИсхРеал из 1С',meaning:'Сумма продаж С НДС — именно эта сумма в накладных у покупателей. Отличается от Выручки (колонка O без НДС)',example:'Продали на 100 000 ₸ без НДС → Сумма реал. = 116 000 ₸'}},
   {id:'ret',      lbl:'Возврат ₸',  key:'ret',         fmt:'full',on:true,
     tip:'Сумма возвратов',
     doc:{formula:'СУММ(«Сумма возвратов»)',source:'Колонка K в ИсхРеал из 1С',meaning:'Деньги которые вернули покупателям. Отрицательное число означает уменьшение выручки',example:'-50 000 ₸ = вернули товар на 50 тысяч'}},
-  {id:'retPct',   lbl:'Возврат %',  key:'retPct',      fmt:'pct', on:true,
-    tip:'Процент возврата от выручки',
-    doc:{formula:'|Сумма возвратов| ÷ Выручка × 100%',source:'Считается на сайте из колонок O и K',meaning:'Показывает какой % выручки "уходит" обратно через возвраты. Норма для молочки — до 2-3%. Выше — проблема с качеством или приёмкой',example:'Выручка 1 млн, возвраты 30 тыс → Возврат% = 3.0%'}},
   {id:'seb',      lbl:'Себест. ₸',  key:'seb',         fmt:'full',on:true,
     tip:'Себестоимость (прямые затраты на закупку)',
     doc:{formula:'Цена прихода по SKU на дату продажи × Кол-во реализации. Если цены прихода нет: fallback на «Стоимость (без НДС)» из 1С',source:'pf-prikhod.js / PRIKHOD_PRICES + ИсхРеал',meaning:'Прямые затраты на товар пересчитываются из прихода: берётся ближайшая цена прихода до даты продажи. ФОТ, аренда, логистика и прочие косвенные расходы сюда не входят',example:'Цена прихода 390 ₸ × 100 шт = Себест. 39 000 ₸'}},
-  {id:'prof',     lbl:'Вал.приб. факт',  key:'prof',        fmt:'full',on:true,
-    tip:'Фактическая валовая прибыль с учётом возвратов',
-    doc:{formula:'Выручка без НДС после возвратов − Себестоимость из прихода',source:'Выручка: колонка O «Сумма без налогов» из ИсхРеал. Себестоимость: цена прихода по SKU на дату продажи × количество с возвратами; если цены прихода нет — fallback на себестоимость из 1С.',meaning:'Это реальный факт по валовой прибыли: возвраты уже уменьшили выручку и себестоимость. Косвенные расходы — зарплата, аренда, логистика, офис, налоги P&L — здесь НЕ учтены.',example:'Продали на 100 000 ₸ без НДС, себестоимость 80 000 ₸ → Вал.приб. факт = 20 000 ₸. Если был возврат, он уже сидит внутри факта.'}},
-  {id:'profNet', lbl:'Приб. без возвр.', key:'profNet', fmt:'full', on:false,
-    tip:'Валовая прибыль только по строкам продаж, возвраты исключены',
-    doc:{formula:'Выручка только от продаж − Себестоимость только от продаж',source:'Берутся только строки продаж, где «Количество реализации» > 0. Возвратные строки не участвуют. Себестоимость продаж = цена прихода × количество реализации без возвратов.',
-      meaning:'Показывает потенциал продаж без влияния возвратов. Сравнивай с «Вал.приб. факт»: если «без возвр.» плюс, а факт минус — прибыль съели возвраты; если оба минус — проблема в цене или закупе.',
-      example:'Вал.приб. факт = −385 000 ₸, Приб. без возвр. = +247 000 ₸ → потери от возвратов = 632 000 ₸.'}},
+  {id:'prof',     lbl:'Прибыль ₸',  key:'prof',        fmt:'full',on:true,
+    tip:'Валовая прибыль (до косвенных затрат)',
+    doc:{formula:'Выручка без НДС − Себестоимость из прихода',source:'Считается на сайте после пересчёта себестоимости',meaning:'⚠️ Это ВАЛОВАЯ прибыль — только прямые затраты вычтены. ФОТ, аренда, логистика — НЕ учтены. Для полной картины смотри P&L',example:'Выручка 100 000 − Себест 80 000 = Прибыль 20 000 ₸'}},
+  {id:'retPct',   lbl:'Возврат %',  key:'retPct',      fmt:'pct', on:false,
+    tip:'Процент возврата от выручки',
+    doc:{formula:'|Сумма возвратов| ÷ Выручка × 100%',source:'Считается на сайте из колонок O и K',meaning:'Показывает какой % выручки "уходит" обратно через возвраты. Норма для молочки — до 2-3%. Выше — проблема с качеством или приёмкой',example:'Выручка 1 млн, возвраты 30 тыс → Возврат% = 3.0%'}},
+  {id:'profNet', lbl:'Приб.чист.', key:'profNet', fmt:'full', on:false,
+    tip:'Чистая прибыль — только от продаж, без финансовых потерь от возвратов',
+    doc:{formula:'Выручка(продажи) − Себест(продажи)',source:'Строки где qtyReal>0',
+      meaning:'Прибыль если бы не было возвратов. Разница с Прибылью = финансовые потери от возвратов',
+      example:'Прибыль(с возвр)=−385к, Приб.(прод)=+247к → потери=632к'}},
   {id:'mar',      lbl:'Маржа %',    key:'mar',         fmt:'pct', on:false,
     tip:'Маржинальность (рентабельность продаж)',
-    doc:{formula:'Вал.прибыль факт ÷ Выручка без НДС × 100%',source:'Считается на сайте из «Вал.приб. факт» и выручки без НДС',meaning:'Показывает долю валовой прибыли в выручке. Это маржа ДО косвенных расходов. Минус означает, что по прямой себестоимости выбранная группа/клиент/SKU убыточны.',example:'Вал.прибыль факт 20 000 ÷ Выручка 100 000 = Маржа 20%'}},
-  {id:'avg',      lbl:'Ср.цена ₸',  key:'avg',         fmt:'full',on:false,
-    tip:'Средняя цена продажи',
-    doc:{formula:'Выручка ÷ Кол-во (с возвратами)',source:'Считается на сайте',meaning:'Средняя цена за единицу товара по данной группе/контрагенту/SKU',example:'Выручка 100 000 ÷ 200 шт = 500 ₸/шт'}},
-  {id:'kg',       lbl:'Объём кг',   key:'kg',          fmt:'kg',  on:true,
+    doc:{formula:'Прибыль ÷ Выручка × 100%',source:'Считается на сайте',meaning:'Показывает сколько копеек прибыли на каждый тенге выручки. Без учёта косвенных расходов. Минус = продаём дешевле чем покупаем',example:'Прибыль 20 000 ÷ Выручка 100 000 = Маржа 20%'}},
+  {id:'kg',       lbl:'Объём кг',   key:'kg',          fmt:'kg',  on:false,
     tip:'Физический объём продаж в кг',
     doc:{formula:'Кол-во × Вес единицы SKU',source:'Кол-во из ИсхРеал × Вес из листа SKUСправочник',meaning:'Показывает реальный физический объём — удобно для сравнения разных SKU (1л молоко vs 400гр сметана)',example:'200 шт × 1 кг = 200 кг'}},
   {id:'retKg',    lbl:'Возвр. кг',  key:'retKg',       fmt:'kg',  on:false,
-    tip:'Объём возврата в килограммах',
-    doc:{formula:'Количество возврата × Вес единицы SKU',source:'Колонка H в ИсхРеал × вес из SKUСправочник',meaning:'Показывает, сколько килограммов продукции вернули. Это удобнее, чем штуки, потому что товары имеют разный вес',example:'Вернули 10 шт по 0.5 кг → Возвр. кг = 5 кг'}},
-  {id:'retKgPct', lbl:'Возвр.кг %', key:'retKgPct',    fmt:'pct', on:false,
-    tip:'Доля возврата в кг от общего объёма кг',
-    doc:{formula:'|Возврат кг| ÷ Объём кг × 100%',source:'Считается на сайте из возвратов и веса SKU',meaning:'Показывает долю физического объёма, который вернулся назад',example:'Продали 1 000 кг, вернули 25 кг → Возвр.кг % = 2.5%'}},
+    tip:'Физический объём возвратов в кг',
+    doc:{formula:'Количество возвратов × Вес единицы SKU',source:'Колонка H в ИсхРеал × Вес из SKUСправочник',meaning:'Показывает, сколько кг товара вернули. Колонка скрыта по умолчанию и включается в Столбцах',example:'Вернули 3 шт по 1 кг → Возвр. кг = 3.0 кг'}},
+  {id:'avg',      lbl:'Ср.цена ₸',  key:'avg',         fmt:'full',on:false,
+    tip:'Средняя цена продажи',
+    doc:{formula:'Выручка ÷ Кол-во (с возвратами)',source:'Считается на сайте',meaning:'Средняя цена за единицу товара по данной группе/контрагенту/SKU',example:'Выручка 100 000 ÷ 200 шт = 500 ₸/шт'}},
+  {id:'share',    lbl:'Доля %',      key:'_sh',         fmt:'share',on:false,
+    tip:'Доля — переключается через кнопку: по выручке / по кг / по сумме реал.',
+    doc:{formula:'Выручка строки ÷ Выручка ИТОГО × 100%',source:'Считается на сайте',meaning:'Показывает вклад этого контрагента/группы/SKU в общую выручку',example:'Кофейни 30 млн ÷ Всего 300 млн = 10%'}},
+  {id:'priceZakup',lbl:'Цена закупа',key:'priceZakup', fmt:'full',on:false,
+    tip:'Средняя закупочная цена за штуку',
+    doc:{formula:'Себестоимость (только строки продаж) ÷ Кол-во реализации (Реал.)',source:'Себестоимость из прихода ÷ Кол-во реализации. Переключатель показывает с НДС или без НДС',meaning:'Закупочная цена за штуку. По умолчанию без НДС; при переключении НДС показывает цену прихода с НДС',example:'Продали 5 шт за 1 659 ₸ себест → Цена закупа = 332 ₸/шт'}},
+  {id:'priceSell', lbl:'Цена продажи',key:'priceSellNds',fmt:'full',on:false,
+    tip:'Средняя цена продажи (переключатель НДС/б.НДС)',
+    doc:{formula:'с НДС: СуммаРеализации ÷ Кол-во | без НДС: (СуммаРеализации ÷ 1.16) ÷ Кол-во',source:'Сумма реализации из колонки J ÷ Кол-во из колонки G (без возвратов)',meaning:'Цена по которой продаём клиенту. С НДС — что видит покупатель в накладной. Без НДС — база для сравнения с закупочной ценой',example:'Продали на 116 000 ₸ с НДС ÷ 200 шт = 580 ₸/шт'}},
   {id:'profKg',   lbl:'Приб./кг',   key:'profKg',      fmt:'full',on:false,
     tip:'Прибыль на 1 кг продукции',
     doc:{formula:'Прибыль ÷ Объём(кг)',source:'Считается на сайте',meaning:'Сколько тенге прибыли приносит каждый килограмм. Удобно для сравнения разных весовых категорий',example:'Прибыль 20 000 ÷ 200 кг = 100 ₸/кг'}},
   {id:'sebKg',    lbl:'Затр./кг',   key:'sebKg',       fmt:'full',on:false,
     tip:'Прямые затраты на 1 кг продукции',
     doc:{formula:'Себестоимость ÷ Объём(кг)',source:'Считается на сайте',meaning:'Сколько тенге себестоимости на каждый кг — удобно для сравнения эффективности SKU',example:'Себест 80 000 ÷ 200 кг = 400 ₸/кг'}},
-  {id:'share',    lbl:'Доля %',     key:'rev',         fmt:'share',on:false,
-    tip:'Доля в общей выручке',
-    doc:{formula:'Выручка строки ÷ Выручка ИТОГО × 100%',source:'Считается на сайте',meaning:'Показывает вклад этого контрагента/группы/SKU в общую выручку',example:'Кофейни 30 млн ÷ Всего 300 млн = 10%'}},
-  {id:'priceZakup',lbl:'Цена закупа',key:'priceZakup', fmt:'full',on:true,
-    tip:'Средняя закупочная цена за штуку',
-    doc:{formula:'Себестоимость (только строки продаж) ÷ Кол-во реализации (Реал.)',source:'Себестоимость из прихода ÷ Кол-во реализации. Переключатель показывает с НДС или без НДС',meaning:'Закупочная цена за штуку. По умолчанию без НДС; при переключении НДС показывает цену прихода с НДС',example:'Продали 5 шт за 1 659 ₸ себест → Цена закупа = 332 ₸/шт'}},
-  {id:'sumReal',   lbl:'Сумма реал.',  key:'sumReal',    fmt:'rev',  on:false,
-    tip:'Сумма реализации с НДС (колонка J из 1С)',
-    doc:{formula:'СУММ(«Сумма реализации»)',source:'Колонка J в ИсхРеал из 1С',meaning:'Сумма продаж С НДС — именно эта сумма в накладных у покупателей. Отличается от Выручки (колонка O без НДС)',example:'Продали на 100 000 ₸ без НДС → Сумма реал. = 116 000 ₸'}},
-  {id:'priceSell', lbl:'Цена продажи',key:'priceSellNds',fmt:'full',on:true,
-    tip:'Средняя цена продажи (переключатель НДС/б.НДС)',
-    doc:{formula:'с НДС: СуммаРеализации ÷ Кол-во | без НДС: (СуммаРеализации ÷ 1.16) ÷ Кол-во',source:'Сумма реализации из колонки J ÷ Кол-во из колонки G (без возвратов)',meaning:'Цена по которой продаём клиенту. С НДС — что видит покупатель в накладной. Без НДС — база для сравнения с закупочной ценой',example:'Продали на 116 000 ₸ с НДС ÷ 200 шт = 580 ₸/шт'}},
   {id:'profitUnit',lbl:'Профит/шт',  key:'profitUnitNds',fmt:'full',on:false,
     tip:'Заработок/убыток на одной штуке',
-    doc:{formula:'Цена продажи − Цена закупа',source:'Считается на сайте: (СуммаРеал/КолвоРеал) − (Себест/КолвоРеал)',meaning:'Заработок или убыток на одной штуке. В режиме б/НДС: цена продажи без НДС − закуп без НДС; в режиме НДС: цена продажи с НДС − закуп с НДС',example:'Цена продажи 395 ₸ − Закуп 332 ₸ = Профит +63 ₸/шт'}},
-];
-let mColOn={}; MCOLS.forEach(c=>mColOn[c.id]=c.on);
+    doc:{formula:'Цена продажи − Цена закупа',source:'Считается на сайте: (СуммаРеал/КолвоРеал) − (Себест/КолвоРеал)',meaning:'Заработок или убыток на одной штуке. В режиме б/НДС: цена продажи без НДС − закуп без НДС; в режиме НДС: цена продажи с НДС − закуп с НДС',example:'Цена продажи 395 ₸ − Закуп 332 ₸ = Профит +63 ₸/шт'}}
+];;
+const MCOL_STORAGE_KEY='pf.monthCols.v1';
+const ALWAYS_MONTH_COLS=[];  // все колонки опциональные
+
+function normalizeToggleOrder(order,defs,onMap,alwaysIds=[]){
+  const valid=new Set(defs.map(d=>d.id));
+  const always=new Set(alwaysIds);
+  const seen=new Set();
+  const out=[];
+  for(const id of (order||[])){
+    if(valid.has(id)&&!seen.has(id)&&(onMap[id]||always.has(id))){out.push(id);seen.add(id);}
+  }
+  for(const d of defs){
+    if((onMap[d.id]||always.has(d.id))&&!seen.has(d.id)){out.push(d.id);seen.add(d.id);}
+  }
+  return out;
+}
+function loadToggleState(storageKey,defs,alwaysIds=[]){
+  const on={}; defs.forEach(d=>on[d.id]=!!d.on);
+  let order=defs.filter(d=>d.on||alwaysIds.includes(d.id)).map(d=>d.id);
+  try{
+    const saved=JSON.parse(localStorage.getItem(storageKey)||'null');
+    if(saved&&typeof saved==='object'){
+      if(saved.on&&typeof saved.on==='object'){
+        for(const d of defs){
+          if(Object.prototype.hasOwnProperty.call(saved.on,d.id)) on[d.id]=!!saved.on[d.id];
+        }
+      }
+      if(Array.isArray(saved.order)) order=saved.order;
+    }
+  }catch(e){}
+  for(const id of alwaysIds) on[id]=true;
+  order=normalizeToggleOrder(order,defs,on,alwaysIds);
+  return {on,order};
+}
+function saveToggleState(storageKey,order,onMap){
+  try{localStorage.setItem(storageKey,JSON.stringify({order,on:onMap}));}catch(e){}
+}
+function orderedDefs(defs,order,onMap,alwaysIds=[]){
+  const map=Object.fromEntries(defs.map(d=>[d.id,d]));
+  return normalizeToggleOrder(order,defs,onMap,alwaysIds).map(id=>map[id]).filter(Boolean);
+}
+
+const monthColState=loadToggleState(MCOL_STORAGE_KEY,MCOLS,ALWAYS_MONTH_COLS);
+let mColOn=monthColState.on;
+let mColOrder=monthColState.order;
 
 // Day mode metrics
 const DAY_METRICS=[
@@ -638,21 +724,23 @@ const DAY_METRICS=[
   {id:'qtyReal', lbl:'Реал.',     key:'qtyReal',  fmt:'qty', on:true},
   {id:'qtyRet',  lbl:'Возвр.',    key:'qtyRet',   fmt:'qty', on:false},
   {id:'rev',     lbl:'Выручка',   key:'rev',      fmt:'rev', on:true},
-  {id:'prof',    lbl:'Вал.приб. факт',   key:'prof',     fmt:'rev', on:true},
-  {id:'profNet', lbl:'Приб. без возвр.',key:'profNet',  fmt:'rev', on:false},
+  {id:'prof',    lbl:'Прибыль',   key:'prof',     fmt:'rev', on:true},
+  {id:'profNet', lbl:'Приб.чист.',key:'profNet',  fmt:'rev', on:false},
   {id:'mar',     lbl:'Маржа %',   key:'mar',      fmt:'pct', on:true},
   {id:'kg',      lbl:'Объём кг',  key:'kg',       fmt:'kg',  on:false},
-  {id:'retKg',   lbl:'Возвр. кг', key:'retKg',    fmt:'kg',  on:false},
   {id:'seb',     lbl:'Себест.',   key:'seb',      fmt:'rev', on:false},
   {id:'ret',     lbl:'Возврат',   key:'ret',      fmt:'rev', on:false},
-  {id:'sumReal', lbl:'Сумма реал.',key:'sumReal', fmt:'rev', on:false},
+  {id:'retKg',   lbl:'Возвр. кг', key:'retKg',    fmt:'kg',  on:false},
+  {id:'sumReal', lbl:'Сумма реал.',key:'sumRealS', fmt:'rev', on:false},
   {id:'retPct',  lbl:'Возврат%',  key:'retPct',   fmt:'pct', on:false},
   {id:'priceZakup', lbl:'Цена закупа', key:'priceZakup',   fmt:'full',on:false},
   {id:'priceSell',  lbl:'Цена продажи',key:'priceSellNds', fmt:'full',on:false},
   {id:'profitUnit', lbl:'Профит/шт',   key:'profitUnitNds',fmt:'full',on:false},
 ];
-let dmOn={}; DAY_METRICS.forEach(m=>dmOn[m.id]=m.on);
-
+const DMETRIC_STORAGE_KEY='pf.dayMetrics.v1';
+const dayMetricState=loadToggleState(DMETRIC_STORAGE_KEY,DAY_METRICS,[]);
+let dmOn=dayMetricState.on;
+let dmOrder=dayMetricState.order;
 
 // ── PIVOT DIMENSIONS ────────────────────────────────────────
 const DIM_STORAGE_KEY='pf.rowDims.v2';
@@ -684,10 +772,11 @@ let filterGrp=new Set(['ALL']),filterSkuGrp=new Set(['ALL']);
 let allGroups=[],allSkuGroups=[],allDays=[];
 let selectedDays=new Set();
 let sortKey='rev_d',avgMode='sku';
-let selectedMonths=new Set(['all']);  // 'all' или набор mk типа '2026-01'
+let selectedMonths=new Set(['all']);
+let dateFrom='', dateTo='';  // 'all' или набор mk типа '2026-01'
 let priceNds=false;
-let profMode='std'; // 'std' = с возвратами (текущий), 'net' = только продажи без потерь возврата // false = без НДС по умолчанию: выручка, себестоимость, прибыль и маржа сравниваются без НДС
-let shareMode='rev'; // база для колонки Доля %: rev | kg | sumReal
+let profMode='std';
+let shareMode='rev'; // 'rev' | 'kg' | 'prof' — режим расчёта доли // 'std' = с возвратами (текущий), 'net' = только продажи без потерь возврата // false = без НДС по умолчанию: выручка, себестоимость, прибыль и маржа сравниваются без НДС
 let dayExpanded=new Set(),dayLevelState={};
 let focusedRow=null;   // key строки в фокусе
 let focusedName=null;  // имя строки в фокусе для подписи
@@ -722,40 +811,73 @@ function updateNdsControls() {
     el.classList.toggle('no-nds-active', !priceNds);
   });
 }
+function setShareMode(mode){
+  shareMode=mode;
+  document.getElementById('shareModeRev').classList.toggle('active', mode==='rev');
+  document.getElementById('shareModeKg').classList.toggle('active', mode==='kg');
+  document.getElementById('shareModeProf').classList.toggle('active', mode==='prof');
+  const mShare=MCOLS.find(c=>c.id==='share');
+  if(mShare){
+    mShare.lbl = mode==='rev'?'Доля(выр.)':mode==='kg'?'Доля(кг)':'Доля(приб.)';
+  }
+  buildMHeader();
+  render();
+}
+
 function setProfMode(mode){
   profMode=mode;
   document.getElementById('profModeStd').classList.toggle('active', mode==='std');
   document.getElementById('profModeNet').classList.toggle('active', mode==='net');
-  // mColOn — это то что реально рендерится (отдельный объект от MCOLS.on)
-  mColOn['prof']    = (mode==='std');
-  mColOn['profNet'] = (mode==='net');
+  setMonthColState('prof', mode==='std', false);
+  setMonthColState('profNet', mode==='net', false);
+  // Переключаем Сумму реал: Факт=с возвратами (sumRealS), Без возвр.=только продажи (sumReal)
+  const mSumReal = MCOLS.find(c=>c.id==='sumReal');
+  const dSumReal = DAY_METRICS.find(c=>c.id==='sumReal');
+  if(mSumReal){ mSumReal.key = mode==='std' ? 'sumRealS' : 'sumReal'; mSumReal.lbl = mode==='std' ? 'Сумма реал.(факт)' : 'Сумма реал.'; }
+  if(dSumReal){ dSumReal.key = mode==='std' ? 'sumRealS' : 'sumReal'; dSumReal.lbl = mode==='std' ? 'Сумма реал.(факт)' : 'Сумма реал.'; }
+  saveMonthCols();
   buildCtogs();
   buildMHeader();
   render();
 }
 
-function getShareConfig(total){
-  const key = shareMode==='kg' ? 'kg' : shareMode==='sumReal' ? 'sumRealS' : 'rev';
-  const label = shareMode==='kg' ? 'Доля(кг)' : shareMode==='sumReal' ? 'Доля(реал.)' : 'Доля(выр.)';
-  const title = shareMode==='kg' ? 'Доля по объёму кг' : shareMode==='sumReal' ? 'Доля по сумме реализации с НДС' : 'Доля по выручке без НДС';
-  const baseRaw = total ? (total[key] ?? 0) : 0;
-  const base = Math.abs(baseRaw) || 1;
-  return {key,label,title,base};
-}
-function setShareMode(mode){
-  shareMode=mode;
-  document.getElementById('shareModeRev').classList.toggle('active', mode==='rev');
-  document.getElementById('shareModeKg').classList.toggle('active', mode==='kg');
-  document.getElementById('shareModeSumR').classList.toggle('active', mode==='sumReal');
-  const c=MCOLS.find(x=>x.id==='share');
-  if(c){
-    const cfg=getShareConfig(PF.agg(filtered()));
-    c.lbl=cfg.label; c.key=cfg.key; c.tip=cfg.title;
-    if(c.doc){c.doc.formula = mode==='kg'?'Кг строки ÷ Кг итого × 100%':mode==='sumReal'?'Сумма реализации строки ÷ Сумма реализации итого × 100%':'Выручка строки ÷ Выручка итого × 100%';}
+function applyDateRange(){
+  dateFrom=document.getElementById('dateFrom').value||'';
+  dateTo=document.getElementById('dateTo').value||'';
+  if(dateFrom||dateTo){
+    selectedMonths=new Set(['all']);
+    document.querySelectorAll('#periodPills .pill').forEach(b=>b.classList.remove('active'));
+    document.querySelector('#periodPills [data-m="all"]').classList.add('active');
   }
-  buildCtogs();
-  buildMHeader();
-  renderMonth();
+  expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};
+  focusedRow=null;focusedDepth=-1;
+  updateAvailableDays();render();
+}
+function clearDateRange(){
+  dateFrom='';dateTo='';
+  document.getElementById('dateFrom').value='';
+  document.getElementById('dateTo').value='';
+  expanded.clear();levelState={};
+  updateAvailableDays();render();
+}
+function applyDayDateRange(){
+  const from=document.getElementById('dayDateFrom').value||'';
+  const to=document.getElementById('dayDateTo').value||'';
+  if(from||to){
+    selectedDays.clear();
+    allDays.forEach(d=>{
+      if(from && d<from) return;
+      if(to && d>to) return;
+      selectedDays.add(d);
+    });
+  }
+  renderDay();
+}
+function clearDayDateRange(){
+  document.getElementById('dayDateFrom').value='';
+  document.getElementById('dayDateTo').value='';
+  selectedDays=new Set(allDays);
+  renderDay();
 }
 
 function setPriceNds(value) {
@@ -877,11 +999,6 @@ function updateKPIs(){
   const me=document.getElementById('k-mar');me.textContent=PF.fmtPct(tot.mar);me.className='kpi-val '+(tot.mar>=0?'grn':'red');
   document.getElementById('k-ret').textContent=PF.fmtRev(tot.ret)+' ₸';
   document.getElementById('k-retpct').textContent=PF.fmtPctAbs(tot.retPct);
-  document.getElementById('k-retkg').textContent=PF.fmtKg(Math.abs(tot.retKg||0))+' кг';
-  const akb = new Set(rows.filter(r=>(r.qtyReal||0)>0 || (r.sumReal||0)>0).map(r=>r.knt).filter(Boolean)).size;
-  const kntCnt = new Set(rows.map(r=>r.knt).filter(Boolean)).size;
-  document.getElementById('k-akb').textContent=akb.toLocaleString('ru');
-  document.getElementById('k-kntcnt').textContent=kntCnt.toLocaleString('ru');
   document.getElementById('k-avg').textContent=PF.fmtFull(calcAvg(rows))+' ₸';
 }
 
@@ -893,6 +1010,9 @@ function filtered(){
   } else {
     rows=rawRows.filter(r=>selectedMonths.has(r.mk));
   }
+  // Фильтр по периоду дат
+  if(dateFrom) rows=rows.filter(r=>r.day>=dateFrom);
+  if(dateTo) rows=rows.filter(r=>r.day<=dateTo);
   if(!filterGrp.has('ALL'))    rows=rows.filter(r=>filterGrp.has(r.group));
   if(!filterSkuGrp.has('ALL')) rows=rows.filter(r=>filterSkuGrp.has(r.skuGroup));
   return rows;
@@ -927,36 +1047,161 @@ function toggleFP(){
 }
 
 // ── COLUMNS / METRICS ─────────────────────────────────────
-function buildCtogs(){
-  document.getElementById('ctogs').innerHTML=
-    MCOLS.map(c=>{
-      const icon = c.id==='share' ? '➗ ' : '';
-      const state = mColOn[c.id] ? '✓ ' : '+ ';
-      return `<button class="ctog ${mColOn[c.id]?'on':''}" title="${c.tip}" onclick="toggleMCol('${c.id}')">${state}${icon}${c.lbl}</button>`;
-    }).join('');
+let monthColDragFrom=null;
+let dayMetricDragFrom=null;
+function mColById(id){return MCOLS.find(c=>c.id===id);}
+function dMetricById(id){return DAY_METRICS.find(m=>m.id===id);}
+function getVisibleMonthCols(){
+  mColOrder=normalizeToggleOrder(mColOrder,MCOLS,mColOn,ALWAYS_MONTH_COLS);
+  return orderedDefs(MCOLS,mColOrder,mColOn,ALWAYS_MONTH_COLS);
 }
-function toggleMCol(id){
-  mColOn[id]=!mColOn[id];
+function getVisibleDayMetrics(){
+  dmOrder=normalizeToggleOrder(dmOrder,DAY_METRICS,dmOn,[]);
+  return orderedDefs(DAY_METRICS,dmOrder,dmOn,[]);
+}
+function saveMonthCols(){saveToggleState(MCOL_STORAGE_KEY,mColOrder,mColOn);}
+function saveDayMetrics(){saveToggleState(DMETRIC_STORAGE_KEY,dmOrder,dmOn);}
+function setMonthColState(id,on,append=true){
+  if(id==='share') return;
+  mColOn[id]=!!on;
+  mColOrder=mColOrder.filter(x=>x!==id);
+  if(mColOn[id]){
+    if(append) mColOrder.push(id);
+    else{
+      const baseIndex=MCOLS.findIndex(c=>c.id===id);
+      let inserted=false;
+      for(let i=0;i<mColOrder.length;i++){
+        const curIndex=MCOLS.findIndex(c=>c.id===mColOrder[i]);
+        if(curIndex>baseIndex){mColOrder.splice(i,0,id);inserted=true;break;}
+      }
+      if(!inserted) mColOrder.push(id);
+    }
+  }
+  mColOrder=normalizeToggleOrder(mColOrder,MCOLS,mColOn,ALWAYS_MONTH_COLS);
+}
+function setDayMetricState(id,on,append=true){
+  dmOn[id]=!!on;
+  dmOrder=dmOrder.filter(x=>x!==id);
+  if(dmOn[id]){
+    if(append) dmOrder.push(id);
+    else{
+      const baseIndex=DAY_METRICS.findIndex(m=>m.id===id);
+      let inserted=false;
+      for(let i=0;i<dmOrder.length;i++){
+        const curIndex=DAY_METRICS.findIndex(m=>m.id===dmOrder[i]);
+        if(curIndex>baseIndex){dmOrder.splice(i,0,id);inserted=true;break;}
+      }
+      if(!inserted) dmOrder.push(id);
+    }
+  }
+  dmOrder=normalizeToggleOrder(dmOrder,DAY_METRICS,dmOn,[]);
+}
+function buildCtogs(){
+  const el=document.getElementById('ctogs');
+  const active=getVisibleMonthCols().filter(c=>c.id!=='share');
+  const inactive=MCOLS.filter(c=>c.id!=='share'&&!mColOn[c.id]);
+  const activeHtml=active.map((c,i)=>
+    `<span class="ctog on col-chip" draggable="true" title="${escHtml(c.tip||'')} · Перетащи или двигай стрелками" ondragstart="onMonthColDragStart(event,${i})" ondragend="onMonthColDragEnd(event)" ondragover="onMonthColDragOver(event)" ondrop="onMonthColDrop(event,${i})">`+
+    `<span class="col-n">${i+1}</span><span onclick="toggleMCol('${c.id}',this)">${c.lbl}</span>`+
+    `<button class="dim-move" onclick="event.stopPropagation();moveMonthCol('${c.id}',-1)" title="Левее">‹</button>`+
+    `<button class="dim-move" onclick="event.stopPropagation();moveMonthCol('${c.id}',1)" title="Правее">›</button>`+
+    `<button class="dim-x" onclick="event.stopPropagation();toggleMCol('${c.id}',this)" title="Убрать столбец">×</button></span>`
+  ).join('');
+  const inactiveHtml=inactive.map(c=>
+    `<button class="ctog" title="${escHtml(c.tip||'')}" onclick="toggleMCol('${c.id}',this)">+ ${c.lbl}</button>`
+  ).join('');
+  el.innerHTML=activeHtml+(activeHtml&&inactiveHtml?'<span style="width:1px;height:18px;background:var(--border);margin:0 2px"></span>':'')+inactiveHtml;
+}
+function toggleMCol(id,btn){
+  const next=!mColOn[id];
+  setMonthColState(id,next,true);
+  saveMonthCols();
   buildCtogs();
   buildMHeader();
   renderMonth();
 }
+function moveMonthCol(id,dir){
+  mColOrder=normalizeToggleOrder(mColOrder,MCOLS,mColOn,ALWAYS_MONTH_COLS);
+  const movable=mColOrder.filter(x=>x!=='share');
+  const idx=movable.indexOf(id); if(idx<0)return;
+  const ni=idx+dir; if(ni<0||ni>=movable.length)return;
+  [movable[idx],movable[ni]]=[movable[ni],movable[idx]];
+  const sharePos=mColOrder.indexOf('share');
+  mColOrder=movable;
+  if(mColOn.share){
+    const insertAt=sharePos>=0?Math.min(sharePos,mColOrder.length):mColOrder.length;
+    mColOrder.splice(insertAt,0,'share');
+  }
+  saveMonthCols();buildCtogs();buildMHeader();renderMonth();
+}
+function onMonthColDragStart(ev,idx){monthColDragFrom=idx;ev.currentTarget.classList.add('dragging');ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(idx));}
+function onMonthColDragEnd(ev){ev.currentTarget.classList.remove('dragging');monthColDragFrom=null;}
+function onMonthColDragOver(ev){ev.preventDefault();ev.dataTransfer.dropEffect='move';}
+function onMonthColDrop(ev,idx){
+  ev.preventDefault();
+  const from=monthColDragFrom ?? Number(ev.dataTransfer.getData('text/plain'));
+  const active=mColOrder.filter(id=>id!=='share'&&mColOn[id]);
+  if(Number.isNaN(from)||from===idx||from<0||from>=active.length)return;
+  const [moved]=active.splice(from,1);
+  active.splice(idx,0,moved);
+  const sharePos=mColOrder.indexOf('share');
+  mColOrder=active;
+  if(mColOn.share){
+    const insertAt=sharePos>=0?Math.min(sharePos,mColOrder.length):mColOrder.length;
+    mColOrder.splice(insertAt,0,'share');
+  }
+  saveMonthCols();buildCtogs();buildMHeader();renderMonth();
+}
 
 function buildMetricChooser(){
-  document.getElementById('metricChooser').innerHTML=
-    DAY_METRICS.map(m=>
-      `<button class="mchip ${dmOn[m.id]?'on':''}" onclick="toggleDayMetric('${m.id}',this)">${m.lbl}</button>`
-    ).join('');
+  const el=document.getElementById('metricChooser');
+  const active=getVisibleDayMetrics();
+  const inactive=DAY_METRICS.filter(m=>!dmOn[m.id]);
+  const activeHtml=active.map((m,i)=>
+    `<span class="mchip on col-chip" draggable="true" title="Перетащи или двигай стрелками" ondragstart="onDayMetricDragStart(event,${i})" ondragend="onDayMetricDragEnd(event)" ondragover="onDayMetricDragOver(event)" ondrop="onDayMetricDrop(event,${i})">`+
+    `<span class="col-n">${i+1}</span><span onclick="toggleDayMetric('${m.id}',this)">${m.lbl}</span>`+
+    `<button class="dim-move" onclick="event.stopPropagation();moveDayMetric('${m.id}',-1)" title="Левее">‹</button>`+
+    `<button class="dim-move" onclick="event.stopPropagation();moveDayMetric('${m.id}',1)" title="Правее">›</button>`+
+    `<button class="dim-x" onclick="event.stopPropagation();toggleDayMetric('${m.id}',this)" title="Убрать метрику">×</button></span>`
+  ).join('');
+  const inactiveHtml=inactive.map(m=>
+    `<button class="mchip" onclick="toggleDayMetric('${m.id}',this)">+ ${m.lbl}</button>`
+  ).join('');
+  el.innerHTML=activeHtml+(activeHtml&&inactiveHtml?'<span style="width:1px;height:18px;background:var(--border);margin:0 2px"></span>':'')+inactiveHtml;
 }
-function toggleDayMetric(id,btn){dmOn[id]=!dmOn[id];btn.classList.toggle('on',dmOn[id]);if(viewMode==='day')renderDay();}
-
+function toggleDayMetric(id,btn){
+  const next=!dmOn[id];
+  setDayMetricState(id,next,true);
+  saveDayMetrics();
+  buildMetricChooser();
+  if(viewMode==='day')renderDay();
+}
+function moveDayMetric(id,dir){
+  dmOrder=normalizeToggleOrder(dmOrder,DAY_METRICS,dmOn,[]);
+  const idx=dmOrder.indexOf(id); if(idx<0)return;
+  const ni=idx+dir; if(ni<0||ni>=dmOrder.length)return;
+  [dmOrder[idx],dmOrder[ni]]=[dmOrder[ni],dmOrder[idx]];
+  saveDayMetrics();buildMetricChooser();if(viewMode==='day')renderDay();
+}
+function onDayMetricDragStart(ev,idx){dayMetricDragFrom=idx;ev.currentTarget.classList.add('dragging');ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(idx));}
+function onDayMetricDragEnd(ev){ev.currentTarget.classList.remove('dragging');dayMetricDragFrom=null;}
+function onDayMetricDragOver(ev){ev.preventDefault();ev.dataTransfer.dropEffect='move';}
+function onDayMetricDrop(ev,idx){
+  ev.preventDefault();
+  const from=dayMetricDragFrom ?? Number(ev.dataTransfer.getData('text/plain'));
+  dmOrder=normalizeToggleOrder(dmOrder,DAY_METRICS,dmOn,[]);
+  if(Number.isNaN(from)||from===idx||from<0||from>=dmOrder.length)return;
+  const [moved]=dmOrder.splice(from,1);
+  dmOrder.splice(idx,0,moved);
+  saveDayMetrics();buildMetricChooser();if(viewMode==='day')renderDay();
+}
 
 // ── PIVOT HIERARCHY BUILDER ───────────────────────────────
 let dimDragFrom=null;
 function getDim(id){ return DIMENSIONS.find(d=>d.id===id); }
 function escJs(s){ return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' '); }
 function escHtml(s){ return String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
-function saveRowDims(){ try{localStorage.setItem(DIM_STORAGE_KEY, JSON.stringify(rowDims));}catch(e){} }
+function saveRowDims(){ localStorage.setItem(DIM_STORAGE_KEY, JSON.stringify(rowDims)); }
 function clearPivotState(){
   expanded.clear(); levelState={}; dayExpanded.clear(); dayLevelState={};
   focusedRow=null; focusedName=null; focusedDepth=-1;
@@ -975,8 +1220,8 @@ function buildRowDimControls(){
     const rm=rowDims.length>1?`<button class="dim-x" onclick="removeRowDim(${i})" title="Убрать поле">×</button>`:'';
     return `<span class="dim-chip" draggable="true" title="Перетащи, чтобы поменять порядок" ondragstart="onDimDragStart(event,${i})" ondragend="onDimDragEnd(event)" ondragover="onDimDragOver(event)" ondrop="onDimDrop(event,${i})">`+
       `<span class="dim-n">${i+1}</span><span>${escHtml(d?.label||id)}</span>`+
-      `<button class="dim-move" onclick="event.stopPropagation();moveRowDim(${i},-1)" title="Левее">‹</button>`+
-      `<button class="dim-move" onclick="event.stopPropagation();moveRowDim(${i},1)" title="Правее">›</button>${rm}</span>`;
+      `<button class="dim-move" onclick="moveRowDim(${i},-1)" title="Левее">‹</button>`+
+      `<button class="dim-move" onclick="moveRowDim(${i},1)" title="Правее">›</button>${rm}</span>`;
   }).join('') || '<span class="dim-empty">Добавь поле</span>';
   const available=DIMENSIONS.filter(d=>!rowDims.includes(d.id));
   sel.innerHTML='<option value="">+ Добавить поле</option>'+available.map(d=>`<option value="${d.id}">${escHtml(d.full)}</option>`).join('');
@@ -1101,13 +1346,21 @@ const fmtCell=(v,fmt,tRev)=>{
   if(fmt==='qty')  return PF.fmtQty(v);
   if(fmt==='pct')  return PF.fmtPct(v);
   if(fmt==='kg')   return PF.fmtKg(v)+' кг';
-  if(fmt==='share')return tRev?((Math.abs(v)/Math.abs(tRev))*100).toFixed(1)+'%':'—';
+  if(fmt==='share'){
+    let base=tRev;
+    if(typeof shareMode!=='undefined'){
+      if(shareMode==='kg') base=tot?.kg||tRev;
+      else if(shareMode==='prof') base=Math.abs(tot?.prof)||tRev;
+    }
+    const shareKey=shareMode==='kg'?'kg':shareMode==='prof'?'prof':'rev';
+    const rowVal=typeof v==='object'?v:v; // v is already the row value for share key
+    return base?((v/base)*100).toFixed(1)+'%':'—';
+  }
   if(fmt==='rev')  return PF.fmtRev(v)+' ₸';
   return PF.fmtFull(v)+(v?' ₸':'');
 };
 const cls=(v,key)=>{
-  if(key==='retPct'||key==='retKgPct')return v?'neg':'neu';
-  if(key==='mar')return v<0?'neg':v>0?'pos':'neu';
+  if(key==='retPct'||key==='mar')return v<0?'neg':v>0?'pos':'neu';
   if(key==='prof'||key==='profKg')return v>0?'pos':v<0?'neg':'';
   if(key==='ret'||key==='retKg') return v?'neg':'neu';
   return '';
@@ -1125,15 +1378,6 @@ function fmtDayLabel(day){
   const dt=new Date(y,(m||1)-1,d||1);
   const wd=WD[(dt.getDay()+6)%7]||'';
   return String(d).padStart(2,'0')+'.'+String(m).padStart(2,'0')+' '+wd;
-}
-
-function buildDateChildren(rows,parentPath=[]){
-  return Object.entries(PF.groupBy(rows,r=>r.day))
-    .sort((a,b)=>a[0].localeCompare(b[0]))
-    .map(([day,dr])=>{
-      const path=[...parentPath,{dim:'dayAuto',value:day}];
-      return {name:fmtDayLabel(day),value:day,dimId:'dayAuto',path,key:makeNodeKey(path),rows:dr,dayKey:day,isDate:true,ng:false,m:PF.agg(dr),ch:[]};
-    });
 }
 
 function fmtDimValue(dimId,value){
@@ -1154,6 +1398,15 @@ function makeNodeKey(path){
   return path.map(p=>p.dim+':'+encodeURIComponent(String(p.value))).join('|');
 }
 
+function buildDateChildren(rows,parentPath=[]){
+  return Object.entries(PF.groupBy(rows,r=>r.day))
+    .sort((a,b)=>a[0].localeCompare(b[0]))
+    .map(([day,dr])=>{
+      const path=[...parentPath,{dim:'dayAuto',value:day}];
+      return {name:fmtDayLabel(day),value:day,dimId:'dayAuto',path,key:makeNodeKey(path),rows:dr,dayKey:day,isDate:true,ng:false,m:PF.agg(dr),ch:[]};
+    });
+}
+
 function buildInnerTree(rows,sf){
   const dims=rowDims.length?rowDims:[...DEFAULT_ROW_DIMS];
   const dateAsAuto=showMonthDates&&viewMode==='month'&&!dims.includes('day');
@@ -1172,6 +1425,7 @@ function buildInnerTree(rows,sf){
         m:PF.agg(gr),ch:[]
       };
       const children=build(gr,depth+1,nPath);
+      // Даты всегда по хронологии, остальное по выбранной сортировке
       const childrenAreDate = children.length>0 && children[0].isDate;
       if(dateAsAuto && depth+1>=dims.length){
         node.ch=children.sort((a,b)=>(a.value||'').localeCompare(b.value||''));
@@ -1182,6 +1436,7 @@ function buildInnerTree(rows,sf){
       }
       return node;
     }).sort((a,b)=>{
+      // Если текущий уровень — даты, сортируем по хронологии
       if(a.isDate || a.dimId==='day') return (a.value||'').localeCompare(b.value||'');
       return sf(a,b);
     });
@@ -1193,7 +1448,7 @@ function buildInnerTree(rows,sf){
 // MONTH MODE RENDER
 // ══════════════════════════════════════════════════════════
 function buildMHeader(){
-  const vis=MCOLS.filter(c=>mColOn[c.id]);
+  const vis=getVisibleMonthCols();
   const [sk,sd]=sortKey.split('_');
   document.querySelector('#mThead tr').innerHTML=
     `<th style="text-align:left" onclick="clickSort('rev')">Наименование</th>`+
@@ -1220,11 +1475,10 @@ function clickSort(key){
 function renderMonth(){
   const rows=filtered();
   const tot=PF.agg(rows);
-  const shareCfg=getShareConfig(tot);
-  const tRev=shareCfg.base||1;
+  const tRev=tot.rev||1;
   const sf=getSF();
   const tree=buildInnerTree(rows,sf);
-  const vis=MCOLS.filter(c=>mColOn[c.id]);
+  const vis=getVisibleMonthCols();
 
   const flat=[];
   function anyMatch(ns,t){return ns.some(n=>n.name.toLowerCase().includes(t)||(n.ch.length&&anyMatch(n.ch,t)));}
@@ -1232,16 +1486,20 @@ function renderMonth(){
     for(const n of ns){
       const key=n.key;const hasC=n.ch.length>0;const isE=expanded.has(key);
       if(searchTerm){const m=n.name.toLowerCase().includes(searchTerm);if(!m&&!(hasC&&anyMatch(n.ch,searchTerm)))continue;}
+      // Focus filter: показываем только строку в фокусе + её детей
       if(focusedRow){
         if(d===focusedDepth){
           if(n.key!==focusedRow) continue;
+          // Нашли нужную строку — добавляем и раскрываем детей
           flat.push({n,d,key,hasC,isE:true});
           if(hasC) flatten(n.ch,d+1);
           continue;
         } else if(d < focusedDepth){
+          // Выше уровня фокуса — рекурсируем вглубь без добавления в flat
           if(hasC) flatten(n.ch,d+1);
           continue;
         }
+        // d > focusedDepth: дочерние — показываем всё
       }
       flat.push({n,d,key,hasC,isE});
       if(isE&&hasC)flatten(n.ch,d+1);
@@ -1251,7 +1509,7 @@ function renderMonth(){
 
   const parts=[`<tr class="tot"><td><div class="cnm"><span style="width:13px;display:inline-block"></span><span class="rnm totlbl">📊 ИТОГО</span></div></td>`+
     vis.map(c=>{
-      const v=c.id==='share'?(tot[shareCfg.key]||0):(tot[c.key]||0);
+      const v=c.id==='share'?(shareMode==='kg'?tot.kg:shareMode==='prof'?tot.prof:tot.rev):(tot[c.key]||0);
       const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profNet'||c.key==='profKg')?(v>=0?'pos':'neg'):'';
       const txt=c.id==='share'?'100%':fmtCell(v,c.fmt,tRev);
       return `<td class="${c2}">${txt}</td>`;
@@ -1259,16 +1517,19 @@ function renderMonth(){
 
   for(const{n,d,key,hasC,isE}of flat){
     const m=n.m;const lv=Math.min(d,3);const ind='&nbsp;'.repeat(d*3);
-    const sk2=escJs(key);
+    const sk2=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const expBtn=hasC?`<button class="exp${isE?' open':''}" onclick="mtoggle('${sk2}',this)">${isE?'▾':'▸'}</button>`:
                       `<span style="width:13px;display:inline-block"></span>`;
     const nc=n.isDate?'rnm date-name':(n.ng?'rnm nog':'rnm');
     const tds=vis.map(c=>{
-      const v=c.id==='share'?(m[shareCfg.key]||0):(m[c.key]||0);
+      const v=c.id==='share'?(shareMode==='kg'?m.kg:shareMode==='prof'?m.prof:m.rev):(m[c.key]||0);
       const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profNet'||c.key==='profKg')?(v>0?'pos':v<0?'neg':''):(c.key==='ret'||c.key==='retKg')?v?'neg':'neu':'';
       let txt;
-      if(c.id==='share'){const pct=tRev?((Math.abs(v)/Math.abs(tRev))*100):0;const pctTxt=pct.toFixed(1);const bw=Math.max(2,Math.round(Math.min(pct,100)/100*46));
-        txt=`<div class="barw"><div class="bar" style="width:${bw}px;background:${m.prof>=0?'#3fb950':'#f85149'}"></div>${pctTxt}%</div>`;}
+      if(c.id==='share'){
+        const shVal=shareMode==='kg'?m.kg:shareMode==='prof'?m.prof:m.rev;
+        const shTot=shareMode==='kg'?tot.kg:shareMode==='prof'?tot.prof:tRev;
+        const pct=(shTot?(shVal/shTot*100):0).toFixed(1);const bw=Math.max(2,Math.round(shTot?(shVal/shTot*46):0));
+        txt=`<div class="barw"><div class="bar" style="width:${bw}px;background:${m.prof>=0?'#3fb950':'#f85149'}"></div>${pct}%</div>`;}
       else txt=fmtCell(v,c.fmt,tRev);
       return `<td class="${c2}">${txt}</td>`;
     }).join('');
@@ -1276,7 +1537,7 @@ function renderMonth(){
     const mNameSafe=escJs(n.name);
     const mFocused=focusedRow===n.key&&focusedDepth===d;
     const mHint=mFocused?'Нажми чтобы снять фильтр':'Нажми чтобы оставить только эту строку';
-    parts.push(`<tr class="lv${lv}"><td><div class="cnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickMonthRow('${mSafe}','${mNameSafe}',${d})" title="${mHint}">${escHtml(n.name)}${mFocused?' <span style=\"color:var(--accent);font-size:9px\">✕</span>':''}</span></div></td>${tds}</tr>`);
+    parts.push(`<tr class="lv${lv}"><td><div class="cnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickMonthRow('${mSafe}','${mNameSafe}',${d})" title="${mHint}">${n.name}${mFocused?' <span style=\"color:var(--accent);font-size:9px\">✕</span>':''}</span></div></td>${tds}</tr>`);
   }
   document.getElementById('mTbody').innerHTML=parts.join('');
   document.getElementById('stRows').textContent=flat.length;
@@ -1296,23 +1557,28 @@ function mtoggle(key,btn){
 // ══════════════════════════════════════════════════════════
 function renderDay(){
   let rows=filtered();
-  const visMetrics=DAY_METRICS.filter(m=>dmOn[m.id]);
+  const visMetrics=getVisibleDayMetrics();
   if(!visMetrics.length){
     document.getElementById('dThead').innerHTML='';
     document.getElementById('dTbody').innerHTML='<tr><td class="row-hdr" style="padding:12px;color:var(--dim)">Выберите хотя бы одну метрику ↑</td></tr>';
     return;
   }
 
+  // Get visible days
   const visDays=allDays.filter(d=>selectedDays.has(d));
   if(!visDays.length){
     document.getElementById('dTbody').innerHTML='<tr><td class="row-hdr" style="padding:12px;color:var(--dim)">Нет дней для отображения</td></tr>';
     return;
   }
 
+  // Aggregate by day for quick lookup: day -> {allRows}
   const byDay=PF.groupBy(rows,r=>r.day);
+
+  // Build row tree (ITOGO + hierarchy)
   const sf=getSF();
   const tree=buildInnerTree(rows,sf);
 
+  // Flatten tree for rows
   const flat=[];
   function anyMatch(ns,t){return ns.some(n=>n.name.toLowerCase().includes(t)||(n.ch.length&&anyMatch(n.ch,t)));}
   function flatten(ns,d){
@@ -1325,6 +1591,13 @@ function renderDay(){
   }
   flatten(tree,0);
 
+  // Pre-aggregate: for each flat node + each day, get metrics
+  // We need to filter rows by node (its full name path)
+  // Simpler: aggregate the rows that belong to each node by day
+  // We'll do a smarter approach: for each row store group/knt/sku so we can match nodes
+
+  // Pre-compute node->day->agg
+  // Каждый node уже хранит свои исходные строки: node.rows
   const flatWithRows=[];
   function flattenWithRows(ns,d){
     for(const n of ns){
@@ -1336,7 +1609,11 @@ function renderDay(){
   }
   flattenWithRows(tree,0);
 
+  // THEAD — two rows: [row header | day1 colspan=metrics | day2 colspan=metrics ...]
+  // Row 1: blank + day headers
+  // Row 2: "Наименование" + metric sub-headers per day
   const numM=visMetrics.length;
+
   let thead1=`<th class="row-hdr" rowspan="2">Наименование</th>`;
   let thead2=``;
   visDays.forEach((day,di)=>{
@@ -1346,23 +1623,27 @@ function renderDay(){
     const wdLbl=WD[(dt.getDay()+6)%7];
     thead1+=`<th class="day-hdr-top${isWeekend?' weekend':''}" colspan="${numM}" style="border-left:2px solid var(--border)">${dayLbl} <span style="font-size:9px;opacity:.6">${wdLbl}</span></th>`;
     visMetrics.forEach((m,mi)=>{
+      const isLast=mi===numM-1;
       thead2+=`<th class="metric-hdr" style="${di>0&&mi===0?'border-left:2px solid var(--border)':''}">${m.lbl}</th>`;
     });
   });
   document.getElementById('dThead').innerHTML=`<tr>${thead1}</tr><tr>${thead2}</tr>`;
 
+  // TBODY
   const totRows=rows;
   const totAgg=PF.agg(totRows);
   const tRev=totAgg.rev||1;
+
   const parts=[];
 
+  // ИТОГО row
   let totTds='';
   visDays.forEach((day,di)=>{
     const dayR=(byDay[day]||[]);
     const da=PF.agg(dayR);
     visMetrics.forEach((m,mi)=>{
       const v=da[m.key]||0;
-      const c2=m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):(m.key==='ret'||m.key==='retKg'?v?'neg':'neu':'');
+      const c2=m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):((m.key==='ret'||m.key==='retKg')?v?'neg':'neu':'');
       const isFirst=mi===0;const isLast=mi===numM-1;
       const bLeft=di>0&&isFirst?'border-left:2px solid var(--border);':'';
       const bRight=isLast?'border-right:2px solid var(--border);':'';
@@ -1371,26 +1652,37 @@ function renderDay(){
   });
   parts.push(`<tr class="dt-tot"><td class="row-hdr"><div class="dt-rnm"><span style="width:13px;display:inline-block"></span><span class="dt-totname">📊 ИТОГО</span></div></td>${totTds}</tr>`);
 
+  // Data rows
+  // Если выбрана строка — показываем только её и её дочерние строки
   let visRows;
   if(focusedRow && focusedDepth >= 0){
     const focusIdx = flatWithRows.findIndex(({n,d}) => n.key===focusedRow && d===focusedDepth);
     if(focusIdx >= 0){
+      // Берём саму строку + все строки ГЛУБЖЕ (дочерние)
       const result = [flatWithRows[focusIdx]];
       for(let fi=focusIdx+1; fi<flatWithRows.length; fi++){
-        if(flatWithRows[fi].d > focusedDepth){ result.push(flatWithRows[fi]); }
-        else { break; }
+        if(flatWithRows[fi].d > focusedDepth){
+          result.push(flatWithRows[fi]);
+        } else {
+          break;
+        }
       }
       visRows = result;
-    } else { visRows = flatWithRows; }
-  } else { visRows = flatWithRows; }
+    } else {
+      visRows = flatWithRows;
+    }
+  } else {
+    visRows = flatWithRows;
+  }
 
+  // Cumulative accumulators: running total across days
   const cumAcc={};
   visMetrics.forEach(m=>{cumAcc[m.key]=0;});
 
   for(const{n,d,key,hasC,isE,nodeR}of visRows){
     const lv=Math.min(d,3);
     const ind='&nbsp;'.repeat(d*3);
-    const sk2=escJs(key);
+    const sk2=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const expBtn=hasC?`<button class="dt-exp${isE?' open':''}" onclick="dayToggle('${sk2}',this)">${isE?'▾':'▸'}</button>`:
                       `<span style="width:13px;display:inline-block"></span>`;
     const nc=n.ng?'dt-name dt-nog':'dt-name';
@@ -1399,6 +1691,7 @@ function renderDay(){
     const safeKey=escJs(n.key);
     const safeName=escJs(n.name);
 
+    // Day cells for this node
     const nodeByDay=PF.groupBy(nodeR,r=>r.day);
     let tds='';
     visDays.forEach((day,di)=>{
@@ -1407,7 +1700,7 @@ function renderDay(){
       visMetrics.forEach((m,mi)=>{
         const v=da?da[m.key]||0:null;
         const hasVal=da&&dayNodeRows.length>0;
-        const c2=hasVal?(m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):(m.key==='ret'||m.key==='retKg'?v?'neg':'neu':'')):'';
+        const c2=hasVal?(m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):((m.key==='ret'||m.key==='retKg')?v?'neg':'neu':'')):'';
         const bLeft=di>0&&mi===0?'border-left:2px solid var(--border);':'';
         const txt=hasVal&&v!==0?fmtCell(v,m.fmt,tRev):'<span class="empty-cell">—</span>';
         tds+=`<td class="dcell ${c2}" style="${bLeft}">${txt}</td>`;
@@ -1415,16 +1708,21 @@ function renderDay(){
     });
 
     const focusHint=(focusedRow===n.key&&focusedDepth===d)?'Нажми чтобы снять фильтр':'Нажми чтобы оставить только эту строку';
-    parts.push(`<tr class="${rowCls}"><td class="row-hdr"><div class="dt-rnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickRowName('${safeKey}','${safeName}',${d})" title="${focusHint}">${escHtml(n.name)}${(focusedRow===n.key&&focusedDepth===d)?' <span style=\"font-size:9px;color:var(--accent);margin-left:4px\">✕</span>':''}</span></div></td>${tds}</tr>`);
+    parts.push(`<tr class="${rowCls}"><td class="row-hdr"><div class="dt-rnm">${ind}${expBtn}<span class="${nc}" style="cursor:pointer" onclick="clickRowName('${safeKey}','${safeName}',${d})" title="${focusHint}">${n.name}${(focusedRow===n.key&&focusedDepth===d)?' <span style=\"font-size:9px;color:var(--accent);margin-left:4px\">✕</span>':''}</span></div></td>${tds}</tr>`);
   }
 
+  // CUMULATIVE ROW — нарастающий итог
+  // Если есть фокус — считаем только по выбранной строке
   if(showCumulative){
     visMetrics.forEach(m=>{cumAcc[m.key]=0;});
     let cumTds='';
+
     visDays.forEach((day,di)=>{
       let dayV={};
       visMetrics.forEach(m=>{dayV[m.key]=0;});
+
       if(focusedRow){
+        // Считаем по выбранной строке (только top-level, без дочерних дублей)
         const focusedItem=flatWithRows.find(({n})=>n.key===focusedRow);
         if(focusedItem){
           const nodeByDay=PF.groupBy(focusedItem.nodeR,r=>r.day);
@@ -1435,10 +1733,12 @@ function renderDay(){
           }
         }
       } else {
+        // Считаем по всем данным за день
         const dayR=(byDay[day]||[]);
         const da=PF.agg(dayR);
         visMetrics.forEach(m=>{dayV[m.key]=da[m.key]||0;});
       }
+
       visMetrics.forEach((m,mi)=>{
         const isPrice=m.key==='priceZakup'||m.key==='priceZakupNds'||m.key==='priceSellNds'||m.key==='priceSellNoNds'||m.key==='profitUnitNds'||m.key==='profitUnitNoNds';
         if(!isPrice) cumAcc[m.key]+=(dayV[m.key]||0);
@@ -1448,8 +1748,9 @@ function renderDay(){
         cumTds+=`<td class="dcell ${c2}" style="${bLeft}font-size:10px;">${fmtCell(v,m.fmt,tRev)}</td>`;
       });
     });
+
     const cumLabel=focusedName?`Σ ${focusedName.slice(0,20)}...`:'Σ нараст.';
-    parts.push(`<tr class="dt-cumul"><td class="row-hdr"><div class="dt-rnm"><span style="width:13px;display:inline-block"></span><span class="dt-cumul-name" title="Нарастающий итог${focusedName?' по: '+focusedName:''}">${escHtml(cumLabel)}</span></div></td>${cumTds}</tr>`);
+    parts.push(`<tr class="dt-cumul"><td class="row-hdr"><div class="dt-rnm"><span style="width:13px;display:inline-block"></span><span class="dt-cumul-name" title="Нарастающий итог${focusedName?' по: '+focusedName:''}">${cumLabel}</span></div></td>${cumTds}</tr>`);
   }
 
   document.getElementById('dTbody').innerHTML=parts.join('');
@@ -1467,6 +1768,7 @@ function toggleLv(depth){
   const btn=document.getElementById('btn'+depth);
   const isOpen=levelState[depth]==='open';
   const tree=buildInnerTree(filtered(),getSF());
+  // Если включён режим дат, последняя кнопка иерархии не раскрывает сразу все даты.
   const maxDepth=(showMonthDates&&depth>=rowDims.length-1&&!rowDims.includes('day'))?rowDims.length-2:depth;
   function set(ns,d){
     if(d>maxDepth)return;
@@ -1518,78 +1820,20 @@ function onSearch(){
   },220);
 }
 
+// ── INFO POPUP ────────────────────────────────────────────
+let hintMode = true;
 
-// ── COPY / EXPORT FOR CHATS ───────────────────────────────
-function currentPeriodText(){
-  if(selectedMonths.has('all') || selectedMonths.size===0) return 'Все месяцы';
-  return [...selectedMonths].sort().map(m=>{
-    const [y,mo]=m.split('-');
-    return (MO_SHORT[(+mo||1)-1]||m)+' '+(y||'');
-  }).join(', ');
-}
-function currentFilterText(){
-  const p=[];
-  if(!filterGrp.has('ALL')) p.push('Группа контр.: '+[...filterGrp].join(', '));
-  if(!filterSkuGrp.has('ALL')) p.push('Группа SKU: '+[...filterSkuGrp].join(', '));
-  if(searchTerm) p.push('Поиск: '+searchTerm);
-  if(viewMode==='day') p.push('Дней: '+selectedDays.size+'/'+allDays.length);
-  return p.length ? p.join(' | ') : 'без фильтров';
-}
-function hierarchyText(){ return rowDims.map(id=>getDim(id)?.label||id).join(' → '); }
-function getTopRowsForText(rows,limit=7){
-  const tree=buildInnerTree(rows,(a,b)=>(b.m.rev||0)-(a.m.rev||0));
-  const total=PF.agg(rows); const base=total.rev||1;
-  return tree.slice(0,limit).map((n,i)=>{
-    const m=n.m; const mar=m.rev?m.prof/m.rev*100:0; const shr=m.rev/base*100;
-    const nm=n.name.length>34?n.name.slice(0,34)+'…':n.name;
-    return `${i+1}) ${nm} — ${PF.fmtRev(m.rev)}₸ | ${shr.toFixed(1)}% | маржа ${mar>=0?'+':''}${mar.toFixed(1)}%`;
-  });
-}
-function makeWhatsAppReport(){
-  const rows=filtered(); const tot=PF.agg(rows);
-  const marSign=tot.mar>=0?'+':'';
-  const problems=[];
-  if(tot.retPct>3) problems.push(`возвраты ${Math.abs(tot.retPct).toFixed(1)}%`);
-  if(tot.prof<0) problems.push('минусовая прибыль');
-  const top=getTopRowsForText(rows,7);
-  return [
-    `📊 PF Analytics`,
-    `Период: ${currentPeriodText()}`,
-    `Режим: ${viewMode==='month'?'по месяцам':'по дням'} · ${hierarchyText()}`,
-    `Фильтры: ${currentFilterText()}`,
-    ``,
-    `ИТОГО`,
-    `• Выручка: ${PF.fmtRev(tot.rev)} ₸`,
-    `• Себест.: ${PF.fmtRev(tot.seb)} ₸`,
-    `• Вал.прибыль факт: ${PF.fmtRev(tot.prof)} ₸ | Маржа: ${marSign}${tot.mar.toFixed(1)}%`,
-    `• Возвраты: ${PF.fmtRev(Math.abs(tot.ret))} ₸ | ${Math.abs(tot.retPct).toFixed(1)}%`,
-    `• Кол-во: ${PF.fmtQty(tot.qtyReal)} шт | Объём: ${PF.fmtKg(tot.kg)} кг`,
-    ``,
-    `ТОП-${top.length} по выручке`,
-    ...(top.length?top:['нет данных']),
-    ``,
-    problems.length?`⚠️ Внимание: ${problems.join(', ')}`:`✅ Критичных сигналов по итогу нет`,
-    `Обновлено: ${new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}`
-  ].join('\n');
-}
-function setCopyBtn(btn,text,cls='ok',ms=1800){
-  if(!btn)return; const old=btn.dataset.oldText||btn.textContent; btn.dataset.oldText=old;
-  btn.textContent=text; btn.classList.remove('ok','err','busy'); btn.classList.add(cls);
-  setTimeout(()=>{btn.textContent=old; btn.classList.remove(cls,'busy');},ms);
-}
-function copyPlainText(text){
-  if(navigator.clipboard&&navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
-  const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select();
-  const ok=document.execCommand('copy'); document.body.removeChild(ta);
-  return ok?Promise.resolve():Promise.reject(new Error('copy failed'));
-}
+
+
+
+
+
+// ── GPT EXPORT FUNCTIONS ──────────────────────────
 function copyTableText(ev){
   const btn=ev?.currentTarget; if(btn){btn.dataset.oldText=btn.dataset.oldText||btn.textContent;btn.classList.add('busy');btn.textContent='Копирую...';}
   copyPlainText(makeWhatsAppReport()).then(()=>setCopyBtn(btn,'✅ Текст скопирован','ok')).catch(()=>setCopyBtn(btn,'❌ Не скопировалось','err',2400));
 }
-function getExportTableEl(){
-  return viewMode==='day' ? document.getElementById('dTable') : document.querySelector('#monthView table');
-}
+
 async function copyTableImage(ev){
   const btn=ev?.currentTarget; if(btn){btn.dataset.oldText=btn.dataset.oldText||btn.textContent;btn.classList.add('busy');btn.textContent='Готовлю скрин...';}
   try{
@@ -1625,14 +1869,95 @@ async function copyTableImage(ev){
     setCopyBtn(btn,'❌ Скрин не вышел','err',2500);
   }
 }
+
+function copyPlainText(text){
+  if(navigator.clipboard&&navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+  const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select();
+  const ok=document.execCommand('copy'); document.body.removeChild(ta);
+  return ok?Promise.resolve():Promise.reject(new Error('copy failed'));
+}
+
+function currentFilterText(){
+  const p=[];
+  if(!filterGrp.has('ALL')) p.push('Группа контр.: '+[...filterGrp].join(', '));
+  if(!filterSkuGrp.has('ALL')) p.push('Группа SKU: '+[...filterSkuGrp].join(', '));
+  if(searchTerm) p.push('Поиск: '+searchTerm);
+  if(viewMode==='day') p.push('Дней: '+selectedDays.size+'/'+allDays.length);
+  return p.length ? p.join(' | ') : 'без фильтров';
+}
+
+function currentPeriodText(){
+  if(selectedMonths.has('all') || selectedMonths.size===0) return 'Все месяцы';
+  return [...selectedMonths].sort().map(m=>{
+    const [y,mo]=m.split('-');
+    return (MO_SHORT[(+mo||1)-1]||m)+' '+(y||'');
+  }).join(', ');
+}
+
 function downloadBlob(blob){
   const url=URL.createObjectURL(blob); const a=document.createElement('a');
   a.href=url; a.download='pf-table-'+new Date().toISOString().slice(0,10)+'.png';
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),800);
 }
 
-// ── INFO POPUP ────────────────────────────────────────────
-let hintMode = true;
+function getExportTableEl(){
+  return viewMode==='day' ? document.getElementById('dTable') : document.querySelector('#monthView table');
+}
+
+function getShareConfig(total){
+  const key = shareMode==='kg' ? 'kg' : shareMode==='prof' ? 'prof' : 'rev';
+  const label = shareMode==='kg' ? 'Доля(кг)' : shareMode==='prof' ? 'Доля(приб.)' : 'Доля(выр.)';
+  const title = shareMode==='kg' ? 'Доля по объёму кг' : shareMode==='prof' ? 'Доля по прибыли' : 'Доля по выручке без НДС';
+  const baseRaw = total ? (total[key] ?? 0) : 0;
+  const base = Math.abs(baseRaw) || 1;
+  return {key,label,title,base};
+}
+
+function getTopRowsForText(rows,limit=7){
+  const tree=buildInnerTree(rows,(a,b)=>(b.m.rev||0)-(a.m.rev||0));
+  const total=PF.agg(rows); const base=total.rev||1;
+  return tree.slice(0,limit).map((n,i)=>{
+    const m=n.m; const mar=m.rev?m.prof/m.rev*100:0; const shr=m.rev/base*100;
+    const nm=n.name.length>34?n.name.slice(0,34)+'…':n.name;
+    return `${i+1}) ${nm} — ${PF.fmtRev(m.rev)}₸ | ${shr.toFixed(1)}% | маржа ${mar>=0?'+':''}${mar.toFixed(1)}%`;
+  });
+}
+
+function hierarchyText(){ return rowDims.map(id=>getDim(id)?.label||id).join(' → '); }
+
+function makeWhatsAppReport(){
+  const rows=filtered(); const tot=PF.agg(rows);
+  const marSign=tot.mar>=0?'+':'';
+  const problems=[];
+  if(tot.retPct>3) problems.push(`возвраты ${Math.abs(tot.retPct).toFixed(1)}%`);
+  if(tot.prof<0) problems.push('минусовая прибыль');
+  const top=getTopRowsForText(rows,7);
+  return [
+    `📊 PF Analytics`,
+    `Период: ${currentPeriodText()}`,
+    `Режим: ${viewMode==='month'?'по месяцам':'по дням'} · ${hierarchyText()}`,
+    `Фильтры: ${currentFilterText()}`,
+    ``,
+    `ИТОГО`,
+    `• Выручка: ${PF.fmtRev(tot.rev)} ₸`,
+    `• Себест.: ${PF.fmtRev(tot.seb)} ₸`,
+    `• Вал.прибыль факт: ${PF.fmtRev(tot.prof)} ₸ | Маржа: ${marSign}${tot.mar.toFixed(1)}%`,
+    `• Возвраты: ${PF.fmtRev(Math.abs(tot.ret))} ₸ | ${Math.abs(tot.retPct).toFixed(1)}%`,
+    `• Кол-во: ${PF.fmtQty(tot.qtyReal)} шт | Объём: ${PF.fmtKg(tot.kg)} кг`,
+    ``,
+    `ТОП-${top.length} по выручке`,
+    ...(top.length?top:['нет данных']),
+    ``,
+    problems.length?`⚠️ Внимание: ${problems.join(', ')}`:`✅ Критичных сигналов по итогу нет`,
+    `Обновлено: ${new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}`
+  ].join('\n');
+}
+
+function setCopyBtn(btn,text,cls='ok',ms=1800){
+  if(!btn)return; const old=btn.dataset.oldText||btn.textContent; btn.dataset.oldText=old;
+  btn.textContent=text; btn.classList.remove('ok','err','busy'); btn.classList.add(cls);
+  setTimeout(()=>{btn.textContent=old; btn.classList.remove(cls,'busy');},ms);
+}
 
 function toggleHintMode(on) {
   hintMode = on;
@@ -1680,6 +2005,7 @@ function clickRowName(key, name, depth){
   renderDay();
 }
 function clickMonthRow(key, name, depth){
+  // Авто-даты под последним уровнем не фокусируем, чтобы не путать фильтр строки с датой.
   if(String(key).includes('dayAuto:'))return;
   if(focusedRow===key && focusedDepth===depth){
     focusedRow=null; focusedName=null; focusedDepth=-1;
@@ -1699,7 +2025,7 @@ function toggleCumulative(){
 async function reloadData(){
   document.getElementById('ls').style.display='flex';
   document.getElementById('prog').style.width='0%';
-  rawRows=[];expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};
+  rawRows=[];expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};focusedRow=null;focusedName=null;focusedDepth=-1;
   await loadData();
 }
 
