@@ -365,10 +365,10 @@ tr.dt-dimmed{opacity:.25;}
       <button class="pv-btn active" data-vat-mode="no" onclick="setPriceNds(false)">б/НДС</button>
       <button class="pv-btn" data-vat-mode="yes" onclick="setPriceNds(true)">с НДС</button>
     </div>
-    <div class="price-vat-switch" title="Факт = реальная прибыль после возвратов. Без возвр. = прибыльность чистых продаж (потенциал без потерь на возвратах)." style="margin-left:4px">
-      <span class="pv-label">Прибыль</span>
+    <div class="price-vat-switch" title="Факт = валовая прибыль с учётом возвратов. Только продажи = валовая прибыль по строкам продаж, возвраты исключены." style="margin-left:4px">
+      <span class="pv-label">Вид прибыли</span>
       <button class="pv-btn active" id="profModeStd" onclick="setProfMode('std')">Факт</button>
-      <button class="pv-btn" id="profModeNet" onclick="setProfMode('net')">Без возвр.</button>
+      <button class="pv-btn" id="profModeNet" onclick="setProfMode('net')">Только продажи</button>
     </div>
     <div class="price-vat-switch" title="Меняет базу расчёта колонки Доля %" style="margin-left:4px">
       <span class="pv-label">Доля по</span>
@@ -391,10 +391,13 @@ tr.dt-dimmed{opacity:.25;}
   <div class="kpi"><div class="kpi-lbl">Кол-во (шт)</div><div class="kpi-val blue" id="k-qty">—</div><div class="kpi-sub">целых единиц</div></div>
   <div class="kpi"><div class="kpi-lbl">Объём (кг)</div><div class="kpi-val blue" id="k-kg">—</div><div class="kpi-sub">кг = кол-во × вес</div></div>
   <div class="kpi"><div class="kpi-lbl" id="k-seb-lbl">Себестоимость (б/НДС)</div><div class="kpi-val amb" id="k-seb">—</div><div class="kpi-sub" id="k-seb-sub">финансовая база без НДС</div><div class="ktip">Себестоимость пересчитывается по цене прихода без НДС: если в приходе есть НДС, он вычитается; если НДС нет — цена не делится. Это база для прибыли и маржи.</div></div>
-  <div class="kpi"><div class="kpi-lbl">Прибыль</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">Выручка − Себест.</div><div class="ktip">«Profit» из 1С = Выручка без НДС − Себестоимость<br>⚠️ Валовая прибыль, ДО косвенных затрат</div></div>
+  <div class="kpi"><div class="kpi-lbl">Вал.прибыль факт</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">с учётом возвратов</div><div class="ktip">Валовая прибыль ФАКТ = выручка без НДС уже после возвратов − себестоимость из прихода. Это прибыль ДО зарплаты, аренды, логистики и прочих расходов P&amp;L.</div></div>
   <div class="kpi"><div class="kpi-lbl">Маржа %</div><div class="kpi-val" id="k-mar">—</div><div class="kpi-sub">Прибыль ÷ Выручка</div></div>
   <div class="kpi"><div class="kpi-lbl">Возвраты</div><div class="kpi-val red" id="k-ret">—</div><div class="kpi-sub">сумма возвратов</div></div>
   <div class="kpi"><div class="kpi-lbl">Возврат %</div><div class="kpi-val red" id="k-retpct">—</div><div class="kpi-sub">|Возврат| ÷ Выручка</div></div>
+  <div class="kpi"><div class="kpi-lbl">Возврат кг</div><div class="kpi-val red" id="k-retkg">—</div><div class="kpi-sub">объём возврата</div><div class="ktip">Сумма веса возвратов: количество возврата × вес SKU</div></div>
+  <div class="kpi"><div class="kpi-lbl">АКБ</div><div class="kpi-val grn" id="k-akb">—</div><div class="kpi-sub">активная база</div><div class="ktip">Уникальные контрагенты, у которых были продажи в выбранном периоде/фильтре</div></div>
+  <div class="kpi"><div class="kpi-lbl">Контрагентов</div><div class="kpi-val blue" id="k-kntcnt">—</div><div class="kpi-sub">в текущем фильтре</div><div class="ktip">Все уникальные контрагенты в текущей выборке, включая строки с возвратами</div></div>
   <div class="kpi avgw" id="avgW" onclick="toggleAvgDD(event)">
     <div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
       <span id="avgLbl">Ср. цена</span><span style="color:var(--accent);font-size:10px">▾</span>
@@ -446,7 +449,7 @@ tr.dt-dimmed{opacity:.25;}
     <span class="tlbl">Сортировка:</span>
     <select class="sel" id="sortSel" onchange="renderMonth()">
       <option value="rev_d">Выручка ↓</option>
-      <option value="prof_d">Прибыль ↓</option>
+      <option value="prof_d">Вал.прибыль факт ↓</option>
       <option value="qty_d">Кол-во ↓</option>
       <option value="kg_d">Объём кг ↓</option>
       <option value="mar_d">Маржа ↓</option>
@@ -533,9 +536,9 @@ tr.dt-dimmed{opacity:.25;}
   </div>
   <div class="ip-body">
     <div class="ip-row"><div class="ip-label">📐 Формула</div><div class="ip-val" id="ipFormula">—</div></div>
-    <div class="ip-row"><div class="ip-label">📋 Источник в 1С</div><div class="ip-val" id="ipSource">—</div></div>
-    <div class="ip-row"><div class="ip-label">💡 Что означает</div><div class="ip-val meaning" id="ipMeaning">—</div></div>
-    <div class="ip-row"><div class="ip-label">🔢 Пример</div><div class="ip-val example" id="ipExample">—</div></div>
+    <div class="ip-row"><div class="ip-label">📋 Откуда берётся</div><div class="ip-val" id="ipSource">—</div></div>
+    <div class="ip-row"><div class="ip-label">💡 Как читать показатель</div><div class="ip-val meaning" id="ipMeaning">—</div></div>
+    <div class="ip-row"><div class="ip-label">🔢 Простой пример</div><div class="ip-val example" id="ipExample">—</div></div>
   </div>
 </div>
 
@@ -575,30 +578,36 @@ const MCOLS=[
   {id:'seb',      lbl:'Себест. ₸',  key:'seb',         fmt:'full',on:true,
     tip:'Себестоимость (прямые затраты на закупку)',
     doc:{formula:'Цена прихода по SKU на дату продажи × Кол-во реализации. Если цены прихода нет: fallback на «Стоимость (без НДС)» из 1С',source:'pf-prikhod.js / PRIKHOD_PRICES + ИсхРеал',meaning:'Прямые затраты на товар пересчитываются из прихода: берётся ближайшая цена прихода до даты продажи. ФОТ, аренда, логистика и прочие косвенные расходы сюда не входят',example:'Цена прихода 390 ₸ × 100 шт = Себест. 39 000 ₸'}},
-  {id:'prof',     lbl:'Прибыль ₸',  key:'prof',        fmt:'full',on:true,
-    tip:'Валовая прибыль (до косвенных затрат)',
-    doc:{formula:'Выручка без НДС − Себестоимость из прихода',source:'Считается на сайте после пересчёта себестоимости',meaning:'⚠️ Это ВАЛОВАЯ прибыль — только прямые затраты вычтены. ФОТ, аренда, логистика — НЕ учтены. Для полной картины смотри P&L',example:'Выручка 100 000 − Себест 80 000 = Прибыль 20 000 ₸'}},
-  {id:'profNet', lbl:'Приб.прод.', key:'profNet', fmt:'full', on:false,
-    tip:'Прибыль только от продаж — без финансовых потерь от возвратов',
-    doc:{formula:'Выручка(продажи) − Себест(продажи)',source:'Строки где qtyReal>0',
-      meaning:'Прибыль если бы не было возвратов. Разница с Прибылью = финансовые потери от возвратов',
-      example:'Прибыль(с возвр)=−385к, Приб.(прод)=+247к → потери=632к'}},
+  {id:'prof',     lbl:'Вал.приб. факт',  key:'prof',        fmt:'full',on:true,
+    tip:'Фактическая валовая прибыль с учётом возвратов',
+    doc:{formula:'Выручка без НДС после возвратов − Себестоимость из прихода',source:'Выручка: колонка O «Сумма без налогов» из ИсхРеал. Себестоимость: цена прихода по SKU на дату продажи × количество с возвратами; если цены прихода нет — fallback на себестоимость из 1С.',meaning:'Это реальный факт по валовой прибыли: возвраты уже уменьшили выручку и себестоимость. Косвенные расходы — зарплата, аренда, логистика, офис, налоги P&L — здесь НЕ учтены.',example:'Продали на 100 000 ₸ без НДС, себестоимость 80 000 ₸ → Вал.приб. факт = 20 000 ₸. Если был возврат, он уже сидит внутри факта.'}},
+  {id:'profNet', lbl:'Приб. без возвр.', key:'profNet', fmt:'full', on:false,
+    tip:'Валовая прибыль только по строкам продаж, возвраты исключены',
+    doc:{formula:'Выручка только от продаж − Себестоимость только от продаж',source:'Берутся только строки продаж, где «Количество реализации» > 0. Возвратные строки не участвуют. Себестоимость продаж = цена прихода × количество реализации без возвратов.',
+      meaning:'Показывает потенциал продаж без влияния возвратов. Сравнивай с «Вал.приб. факт»: если «без возвр.» плюс, а факт минус — прибыль съели возвраты; если оба минус — проблема в цене или закупе.',
+      example:'Вал.приб. факт = −385 000 ₸, Приб. без возвр. = +247 000 ₸ → потери от возвратов = 632 000 ₸.'}},
   {id:'mar',      lbl:'Маржа %',    key:'mar',         fmt:'pct', on:false,
     tip:'Маржинальность (рентабельность продаж)',
-    doc:{formula:'Прибыль ÷ Выручка × 100%',source:'Считается на сайте',meaning:'Показывает сколько копеек прибыли на каждый тенге выручки. Без учёта косвенных расходов. Минус = продаём дешевле чем покупаем',example:'Прибыль 20 000 ÷ Выручка 100 000 = Маржа 20%'}},
+    doc:{formula:'Вал.прибыль факт ÷ Выручка без НДС × 100%',source:'Считается на сайте из «Вал.приб. факт» и выручки без НДС',meaning:'Показывает долю валовой прибыли в выручке. Это маржа ДО косвенных расходов. Минус означает, что по прямой себестоимости выбранная группа/клиент/SKU убыточны.',example:'Вал.прибыль факт 20 000 ÷ Выручка 100 000 = Маржа 20%'}},
   {id:'avg',      lbl:'Ср.цена ₸',  key:'avg',         fmt:'full',on:false,
     tip:'Средняя цена продажи',
     doc:{formula:'Выручка ÷ Кол-во (с возвратами)',source:'Считается на сайте',meaning:'Средняя цена за единицу товара по данной группе/контрагенту/SKU',example:'Выручка 100 000 ÷ 200 шт = 500 ₸/шт'}},
   {id:'kg',       lbl:'Объём кг',   key:'kg',          fmt:'kg',  on:true,
     tip:'Физический объём продаж в кг',
     doc:{formula:'Кол-во × Вес единицы SKU',source:'Кол-во из ИсхРеал × Вес из листа SKUСправочник',meaning:'Показывает реальный физический объём — удобно для сравнения разных SKU (1л молоко vs 400гр сметана)',example:'200 шт × 1 кг = 200 кг'}},
+  {id:'retKg',    lbl:'Возвр. кг',  key:'retKg',       fmt:'kg',  on:false,
+    tip:'Объём возврата в килограммах',
+    doc:{formula:'Количество возврата × Вес единицы SKU',source:'Колонка H в ИсхРеал × вес из SKUСправочник',meaning:'Показывает, сколько килограммов продукции вернули. Это удобнее, чем штуки, потому что товары имеют разный вес',example:'Вернули 10 шт по 0.5 кг → Возвр. кг = 5 кг'}},
+  {id:'retKgPct', lbl:'Возвр.кг %', key:'retKgPct',    fmt:'pct', on:false,
+    tip:'Доля возврата в кг от общего объёма кг',
+    doc:{formula:'|Возврат кг| ÷ Объём кг × 100%',source:'Считается на сайте из возвратов и веса SKU',meaning:'Показывает долю физического объёма, который вернулся назад',example:'Продали 1 000 кг, вернули 25 кг → Возвр.кг % = 2.5%'}},
   {id:'profKg',   lbl:'Приб./кг',   key:'profKg',      fmt:'full',on:false,
     tip:'Прибыль на 1 кг продукции',
     doc:{formula:'Прибыль ÷ Объём(кг)',source:'Считается на сайте',meaning:'Сколько тенге прибыли приносит каждый килограмм. Удобно для сравнения разных весовых категорий',example:'Прибыль 20 000 ÷ 200 кг = 100 ₸/кг'}},
   {id:'sebKg',    lbl:'Затр./кг',   key:'sebKg',       fmt:'full',on:false,
     tip:'Прямые затраты на 1 кг продукции',
     doc:{formula:'Себестоимость ÷ Объём(кг)',source:'Считается на сайте',meaning:'Сколько тенге себестоимости на каждый кг — удобно для сравнения эффективности SKU',example:'Себест 80 000 ÷ 200 кг = 400 ₸/кг'}},
-  {id:'share',    lbl:'Доля %',     key:'rev',         fmt:'share',on:true,
+  {id:'share',    lbl:'Доля %',     key:'rev',         fmt:'share',on:false,
     tip:'Доля в общей выручке',
     doc:{formula:'Выручка строки ÷ Выручка ИТОГО × 100%',source:'Считается на сайте',meaning:'Показывает вклад этого контрагента/группы/SKU в общую выручку',example:'Кофейни 30 млн ÷ Всего 300 млн = 10%'}},
   {id:'priceZakup',lbl:'Цена закупа',key:'priceZakup', fmt:'full',on:true,
@@ -622,10 +631,11 @@ const DAY_METRICS=[
   {id:'qtyReal', lbl:'Реал.',     key:'qtyReal',  fmt:'qty', on:true},
   {id:'qtyRet',  lbl:'Возвр.',    key:'qtyRet',   fmt:'qty', on:false},
   {id:'rev',     lbl:'Выручка',   key:'rev',      fmt:'rev', on:true},
-  {id:'prof',    lbl:'Прибыль',   key:'prof',     fmt:'rev', on:true},
-  {id:'profNet', lbl:'Приб.прод.',key:'profNet',  fmt:'rev', on:false},
+  {id:'prof',    lbl:'Вал.приб. факт',   key:'prof',     fmt:'rev', on:true},
+  {id:'profNet', lbl:'Приб. без возвр.',key:'profNet',  fmt:'rev', on:false},
   {id:'mar',     lbl:'Маржа %',   key:'mar',      fmt:'pct', on:true},
   {id:'kg',      lbl:'Объём кг',  key:'kg',       fmt:'kg',  on:false},
+  {id:'retKg',   lbl:'Возвр. кг', key:'retKg',    fmt:'kg',  on:false},
   {id:'seb',     lbl:'Себест.',   key:'seb',      fmt:'rev', on:false},
   {id:'ret',     lbl:'Возврат',   key:'ret',      fmt:'rev', on:false},
   {id:'sumReal', lbl:'Сумма реал.',key:'sumReal', fmt:'rev', on:false},
@@ -835,6 +845,11 @@ function updateKPIs(){
   const me=document.getElementById('k-mar');me.textContent=PF.fmtPct(tot.mar);me.className='kpi-val '+(tot.mar>=0?'grn':'red');
   document.getElementById('k-ret').textContent=PF.fmtRev(tot.ret)+' ₸';
   document.getElementById('k-retpct').textContent=PF.fmtPctAbs(tot.retPct);
+  document.getElementById('k-retkg').textContent=PF.fmtKg(Math.abs(tot.retKg||0))+' кг';
+  const akb = new Set(rows.filter(r=>(r.qtyReal||0)>0 || (r.sumReal||0)>0).map(r=>r.knt).filter(Boolean)).size;
+  const kntCnt = new Set(rows.map(r=>r.knt).filter(Boolean)).size;
+  document.getElementById('k-akb').textContent=akb.toLocaleString('ru');
+  document.getElementById('k-kntcnt').textContent=kntCnt.toLocaleString('ru');
   document.getElementById('k-avg').textContent=PF.fmtFull(calcAvg(rows))+' ₸';
 }
 
@@ -882,13 +897,14 @@ function toggleFP(){
 // ── COLUMNS / METRICS ─────────────────────────────────────
 function buildCtogs(){
   document.getElementById('ctogs').innerHTML=
-    MCOLS.map(c=>
-      `<button class="ctog ${mColOn[c.id]?'on':''}" title="${c.tip}" onclick="toggleMCol('${c.id}',this)">${c.id==='share'?'➗ ':''}${c.lbl}</button>`
-    ).join('');
+    MCOLS.map(c=>{
+      const icon = c.id==='share' ? '➗ ' : '';
+      const state = mColOn[c.id] ? '✓ ' : '+ ';
+      return `<button class="ctog ${mColOn[c.id]?'on':''}" title="${c.tip}" onclick="toggleMCol('${c.id}')">${state}${icon}${c.lbl}</button>`;
+    }).join('');
 }
-function toggleMCol(id,btn){
+function toggleMCol(id){
   mColOn[id]=!mColOn[id];
-  btn.classList.toggle('on',mColOn[id]);
   buildCtogs();
   buildMHeader();
   renderMonth();
@@ -996,7 +1012,8 @@ const fmtCell=(v,fmt,tRev)=>{
   return PF.fmtFull(v)+(v?' ₸':'');
 };
 const cls=(v,key)=>{
-  if(key==='retPct'||key==='mar')return v<0?'neg':v>0?'pos':'neu';
+  if(key==='retPct'||key==='retKgPct')return v?'neg':'neu';
+  if(key==='mar')return v<0?'neg':v>0?'pos':'neu';
   if(key==='prof'||key==='profKg')return v>0?'pos':v<0?'neg':'';
   if(key==='ret'||key==='retKg') return v?'neg':'neu';
   return '';
@@ -1482,7 +1499,7 @@ function makeWhatsAppReport(){
     `ИТОГО`,
     `• Выручка: ${PF.fmtRev(tot.rev)} ₸`,
     `• Себест.: ${PF.fmtRev(tot.seb)} ₸`,
-    `• Прибыль: ${PF.fmtRev(tot.prof)} ₸ | Маржа: ${marSign}${tot.mar.toFixed(1)}%`,
+    `• Вал.прибыль факт: ${PF.fmtRev(tot.prof)} ₸ | Маржа: ${marSign}${tot.mar.toFixed(1)}%`,
     `• Возвраты: ${PF.fmtRev(Math.abs(tot.ret))} ₸ | ${Math.abs(tot.retPct).toFixed(1)}%`,
     `• Кол-во: ${PF.fmtQty(tot.qtyReal)} шт | Объём: ${PF.fmtKg(tot.kg)} кг`,
     ``,
