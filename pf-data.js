@@ -262,6 +262,8 @@ const PF = {
       if(!groupMapPrefix[pfx]) groupMapPrefix[pfx]=v;
     }
     const findGroup = knt => {
+      // Торговые точки — всегда группа "Торговые точки"
+      if(knt.startsWith('ТТ ')) return 'Торговые точки';
       if(groupMap[knt]) return groupMap[knt];
       const nk = normKey(knt);
       if(groupMapNorm[nk]) return groupMapNorm[nk];
@@ -296,8 +298,16 @@ const PF = {
 
     for (let i=1;i<rRows.length;i++) {
       const r=rRows[i];
-      const knt=String(r[iKnt]||'').trim();
+      let knt=String(r[iKnt]||'').trim();
       const sku=String(r[iSku]||'').trim();
+      const sklad=iSklad>=0 ? String(r[iSklad]||'').trim() : '';
+
+      // Торговые точки: Розничная выручка/покупатель → разделяем по складам
+      const TT_SKLADS={'Сауран':'ТТ Сауран','Коктал':'ТТ Коктал','Артем':'ТТ Артем',
+        'Евразия':'ТТ Евразия','Акмол Женис':'ТТ Акмол Женис','Шапагат ТД':'ТТ Шапагат ТД'};
+      if(knt.toLowerCase().includes('розничн') && TT_SKLADS[sklad]){
+        knt = TT_SKLADS[sklad];
+      }
 
       // Пропускаем: пустые, строку "Итого", нетоварные
       if (!knt||!sku) continue;
