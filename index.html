@@ -372,10 +372,16 @@ tr.dt-dimmed{opacity:.25;}
       <button class="pv-btn active" data-vat-mode="no" onclick="setPriceNds(false)">б/НДС</button>
       <button class="pv-btn" data-vat-mode="yes" onclick="setPriceNds(true)">с НДС</button>
     </div>
-    <div class="price-vat-switch" title="Факт = реальная прибыль после возвратов. Без возвр. = прибыльность чистых продаж (потенциал без потерь на возвратах)." style="margin-left:4px">
-      <span class="pv-label">Прибыль</span>
+    <div class="price-vat-switch" title="Факт = все суммы с учётом возвратов. Без возвр. = только продажи." style="margin-left:4px">
+      <span class="pv-label">Реализация</span>
       <button class="pv-btn active" id="profModeStd" onclick="setProfMode('std')">Факт</button>
       <button class="pv-btn" id="profModeNet" onclick="setProfMode('net')">Без возвр.</button>
+    </div>
+    <div class="price-vat-switch" title="Переключает расчёт колонки Доля %" style="margin-left:4px">
+      <span class="pv-label">Доля по</span>
+      <button class="pv-btn active" id="shareModeRev" onclick="setShareMode('rev')">Выручка</button>
+      <button class="pv-btn" id="shareModeKg" onclick="setShareMode('kg')">Кг</button>
+      <button class="pv-btn" id="shareModeSumR" onclick="setShareMode('sumReal')">Сумма реал.</button>
     </div>
     <div class="live-b"><div class="ldot"></div>Live</div>
     <button class="ibtn" onclick="reloadData()">⟳</button>
@@ -572,7 +578,7 @@ const MCOLS=[
   {id:'ret',      lbl:'Возврат ₸',  key:'ret',         fmt:'full',on:true,
     tip:'Сумма возвратов',
     doc:{formula:'СУММ(«Сумма возвратов»)',source:'Колонка K в ИсхРеал из 1С',meaning:'Деньги которые вернули покупателям. Отрицательное число означает уменьшение выручки',example:'-50 000 ₸ = вернули товар на 50 тысяч'}},
-  {id:'retPct',   lbl:'Возврат %',  key:'retPct',      fmt:'pct', on:true,
+  {id:'retPct',   lbl:'Возврат %',  key:'retPct',      fmt:'pct', on:false,
     tip:'Процент возврата от выручки',
     doc:{formula:'|Сумма возвратов| ÷ Выручка × 100%',source:'Считается на сайте из колонок O и K',meaning:'Показывает какой % выручки "уходит" обратно через возвраты. Норма для молочки — до 2-3%. Выше — проблема с качеством или приёмкой',example:'Выручка 1 млн, возвраты 30 тыс → Возврат% = 3.0%'}},
   {id:'retKg',    lbl:'Возвр. кг',  key:'retKg',       fmt:'kg',  on:false,
@@ -584,8 +590,8 @@ const MCOLS=[
   {id:'prof',     lbl:'Прибыль ₸',  key:'prof',        fmt:'full',on:true,
     tip:'Валовая прибыль (до косвенных затрат)',
     doc:{formula:'Выручка без НДС − Себестоимость из прихода',source:'Считается на сайте после пересчёта себестоимости',meaning:'⚠️ Это ВАЛОВАЯ прибыль — только прямые затраты вычтены. ФОТ, аренда, логистика — НЕ учтены. Для полной картины смотри P&L',example:'Выручка 100 000 − Себест 80 000 = Прибыль 20 000 ₸'}},
-  {id:'profNet', lbl:'Приб.прод.', key:'profNet', fmt:'full', on:false,
-    tip:'Прибыль только от продаж — без финансовых потерь от возвратов',
+  {id:'profNet', lbl:'Приб.чист.', key:'profNet', fmt:'full', on:false,
+    tip:'Чистая прибыль — только от продаж, без финансовых потерь от возвратов',
     doc:{formula:'Выручка(продажи) − Себест(продажи)',source:'Строки где qtyReal>0',
       meaning:'Прибыль если бы не было возвратов. Разница с Прибылью = финансовые потери от возвратов',
       example:'Прибыль(с возвр)=−385к, Приб.(прод)=+247к → потери=632к'}},
@@ -595,7 +601,7 @@ const MCOLS=[
   {id:'avg',      lbl:'Ср.цена ₸',  key:'avg',         fmt:'full',on:false,
     tip:'Средняя цена продажи',
     doc:{formula:'Выручка ÷ Кол-во (с возвратами)',source:'Считается на сайте',meaning:'Средняя цена за единицу товара по данной группе/контрагенту/SKU',example:'Выручка 100 000 ÷ 200 шт = 500 ₸/шт'}},
-  {id:'kg',       lbl:'Объём кг',   key:'kg',          fmt:'kg',  on:true,
+  {id:'kg',       lbl:'Объём кг',   key:'kg',          fmt:'kg',  on:false,
     tip:'Физический объём продаж в кг',
     doc:{formula:'Кол-во × Вес единицы SKU',source:'Кол-во из ИсхРеал × Вес из листа SKUСправочник',meaning:'Показывает реальный физический объём — удобно для сравнения разных SKU (1л молоко vs 400гр сметана)',example:'200 шт × 1 кг = 200 кг'}},
   {id:'profKg',   lbl:'Приб./кг',   key:'profKg',      fmt:'full',on:false,
@@ -604,16 +610,16 @@ const MCOLS=[
   {id:'sebKg',    lbl:'Затр./кг',   key:'sebKg',       fmt:'full',on:false,
     tip:'Прямые затраты на 1 кг продукции',
     doc:{formula:'Себестоимость ÷ Объём(кг)',source:'Считается на сайте',meaning:'Сколько тенге себестоимости на каждый кг — удобно для сравнения эффективности SKU',example:'Себест 80 000 ÷ 200 кг = 400 ₸/кг'}},
-  {id:'share',    lbl:'Доля(выр.)',  key:'_sh',         fmt:'share',on:true,
-    tip:'Доля в общей выручке без НДС',
+  {id:'share',    lbl:'Доля %',      key:'_sh',         fmt:'share',on:false,
+    tip:'Доля — переключается через кнопку: по выручке / по кг / по сумме реал.',
     doc:{formula:'Выручка строки ÷ Выручка ИТОГО × 100%',source:'Считается на сайте',meaning:'Показывает вклад этого контрагента/группы/SKU в общую выручку',example:'Кофейни 30 млн ÷ Всего 300 млн = 10%'}},
-  {id:'priceZakup',lbl:'Цена закупа',key:'priceZakup', fmt:'full',on:true,
+  {id:'priceZakup',lbl:'Цена закупа',key:'priceZakup', fmt:'full',on:false,
     tip:'Средняя закупочная цена за штуку',
     doc:{formula:'Себестоимость (только строки продаж) ÷ Кол-во реализации (Реал.)',source:'Себестоимость из прихода ÷ Кол-во реализации. Переключатель показывает с НДС или без НДС',meaning:'Закупочная цена за штуку. По умолчанию без НДС; при переключении НДС показывает цену прихода с НДС',example:'Продали 5 шт за 1 659 ₸ себест → Цена закупа = 332 ₸/шт'}},
   {id:'sumReal',   lbl:'Сумма реал.(факт)',key:'sumRealS', fmt:'rev',  on:true,
     tip:'Сумма реализации с НДС (колонка J из 1С)',
     doc:{formula:'СУММ(«Сумма реализации»)',source:'Колонка J в ИсхРеал из 1С',meaning:'Сумма продаж С НДС — именно эта сумма в накладных у покупателей. Отличается от Выручки (колонка O без НДС)',example:'Продали на 100 000 ₸ без НДС → Сумма реал. = 116 000 ₸'}},
-  {id:'priceSell', lbl:'Цена продажи',key:'priceSellNds',fmt:'full',on:true,
+  {id:'priceSell', lbl:'Цена продажи',key:'priceSellNds',fmt:'full',on:false,
     tip:'Средняя цена продажи (переключатель НДС/б.НДС)',
     doc:{formula:'с НДС: СуммаРеализации ÷ Кол-во | без НДС: (СуммаРеализации ÷ 1.16) ÷ Кол-во',source:'Сумма реализации из колонки J ÷ Кол-во из колонки G (без возвратов)',meaning:'Цена по которой продаём клиенту. С НДС — что видит покупатель в накладной. Без НДС — база для сравнения с закупочной ценой',example:'Продали на 116 000 ₸ с НДС ÷ 200 шт = 580 ₸/шт'}},
   {id:'profitUnit',lbl:'Профит/шт',  key:'profitUnitNds',fmt:'full',on:false,
@@ -673,7 +679,7 @@ const DAY_METRICS=[
   {id:'qtyRet',  lbl:'Возвр.',    key:'qtyRet',   fmt:'qty', on:false},
   {id:'rev',     lbl:'Выручка',   key:'rev',      fmt:'rev', on:true},
   {id:'prof',    lbl:'Прибыль',   key:'prof',     fmt:'rev', on:true},
-  {id:'profNet', lbl:'Приб.прод.',key:'profNet',  fmt:'rev', on:false},
+  {id:'profNet', lbl:'Приб.чист.',key:'profNet',  fmt:'rev', on:false},
   {id:'mar',     lbl:'Маржа %',   key:'mar',      fmt:'pct', on:true},
   {id:'kg',      lbl:'Объём кг',  key:'kg',       fmt:'kg',  on:false},
   {id:'seb',     lbl:'Себест.',   key:'seb',      fmt:'rev', on:false},
@@ -723,7 +729,8 @@ let sortKey='rev_d',avgMode='sku';
 let selectedMonths=new Set(['all']);
 let dateFrom='', dateTo='';  // 'all' или набор mk типа '2026-01'
 let priceNds=false;
-let profMode='std'; // 'std' = с возвратами (текущий), 'net' = только продажи без потерь возврата // false = без НДС по умолчанию: выручка, себестоимость, прибыль и маржа сравниваются без НДС
+let profMode='std';
+let shareMode='rev'; // 'rev' | 'kg' | 'sumReal' — режим расчёта доли // 'std' = с возвратами (текущий), 'net' = только продажи без потерь возврата // false = без НДС по умолчанию: выручка, себестоимость, прибыль и маржа сравниваются без НДС
 let dayExpanded=new Set(),dayLevelState={};
 let focusedRow=null;   // key строки в фокусе
 let focusedName=null;  // имя строки в фокусе для подписи
@@ -758,6 +765,19 @@ function updateNdsControls() {
     el.classList.toggle('no-nds-active', !priceNds);
   });
 }
+function setShareMode(mode){
+  shareMode=mode;
+  document.getElementById('shareModeRev').classList.toggle('active', mode==='rev');
+  document.getElementById('shareModeKg').classList.toggle('active', mode==='kg');
+  document.getElementById('shareModeSumR').classList.toggle('active', mode==='sumReal');
+  const mShare=MCOLS.find(c=>c.id==='share');
+  if(mShare){
+    mShare.lbl = mode==='rev'?'Доля(выр.)':mode==='kg'?'Доля(кг)':'Доля(реал.)';
+  }
+  buildMHeader();
+  render();
+}
+
 function setProfMode(mode){
   profMode=mode;
   document.getElementById('profModeStd').classList.toggle('active', mode==='std');
@@ -1280,7 +1300,16 @@ const fmtCell=(v,fmt,tRev)=>{
   if(fmt==='qty')  return PF.fmtQty(v);
   if(fmt==='pct')  return PF.fmtPct(v);
   if(fmt==='kg')   return PF.fmtKg(v)+' кг';
-  if(fmt==='share')return tRev?((v/tRev)*100).toFixed(1)+'%':'—';
+  if(fmt==='share'){
+    let base=tRev;
+    if(typeof shareMode!=='undefined'){
+      if(shareMode==='kg') base=tot?.kg||tRev;
+      else if(shareMode==='sumReal') base=tot?.sumRealS||tot?.sumReal||tRev;
+    }
+    const shareKey=shareMode==='kg'?'kg':shareMode==='sumReal'?'sumRealS':'rev';
+    const rowVal=typeof v==='object'?v:v; // v is already the row value for share key
+    return base?((v/base)*100).toFixed(1)+'%':'—';
+  }
   if(fmt==='rev')  return PF.fmtRev(v)+' ₸';
   return PF.fmtFull(v)+(v?' ₸':'');
 };
@@ -1422,7 +1451,7 @@ function renderMonth(){
 
   const parts=[`<tr class="tot"><td><div class="cnm"><span style="width:13px;display:inline-block"></span><span class="rnm totlbl">📊 ИТОГО</span></div></td>`+
     vis.map(c=>{
-      const v=c.id==='share'?tot.rev:(tot[c.key]||0);
+      const v=c.id==='share'?(shareMode==='kg'?tot.kg:shareMode==='sumReal'?(tot.sumRealS||tot.sumReal||tot.rev):tot.rev):(tot[c.key]||0);
       const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profNet'||c.key==='profKg')?(v>=0?'pos':'neg'):'';
       const txt=c.id==='share'?'100%':fmtCell(v,c.fmt,tRev);
       return `<td class="${c2}">${txt}</td>`;
@@ -1435,10 +1464,13 @@ function renderMonth(){
                       `<span style="width:13px;display:inline-block"></span>`;
     const nc=n.isDate?'rnm date-name':(n.ng?'rnm nog':'rnm');
     const tds=vis.map(c=>{
-      const v=c.id==='share'?m.rev:(m[c.key]||0);
+      const v=c.id==='share'?(shareMode==='kg'?m.kg:shareMode==='sumReal'?(m.sumRealS||m.sumReal||m.rev):m.rev):(m[c.key]||0);
       const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profNet'||c.key==='profKg')?(v>0?'pos':v<0?'neg':''):(c.key==='ret'||c.key==='retKg')?v?'neg':'neu':'';
       let txt;
-      if(c.id==='share'){const pct=(m.rev/tRev*100).toFixed(1);const bw=Math.max(2,Math.round(m.rev/tRev*46));
+      if(c.id==='share'){
+        const shVal=shareMode==='kg'?m.kg:shareMode==='sumReal'?(m.sumRealS||m.sumReal||m.rev):m.rev;
+        const shTot=shareMode==='kg'?tot.kg:shareMode==='sumReal'?(tot.sumRealS||tot.sumReal||tRev):tRev;
+        const pct=(shTot?(shVal/shTot*100):0).toFixed(1);const bw=Math.max(2,Math.round(shTot?(shVal/shTot*46):0));
         txt=`<div class="barw"><div class="bar" style="width:${bw}px;background:${m.prof>=0?'#3fb950':'#f85149'}"></div>${pct}%</div>`;}
       else txt=fmtCell(v,c.fmt,tRev);
       return `<td class="${c2}">${txt}</td>`;
