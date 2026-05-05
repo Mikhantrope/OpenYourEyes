@@ -1069,7 +1069,6 @@ function getVisibleDayMetrics(){
 function saveMonthCols(){saveToggleState(MCOL_STORAGE_KEY,mColOrder,mColOn);}
 function saveDayMetrics(){saveToggleState(DMETRIC_STORAGE_KEY,dmOrder,dmOn);}
 function setMonthColState(id,on,append=true){
-  if(id==='share') return;
   mColOn[id]=!!on;
   mColOrder=mColOrder.filter(x=>x!==id);
   if(mColOn[id]){
