@@ -6,16 +6,16 @@
 <title>PF — ДиР 1 КВ. 2026</title>
 <link rel="icon" href="data:,">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="pf-ui.css?v=20260508">
+<link rel="stylesheet" href="pf-ui.css?v=20260509">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;800&display=swap');
-:root{--bg:#07090f;--s1:#0d1219;--s2:#131a23;--border:#1e2d40;--border2:#253347;--accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;--text:#dde8f5;--muted:#5a7a96;--dim:#2d4055;--mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;--head:'Bebas Neue',sans-serif;}
+:root{--mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;--head:'Bebas Neue',sans-serif}
 *{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13px;}
 #ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}.ll{font-family:var(--head);font-size:52px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}.pb{width:280px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .4s;width:0%}.lserr{display:none;color:var(--red);font-size:12px;max-width:560px;text-align:center;line-height:1.6;background:rgba(255,61,87,.08);border:1px solid rgba(255,61,87,.3);border-radius:10px;padding:12px 14px;}
 .nav{display:flex;align-items:center;padding:7px 16px;background:var(--s1);border-bottom:1px solid var(--border);gap:3px;position:sticky;top:0;z-index:200;flex-wrap:wrap}.nl{font-family:var(--head);font-size:22px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px;letter-spacing:1.5px}.nav a{padding:4px 8px;border-radius:5px;text-decoration:none;color:var(--muted);font-size:11px;font-weight:700}.nav a:hover,.nav a.active{color:var(--text)}.nav a.active{background:var(--s2)}.nav-r{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);}
 .hero{padding:22px 18px 14px;background:linear-gradient(135deg,rgba(0,200,255,.05),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.hero-title{font-family:var(--head);font-size:34px;letter-spacing:1px}.hero-sub{font-size:11px;color:var(--muted);line-height:1.55;margin-top:3px}.source-badge{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:5px 10px;border-radius:999px;background:rgba(0,230,118,.09);border:1px solid rgba(0,230,118,.32);color:var(--green);font-size:11px;font-weight:800;}
 .kpi-band{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}.kpi{background:var(--s1);padding:13px 15px;border-top:2px solid transparent}.kpi.bl{border-top-color:var(--accent)}.kpi.gr{border-top-color:var(--green)}.kpi.am{border-top-color:var(--amber)}.kpi.pu{border-top-color:var(--purple)}.kpi-l{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}.kpi-v{font-family:var(--mono);font-size:18px;font-weight:800;line-height:1}.kpi-s{font-size:10px;color:var(--dim);margin-top:4px;font-family:var(--mono)}
-.main{max-width:1520px;margin:0 auto;padding:18px 16px 32px}.sh{font-family:var(--head);font-size:22px;letter-spacing:1px;margin:22px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}.sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}.sd{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.55}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.mc,.card,.table-card{background:var(--s1);border:1px solid var(--border);border-radius:10px}.mc{padding:13px;border-top:3px solid var(--accent)}.mc-name{font-family:var(--head);font-size:20px;letter-spacing:1px}.mc-v{font-family:var(--mono);font-size:16px;font-weight:800;margin-top:5px}.mc-r{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px}.card{padding:14px}.card canvas{max-height:210px}.ct{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}.table-card{overflow:hidden;margin-bottom:14px}.table-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(0,200,255,.04),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.table-title{font-size:14px;font-weight:800}.table-sub{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}.copy-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.copy-btn:hover{border-color:var(--accent);color:var(--accent)}.copy-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green)}.copy-btn.err{border-color:rgba(255,61,87,.45);color:var(--red)}.table-wrap{overflow:auto;max-width:100%}.tbl{width:max-content;min-width:100%;border-collapse:collapse}.tbl th{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);border-right:1px solid rgba(30,45,64,.55);white-space:nowrap;background:var(--s2)}.tbl th.month-h{font-size:11px;color:var(--accent);text-align:center;background:#152033}.tbl th:first-child,.tbl td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:var(--s1)}.tbl th:first-child{z-index:3;background:var(--s2)}.tbl td{padding:5px 8px;text-align:right;font-family:var(--mono);font-size:10px;border-bottom:1px solid rgba(30,45,64,.5);border-right:1px solid rgba(30,45,64,.24);white-space:nowrap}.tbl td:first-child{font-family:var(--body);font-size:11px;font-weight:700}.tbl tr:hover td{background:rgba(255,255,255,.025)}.tbl tr.tot td{font-weight:800;border-top:2px solid rgba(0,230,118,.45);background:rgba(0,230,118,.08)!important}.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--amber)}.note{font-size:11px;color:var(--muted);line-height:1.6;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.16);padding:10px 12px;border-radius:10px;margin-bottom:14px}@media(max-width:900px){.kpi-band,.g3,.g2{grid-template-columns:1fr}.nav-r{width:100%;margin-left:0}.hero-title{font-size:28px}}
+.main{max-width:1520px;margin:0 auto;padding:18px 16px 32px}.sh{font-family:var(--head);font-size:22px;letter-spacing:1px;margin:22px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}.sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}.sd{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.55}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.mc,.card,.table-card{background:var(--s1);border:1px solid var(--border);border-radius:10px}.mc{padding:13px;border-top:3px solid var(--accent)}.mc-name{font-family:var(--head);font-size:20px;letter-spacing:1px}.mc-v{font-family:var(--mono);font-size:16px;font-weight:800;margin-top:5px}.mc-r{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px}.card{padding:14px}.card canvas{max-height:210px}.ct{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}.table-card{overflow:hidden;margin-bottom:14px}.table-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(0,200,255,.04),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.table-title{font-size:14px;font-weight:800}.table-sub{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}.copy-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.copy-btn:hover{border-color:var(--accent);color:var(--accent)}.copy-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green)}.copy-btn.err{border-color:rgba(255,61,87,.45);color:var(--red)}.table-wrap{overflow:auto;max-width:100%}.tbl{width:max-content;min-width:100%;border-collapse:collapse}.tbl th{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);border-right:1px solid rgba(30,45,64,.55);white-space:nowrap;background:var(--s2)}.tbl th.month-h{font-size:11px;color:var(--accent);text-align:center;background:var(--s2)}.tbl th:first-child,.tbl td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:var(--s1)}.tbl th:first-child{z-index:3;background:var(--s2)}.tbl td{padding:5px 8px;text-align:right;font-family:var(--mono);font-size:10px;border-bottom:1px solid rgba(30,45,64,.5);border-right:1px solid rgba(30,45,64,.24);white-space:nowrap}.tbl td:first-child{font-family:var(--body);font-size:11px;font-weight:700}.tbl tr:hover td{background:rgba(255,255,255,.025)}.tbl tr.tot td{font-weight:800;border-top:2px solid rgba(0,230,118,.45);background:rgba(0,230,118,.08)!important}.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--amber)}.note{font-size:11px;color:var(--muted);line-height:1.6;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.16);padding:10px 12px;border-radius:10px;margin-bottom:14px}@media(max-width:900px){.kpi-band,.g3,.g2{grid-template-columns:1fr}.nav-r{width:100%;margin-left:0}.hero-title{font-size:28px}}
 </style>
 </head>
 <body>
@@ -29,20 +29,25 @@
   <div class="sd">Таблицы в формате Excel: месяцы расположены горизонтально, строки — группы SKU. Возле каждой таблицы есть копирование в Excel-ready TSV.</div>
   <div id="salesTables"></div>
   <div class="sh">02 · На кг. — факт из того же источника</div>
-  <div class="sd">Этот блок заменяет старый Excel-блок “На кг.” на живой факт. Плановые строки из Excel сюда специально не подтягиваются, чтобы не было второго источника цифр.</div>
+  <div class="sd">Этот блок использует живой факт по кг из того же источника, что и Таблица/Дашборд. Расходы на реализацию добавлены отдельными суммами: план/факт из твоих вводных, а ₸/кг считается от соответствующего объёма.</div>
   <div class="g3" id="kgCards"></div>
-  <div class="g2"><div class="card"><div class="ct">Реализация кг по месяцам</div><canvas id="cKg"></canvas></div><div class="card"><div class="ct">Себестоимость на кг по месяцам</div><canvas id="cCostKg"></canvas></div></div>
+  <div class="g2"><div class="card"><div class="ct">Реализация кг по месяцам</div><canvas id="cKg"></canvas></div><div class="card"><div class="ct">Себестоимость и расходы на реализацию на кг</div><canvas id="cCostKg"></canvas></div></div>
   <div id="kgTables"></div>
 </div>
 <script src="pf-prikhod.js?v=20260429-safe2"></script>
 <script src="pf-data.js?v=20260429-safe2"></script>
-<script src="pf-utils.js?v=20260508"></script>
+<script src="pf-utils.js?v=20260509"></script>
 <script>
 (function(){
 'use strict';
 const Q_MONTHS=['2026-01','2026-02','2026-03'];
 const MONTH_LABEL={'2026-01':'Январь','2026-02':'Февраль','2026-03':'Март'};
 const MONTH_SHORT={'2026-01':'Янв','2026-02':'Фев','2026-03':'Мар'};
+const DIR_EXPENSES={
+  '2026-01':{plan:29727006,fact:20280248,planKg:565017.0},
+  '2026-02':{plan:45670081,fact:42056740,planKg:492024.8},
+  '2026-03':{plan:36722706,fact:36722706,planKg:552237.9}
+};
 const CC=['rgba(0,200,255,.65)','rgba(0,230,118,.65)','rgba(255,170,0,.65)','rgba(176,77,255,.65)'];
 const fmtFull=v=>Math.round(Number(v)||0).toLocaleString('ru-RU');
 const fmt1=v=>(Math.round((Number(v)||0)*10)/10).toLocaleString('ru-RU',{minimumFractionDigits:1,maximumFractionDigits:1});
@@ -67,6 +72,10 @@ function metricCells(m){
     td(retPct,fmt1(retPct)+'%',retPct?'neg':'')
   ].join('');
 }
+function expenseFactPerKg(mk,m){const e=DIR_EXPENSES[mk]||{}; return m&&m.kg ? (e.fact||0)/m.kg : 0;}
+function expensePlanPerKg(mk){const e=DIR_EXPENSES[mk]||{}; return e.planKg ? (e.plan||0)/e.planKg : 0;}
+function expenseTotal(kind){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.[kind]||0),0);}
+function expenseTotalPlanKg(){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.planKg||0),0);}
 function buildSalesTable(id,title,rows){
   const cats=Object.keys(groupBy(rows,r=>r.skuGroup||'Прочее')).sort((a,b)=>agg(rows.filter(r=>r.skuGroup===b)).rev-agg(rows.filter(r=>r.skuGroup===a)).rev);
   const total=agg(rows);
@@ -87,14 +96,25 @@ function buildSalesTable(id,title,rows){
 }
 function buildKgFactTable(rows, byMonth){
   const id='tblKgFact';
-  let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Факт на кг</div><div class="table-title">Месячная сверка по кг и себестоимости</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}"><thead><tr><th>Показатель</th>${Q_MONTHS.map(m=>`<th>${MONTH_LABEL[m]}</th>`).join('')}<th>Итого 1 КВ.</th></tr></thead><tbody>`;
+  let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Факт на кг + расходы реализации</div><div class="table-title">Месячная сверка по кг, себестоимости и расходам на реализацию</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}"><thead><tr><th>Показатель</th>${Q_MONTHS.map(m=>`<th>${MONTH_LABEL[m]}</th>`).join('')}<th>Итого 1 КВ.</th></tr></thead><tbody>`;
   const total=agg(rows);
+  const expPlanTotal=expenseTotal('plan');
+  const expFactTotal=expenseTotal('fact');
+  const expPlanKgTotal=expenseTotalPlanKg();
+  const expPlanPerKgTotal=expPlanKgTotal?expPlanTotal/expPlanKgTotal:0;
+  const expFactPerKgTotal=total.kg?expFactTotal/total.kg:0;
+  const expDiffPerKgTotal=expFactPerKgTotal-expPlanPerKgTotal;
   const rowsDef=[
     ['Реализация, кг', byMonth.map(x=>x.kg), total.kg, v=>fmtKg(v)],
     ['Реализация кг без возвратов', byMonth.map(x=>x.saleKg ?? (x.kg+x.retKg)), total.saleKg ?? (total.kg+total.retKg), v=>fmtKg(v)],
     ['Возврат, кг', byMonth.map(x=>x.retKg), total.retKg, v=>fmtKg(v), 'neg'],
     ['% возврата от кг', byMonth.map(x=>x.kg?x.retKg/x.kg*100:0), total.kg?total.retKg/total.kg*100:0, v=>fmt1(v)+'%', 'neg'],
     ['Себестоимость / кг', byMonth.map(x=>x.kg?x.seb/x.kg:0), total.kg?total.seb/total.kg:0, v=>fmt1(v)+' ₸'],
+    ['Расходы на реализацию — План, ₸', Q_MONTHS.map(mk=>DIR_EXPENSES[mk]?.plan||0), expPlanTotal, v=>fmtMoney(v)],
+    ['Расходы на реализацию — Факт, ₸', Q_MONTHS.map(mk=>DIR_EXPENSES[mk]?.fact||0), expFactTotal, v=>fmtMoney(v)],
+    ['Расходы на реализацию — План, ₸/кг', Q_MONTHS.map(mk=>expensePlanPerKg(mk)), expPlanPerKgTotal, v=>fmt1(v)+' ₸'],
+    ['Расходы на реализацию — Факт, ₸/кг', Q_MONTHS.map((mk,i)=>expenseFactPerKg(mk,byMonth[i])), expFactPerKgTotal, v=>fmt1(v)+' ₸'],
+    ['Отклонение расходов, Факт-План, ₸/кг', Q_MONTHS.map((mk,i)=>expenseFactPerKg(mk,byMonth[i])-expensePlanPerKg(mk)), expDiffPerKgTotal, v=>(v>0?'+':'')+fmt1(v)+' ₸', expDiffPerKgTotal>0?'neg':'pos'],
     ['Себестоимость сумма', byMonth.map(x=>x.seb), total.seb, v=>fmtMoney(v)],
     ['Реализация сумма', byMonth.map(x=>x.rev), total.rev, v=>fmtMoney(v)],
     ['Валовая прибыль', byMonth.map(x=>x.prof), total.prof, v=>fmtMoney(v), total.prof>=0?'pos':'neg']
@@ -130,10 +150,10 @@ async function init(){
     let tables=buildSalesTable('tblSalesAll','Общее',rows);
     groups.forEach((g,i)=>tables+=buildSalesTable('tblSalesGroup'+i,g,byGroup[g]));
     document.getElementById('salesTables').innerHTML=tables;
-    document.getElementById('kgCards').innerHTML=Q_MONTHS.map((mk,i)=>{const m=byMonth[i]; return `<div class="mc"><div class="mc-name">${MONTH_LABEL[mk]}</div><div class="mc-v" style="color:var(--green)">${fmtKg(m.kg)}</div><div class="mc-r"><span>Реализация</span><span>${fmtMoney(m.rev)}</span></div><div class="mc-r"><span>Себест./кг</span><span>${m.kg?fmt1(m.seb/m.kg):'0,0'} ₸</span></div><div class="mc-r"><span>Возврат</span><span class="neg">${fmtKg(m.retKg)}</span></div></div>`}).join('');
+    document.getElementById('kgCards').innerHTML=Q_MONTHS.map((mk,i)=>{const m=byMonth[i]; const expKg=expenseFactPerKg(mk,m); return `<div class="mc"><div class="mc-name">${MONTH_LABEL[mk]}</div><div class="mc-v" style="color:var(--green)">${fmtKg(m.kg)}</div><div class="mc-r"><span>Реализация</span><span>${fmtMoney(m.rev)}</span></div><div class="mc-r"><span>Себест./кг</span><span>${m.kg?fmt1(m.seb/m.kg):'0,0'} ₸</span></div><div class="mc-r"><span>Расх. реал./кг</span><span>${fmt1(expKg)} ₸</span></div><div class="mc-r"><span>Возврат</span><span class="neg">${fmtKg(m.retKg)}</span></div></div>`}).join('');
     document.getElementById('kgTables').innerHTML=buildKgFactTable(rows,byMonth);
     makeChart('cKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Реализация кг',data:byMonth.map(x=>Math.round(x.kg)),backgroundColor:CC[1],borderRadius:4},{label:'Возврат кг',data:byMonth.map(x=>Math.round(Math.abs(x.retKg))),backgroundColor:CC[3],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>fmtFull(v)}}}});
-    makeChart('cCostKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Себестоимость / кг',data:byMonth.map(x=>x.kg?+(x.seb/x.kg).toFixed(1):0),backgroundColor:CC[2],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>v+' ₸'}}}});
+    makeChart('cCostKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Себестоимость / кг',data:byMonth.map(x=>x.kg?+(x.seb/x.kg).toFixed(1):0),backgroundColor:CC[2],borderRadius:4},{label:'Расходы реал. / кг факт',data:Q_MONTHS.map((mk,i)=>+expenseFactPerKg(mk,byMonth[i]).toFixed(1)),backgroundColor:CC[0],borderRadius:4},{label:'Расходы реал. / кг план',data:Q_MONTHS.map(mk=>+expensePlanPerKg(mk).toFixed(1)),backgroundColor:CC[3],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>v+' ₸'}}}});
     prog(100,'Готово'); setTimeout(()=>document.getElementById('ls').style.display='none',250);
   }catch(err){console.error(err); document.getElementById('lstep').textContent='Ошибка загрузки'; const le=document.getElementById('lerr'); le.style.display='block'; le.textContent=err.message||String(err); document.getElementById('prog').style.background='var(--red)';}
 }

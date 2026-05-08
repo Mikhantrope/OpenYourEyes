@@ -1,9 +1,11 @@
 /* PF shared UI layer — theme, navigation, shared buttons, responsive fixes */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;800&display=swap');
 :root{
   color-scheme: dark;
-  --bg:#07090f;--s1:#0d1219;--s2:#131a23;--surface:#161b22;--surface2:#21262d;
+  --bg:#07090f;--s1:#0d1219;--s2:#131a23;--surface:#0d1219;--surface2:#131a23;
   --border:#1e2d40;--border2:#253347;--accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;
   --text:#dde8f5;--muted:#5a7a96;--dim:#2d4055;
+  --mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;--head:'Bebas Neue',sans-serif;
 }
 body[data-theme="light"]{
   color-scheme: light;
@@ -29,6 +31,34 @@ body[data-theme="light"] canvas{filter:none}
 body[data-theme="light"] .pos{color:var(--green)!important}
 body[data-theme="light"] .neg{color:var(--red)!important}
 body[data-theme="light"] .neu{color:var(--amber)!important}
+/* Light: table borders, hover, sticky cells, loading screen */
+body[data-theme="light"] .tbl td{border-bottom-color:rgba(0,0,0,.06);border-right-color:rgba(0,0,0,.04)}
+body[data-theme="light"] .tbl th{border-bottom-color:var(--border);border-right-color:rgba(0,0,0,.06);background:var(--s2)}
+body[data-theme="light"] .tbl th:first-child{background:var(--s2)}
+body[data-theme="light"] .tbl td:first-child{background:var(--s1)}
+body[data-theme="light"] .tbl tr:hover td{background:rgba(0,100,200,.03)}
+body[data-theme="light"] .tbl tr.tot td{border-top-color:var(--green);background:rgba(0,160,60,.06)!important}
+body[data-theme="light"] .hero{background:linear-gradient(135deg,rgba(9,105,218,.04),rgba(26,127,55,.02))}
+body[data-theme="light"] .note{background:rgba(9,105,218,.04);border-color:rgba(9,105,218,.16)}
+body[data-theme="light"] .table-head{background:linear-gradient(135deg,rgba(9,105,218,.03),rgba(26,127,55,.02))}
+body[data-theme="light"] .source-badge{background:rgba(26,127,55,.07);border-color:rgba(26,127,55,.28);color:var(--green)}
+body[data-theme="light"] #ls{background:var(--bg)}
+body[data-theme="light"] .ll,.load-logo{background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+body[data-theme="light"] .pb{background:var(--border)}
+body[data-theme="light"] .kpi-band{background:var(--border)}
+body[data-theme="light"] .copy-btn{background:var(--s2)}
+/* index.html (monthView / dtable) light overrides */
+body[data-theme="light"] #monthView td{border-bottom-color:rgba(0,0,0,.07);border-right-color:rgba(0,0,0,.04)}
+body[data-theme="light"] tr.lv1{background:var(--s2)!important}
+body[data-theme="light"] tr.lv1:hover{background:var(--border)!important}
+body[data-theme="light"] #monthView tr.lv2 td:first-child{background:var(--s1)}
+body[data-theme="light"] table.dtable th{border-bottom-color:var(--border);border-right-color:rgba(0,0,0,.06)}
+body[data-theme="light"] table.dtable td{border-bottom-color:rgba(0,0,0,.07);border-right-color:rgba(0,0,0,.04)}
+body[data-theme="light"] table.dtable td.row-hdr{background:var(--s1)}
+body[data-theme="light"] table.dtable tr.dt-lv1:hover{background:var(--s2)!important}
+body[data-theme="light"] .chip{border-color:var(--border)!important}
+body[data-theme="light"] .toolbar{background:var(--s1);border-color:var(--border)}
+body[data-theme="light"] select,body[data-theme="light"] .pv-btn{border-color:var(--border)!important}
 .nav{flex-wrap:wrap;gap:3px}.nav a,.nt{white-space:nowrap}.nav .nav-r{margin-left:auto}
 .pf-theme-btn,.pf-export-btn{padding:4px 9px;border:1px solid var(--border);border-radius:6px;background:var(--s2,var(--surface2));color:var(--text);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;text-decoration:none;font-family:inherit}
 .pf-theme-btn:hover,.pf-export-btn:hover{border-color:var(--accent);color:var(--accent)}

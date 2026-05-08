@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PF — Аналитика продаж</title>
 <style>
-:root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#2f81f7;--green:#3fb950;--red:#f85149;--amber:#d29922;--purple:#bc8cff;--text:#e6edf3;--muted:#8b949e;--dim:#484f58;}
+/* colors from pf-ui.css */
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;overflow:hidden;}
 
@@ -115,7 +115,7 @@ select.sel{background:var(--surface2);border:1px solid var(--border);color:var(-
 #monthView td:first-child{position:sticky;left:0;z-index:50;}
 #monthView tr.lv0 td:first-child{background:#0d1420;}
 #monthView tr.lv1 td:first-child{background:#181d24;}
-#monthView tr.lv2 td:first-child{background:#161b22;}
+#monthView tr.lv2 td:first-child{background:var(--surface);}
 #monthView tr.lv3 td:first-child{background:#0f1318;}
 #monthView tr.tot td:first-child{background:#0f2018;}
 #monthView th{font-size:9px;padding:4px 5px;white-space:nowrap;}
@@ -126,7 +126,7 @@ select.sel{background:var(--surface2);border:1px solid var(--border);color:var(-
 #monthView td{padding:3px 7px;border-bottom:1px solid rgba(48,54,61,.4);border-right:1px solid rgba(48,54,61,.2);text-align:right;font-family:'Consolas',monospace;font-size:11px;white-space:nowrap;}
 #monthView td:first-child{text-align:left;font-family:'Segoe UI',sans-serif;font-size:11px;}
 tr.lv0{background:rgba(47,129,247,.07);}tr.lv0:hover{background:rgba(47,129,247,.12);}
-tr.lv1{background:rgba(33,38,45,.9);}tr.lv1:hover{background:rgba(48,54,61,.6);}
+tr.lv1{background:var(--surface2);}tr.lv1:hover{background:var(--border);}
 tr.lv2{background:var(--surface);}tr.lv2:hover{background:var(--surface2);}
 tr.lv3{background:var(--bg);}tr.lv3:hover{background:#111620;}
 .date-name{font-family:'Consolas',monospace;color:var(--amber)!important;font-size:10px!important;}
@@ -210,16 +210,16 @@ table.dtable thead{position:sticky;top:0;z-index:100;}
 /* Frozen left column */
 table.dtable th.row-hdr,table.dtable td.row-hdr{
   position:sticky;left:0;z-index:50;
-  background:#21262d;
+  background:var(--surface2);
   min-width:200px;width:200px;max-width:240px;
   text-align:left;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   border-right:2px solid var(--border);
 }
-table.dtable td.row-hdr{background:#161b22;font-size:11px;}
+table.dtable td.row-hdr{background:var(--surface);font-size:11px;}
 table.dtable tr.dt-lv0 td.row-hdr{background:#162033;}
 table.dtable tr.dt-lv1 td.row-hdr{background:#181d24;}
-table.dtable tr.dt-lv2 td.row-hdr{background:#161b22;}
+table.dtable tr.dt-lv2 td.row-hdr{background:var(--surface);}
 table.dtable tr.dt-lv3 td.row-hdr{background:#0f1318;}
 table.dtable tr.dt-tot td.row-hdr{background:#142318;}
 
@@ -321,7 +321,7 @@ tr.dt-dimmed{opacity:.25;}
 .ip-toggle input{cursor:pointer;}
 .hint-mode-off .info-btn{display:none;}
 </style>
-<link rel="stylesheet" href="pf-ui.css?v=20260508">
+<link rel="stylesheet" href="pf-ui.css?v=20260509">
 </head>
 <body>
 
@@ -531,7 +531,7 @@ tr.dt-dimmed{opacity:.25;}
 
 <script src="pf-prikhod.js?v=20260429-safe2"></script>
 <script src="pf-data.js?v=20260429-safe2"></script>
-<script src="pf-utils.js?v=20260508"></script>
+<script src="pf-utils.js?v=20260509"></script>
 <script>
 // ── MONTH MODE COLUMNS (v2026-04-23 06:08) ──────────────────────────────────────
 const MCOLS=[
