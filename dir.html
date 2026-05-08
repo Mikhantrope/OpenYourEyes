@@ -6,16 +6,16 @@
 <title>PF — ДиР 1 КВ. 2026</title>
 <link rel="icon" href="data:,">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="pf-ui.css?v=20260509">
+<link rel="stylesheet" href="pf-ui.css?v=20260508">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;800&display=swap');
-:root{--mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;--head:'Bebas Neue',sans-serif;}
+:root{--bg:#07090f;--s1:#0d1219;--s2:#131a23;--border:#1e2d40;--border2:#253347;--accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;--text:#dde8f5;--muted:#5a7a96;--dim:#2d4055;--mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;--head:'Bebas Neue',sans-serif;}
 *{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13px;}
 #ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}.ll{font-family:var(--head);font-size:52px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}.pb{width:280px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .4s;width:0%}.lserr{display:none;color:var(--red);font-size:12px;max-width:560px;text-align:center;line-height:1.6;background:rgba(255,61,87,.08);border:1px solid rgba(255,61,87,.3);border-radius:10px;padding:12px 14px;}
 .nav{display:flex;align-items:center;padding:7px 16px;background:var(--s1);border-bottom:1px solid var(--border);gap:3px;position:sticky;top:0;z-index:200;flex-wrap:wrap}.nl{font-family:var(--head);font-size:22px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px;letter-spacing:1.5px}.nav a{padding:4px 8px;border-radius:5px;text-decoration:none;color:var(--muted);font-size:11px;font-weight:700}.nav a:hover,.nav a.active{color:var(--text)}.nav a.active{background:var(--s2)}.nav-r{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);}
 .hero{padding:22px 18px 14px;background:linear-gradient(135deg,rgba(0,200,255,.05),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.hero-title{font-family:var(--head);font-size:34px;letter-spacing:1px}.hero-sub{font-size:11px;color:var(--muted);line-height:1.55;margin-top:3px}.source-badge{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:5px 10px;border-radius:999px;background:rgba(0,230,118,.09);border:1px solid rgba(0,230,118,.32);color:var(--green);font-size:11px;font-weight:800;}
 .kpi-band{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}.kpi{background:var(--s1);padding:13px 15px;border-top:2px solid transparent}.kpi.bl{border-top-color:var(--accent)}.kpi.gr{border-top-color:var(--green)}.kpi.am{border-top-color:var(--amber)}.kpi.pu{border-top-color:var(--purple)}.kpi-l{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}.kpi-v{font-family:var(--mono);font-size:18px;font-weight:800;line-height:1}.kpi-s{font-size:10px;color:var(--dim);margin-top:4px;font-family:var(--mono)}
-.main{max-width:1520px;margin:0 auto;padding:18px 16px 32px}.sh{font-family:var(--head);font-size:22px;letter-spacing:1px;margin:22px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}.sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}.sd{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.55}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.mc,.card,.table-card{background:var(--s1);border:1px solid var(--border);border-radius:10px}.mc{padding:13px;border-top:3px solid var(--accent)}.mc-name{font-family:var(--head);font-size:20px;letter-spacing:1px}.mc-v{font-family:var(--mono);font-size:16px;font-weight:800;margin-top:5px}.mc-r{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px}.card{padding:14px}.card canvas{max-height:210px}.ct{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}.table-card{overflow:hidden;margin-bottom:14px}.table-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(0,200,255,.04),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.table-title{font-size:14px;font-weight:800}.table-sub{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}.copy-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.copy-btn:hover{border-color:var(--accent);color:var(--accent)}.copy-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green)}.copy-btn.err{border-color:rgba(255,61,87,.45);color:var(--red)}.table-wrap{overflow:auto;max-width:100%}.tbl{width:max-content;min-width:100%;border-collapse:collapse}.tbl th{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);border-right:1px solid rgba(30,45,64,.55);white-space:nowrap;background:var(--s2)}.tbl th.month-h{font-size:11px;color:var(--accent);text-align:center;background:var(--s2)}.tbl th:first-child,.tbl td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:var(--s1)}.tbl th:first-child{z-index:3;background:var(--s2)}.tbl td{padding:5px 8px;text-align:right;font-family:var(--mono);font-size:10px;border-bottom:1px solid rgba(30,45,64,.5);border-right:1px solid rgba(30,45,64,.24);white-space:nowrap}.tbl td:first-child{font-family:var(--body);font-size:11px;font-weight:700}.tbl tr:hover td{background:rgba(255,255,255,.025)}.tbl tr.tot td{font-weight:800;border-top:2px solid rgba(0,230,118,.45);background:rgba(0,230,118,.08)!important}.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--amber)}.note{font-size:11px;color:var(--muted);line-height:1.6;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.16);padding:10px 12px;border-radius:10px;margin-bottom:14px}@media(max-width:900px){.kpi-band,.g3,.g2{grid-template-columns:1fr}.nav-r{width:100%;margin-left:0}.hero-title{font-size:28px}}
+.main{max-width:1520px;margin:0 auto;padding:18px 16px 32px}.sh{font-family:var(--head);font-size:22px;letter-spacing:1px;margin:22px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}.sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}.sd{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.55}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.mc,.card,.table-card{background:var(--s1);border:1px solid var(--border);border-radius:10px}.mc{padding:13px;border-top:3px solid var(--accent)}.mc-name{font-family:var(--head);font-size:20px;letter-spacing:1px}.mc-v{font-family:var(--mono);font-size:16px;font-weight:800;margin-top:5px}.mc-r{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px}.card{padding:14px}.card canvas{max-height:210px}.ct{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}.table-card{overflow:hidden;margin-bottom:14px}.table-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(0,200,255,.04),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.table-title{font-size:14px;font-weight:800}.table-sub{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}.copy-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.copy-btn:hover{border-color:var(--accent);color:var(--accent)}.copy-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green)}.copy-btn.err{border-color:rgba(255,61,87,.45);color:var(--red)}.table-wrap{overflow:auto;max-width:100%}.tbl{width:max-content;min-width:100%;border-collapse:collapse}.tbl th{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);border-right:1px solid rgba(30,45,64,.55);white-space:nowrap;background:var(--s2)}.tbl th.month-h{font-size:11px;color:var(--accent);text-align:center;background:#152033}.tbl th:first-child,.tbl td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:var(--s1)}.tbl th:first-child{z-index:3;background:var(--s2)}.tbl td{padding:5px 8px;text-align:right;font-family:var(--mono);font-size:10px;border-bottom:1px solid rgba(30,45,64,.5);border-right:1px solid rgba(30,45,64,.24);white-space:nowrap}.tbl td:first-child{font-family:var(--body);font-size:11px;font-weight:700}.tbl tr:hover td{background:rgba(255,255,255,.025)}.tbl tr.tot td{font-weight:800;border-top:2px solid rgba(0,230,118,.45);background:rgba(0,230,118,.08)!important}.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--amber)}.note{font-size:11px;color:var(--muted);line-height:1.6;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.16);padding:10px 12px;border-radius:10px;margin-bottom:14px}@media(max-width:900px){.kpi-band,.g3,.g2{grid-template-columns:1fr}.nav-r{width:100%;margin-left:0}.hero-title{font-size:28px}}
 </style>
 </head>
 <body>
@@ -36,7 +36,7 @@
 </div>
 <script src="pf-prikhod.js?v=20260429-safe2"></script>
 <script src="pf-data.js?v=20260429-safe2"></script>
-<script src="pf-utils.js?v=20260509"></script>
+<script src="pf-utils.js?v=20260508"></script>
 <script>
 (function(){
 'use strict';
@@ -77,9 +77,7 @@ function expensePlanPerKg(mk){const e=DIR_EXPENSES[mk]||{}; return e.planKg ? (e
 function expenseTotal(kind){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.[kind]||0),0);}
 function expenseTotalPlanKg(){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.planKg||0),0);}
 function buildSalesTable(id,title,rows){
-  const SKU_ORDER=['Молоко','Сметана','Творог','Кисломолочная','Масло','Сливки','Национальный продукт','Сыр'];
-  const allCats=Object.keys(groupBy(rows,r=>r.skuGroup||'Прочее'));
-  const cats=[...SKU_ORDER.filter(c=>allCats.includes(c)),...allCats.filter(c=>!SKU_ORDER.includes(c)).sort((a,b)=>agg(rows.filter(r=>r.skuGroup===b)).rev-agg(rows.filter(r=>r.skuGroup===a)).rev)];
+  const cats=Object.keys(groupBy(rows,r=>r.skuGroup||'Прочее')).sort((a,b)=>agg(rows.filter(r=>r.skuGroup===b)).rev-agg(rows.filter(r=>r.skuGroup===a)).rev);
   const total=agg(rows);
   let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Реализация по каналам</div><div class="table-title">${esc(title)}</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}">`;
   html+=`<thead><tr><th rowspan="2">SKU / Категория</th>${Q_MONTHS.map(m=>`<th class="month-h" colspan="7">${MONTH_LABEL[m]}</th>`).join('')}<th class="month-h" colspan="7">Итого 1 КВ.</th></tr>`;
@@ -127,60 +125,9 @@ function buildKgFactTable(rows, byMonth){
 }
 window.copyDirTable=async function(id,btn){
   const table=document.getElementById(id); if(!table) return;
-  /* Find the table-card parent to get the title */
-  const card=table.closest('.table-card');
-  const titleEl=card?card.querySelector('.table-title'):null;
-  const subEl=card?card.querySelector('.table-sub'):null;
-  const title=titleEl?titleEl.textContent.trim():'';
-  const sub=subEl?subEl.textContent.trim():'';
-  let lines=[];
-  /* Header: title + subtitle + timestamp */
-  if(title) lines.push(title);
-  if(sub) lines.push(sub);
-  lines.push('Дата выгрузки: '+new Date().toLocaleString('ru-RU'));
-  lines.push(''); /* empty line separator */
-  /* Table rows — handle colspan/rowspan */
-  const rowspanTracker={};
-  for(let ri=0;ri<table.rows.length;ri++){
-    const tr=table.rows[ri];
-    const cells=[];
-    let ci=0;
-    for(const cell of tr.cells){
-      /* Skip columns occupied by rowspan from above */
-      while(rowspanTracker[ci]>0){rowspanTracker[ci]--;cells.push('');ci++;}
-      const span=cell.colSpan||1;
-      const rs=cell.rowSpan||1;
-      const val=cell.dataset.copy ?? cell.innerText.replace(/\s+/g,' ').trim();
-      for(let s=0;s<span;s++){
-        cells.push(s===0?val:'');
-        if(rs>1) rowspanTracker[ci]=rs-1;
-        ci++;
-      }
-    }
-    lines.push(cells.join('\t'));
-  }
-  lines.push(''); /* trailing newline */
-  const text=lines.join('\n');
-  if(window.PFU && PFU.copyText) return PFU.copyText(text,btn);
-  try{await navigator.clipboard.writeText(text); const old=btn.textContent; btn.textContent='✅ Скопировано'; btn.classList.add('ok'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('ok')},1600);}catch(e){const old=btn.textContent; btn.textContent='❌ Ошибка'; btn.classList.add('err'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('err')},1800);}
-};
-window.copyKgCards=async function(btn){
-  const cards=[...document.querySelectorAll('.mc[data-month]')];
-  if(!cards.length) return;
-  let lines=['ДиР 1 КВ. 2026 — На кг.','Дата выгрузки: '+new Date().toLocaleString('ru-RU'),''];
-  lines.push(['Показатель',...cards.map(c=>c.querySelector('.mc-name').textContent)].join('\t'));
-  const metrics=[...cards[0].querySelectorAll('.mc-r')].map(r=>r.querySelector('span').textContent);
-  metrics.forEach((label,mi)=>{
-    const vals=cards.map(c=>[...c.querySelectorAll('.mc-r')][mi]?.querySelector('span:last-child')?.textContent||'');
-    lines.push([label,...vals].join('\t'));
-  });
-  /* Also add the main KG value */
-  const kgRow=['Реализация, кг',...cards.map(c=>c.querySelector('.mc-v').textContent)];
-  lines.splice(3,0,kgRow.join('\t'));
-  lines.push('');
-  const text=lines.join('\n');
-  if(window.PFU && PFU.copyText) return PFU.copyText(text,btn);
-  try{await navigator.clipboard.writeText(text);}catch(e){}
+  const rows=[...table.rows].map(tr=>[...tr.cells].map(cell=>cell.dataset.copy ?? cell.innerText.replace(/\s+/g,' ').trim()).join('\t')).join('\n');
+  if(window.PFU && PFU.copyText) return PFU.copyText(rows,btn);
+  try{await navigator.clipboard.writeText(rows); const old=btn.textContent; btn.textContent='✅ Скопировано'; btn.classList.add('ok'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('ok')},1600);}catch(e){const old=btn.textContent; btn.textContent='❌ Ошибка'; btn.classList.add('err'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('err')},1800);}
 };
 function makeChart(id,type,data,options={}){ if(!window.Chart) return null; return new Chart(document.getElementById(id),{type,data,options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:8,font:{size:10}}}},...options}}); }
 async function init(){
@@ -203,7 +150,7 @@ async function init(){
     let tables=buildSalesTable('tblSalesAll','Общее',rows);
     groups.forEach((g,i)=>tables+=buildSalesTable('tblSalesGroup'+i,g,byGroup[g]));
     document.getElementById('salesTables').innerHTML=tables;
-    document.getElementById('kgCards').innerHTML=`<div style="display:flex;justify-content:flex-end;margin-bottom:6px;grid-column:1/-1"><button class="copy-btn" onclick="copyKgCards(this)">📋 Скопировать карточки</button></div>`+Q_MONTHS.map((mk,i)=>{const m=byMonth[i]; const expKg=expenseFactPerKg(mk,m); const retPct=m.kg?(Math.abs(m.retKg)/m.kg*100):0; return `<div class="mc" data-month="${mk}"><div class="mc-name">${MONTH_LABEL[mk]}</div><div class="mc-v" style="color:var(--green)">${fmtKg(m.kg)}</div><div class="mc-r"><span>Реализация</span><span>${fmtMoney(m.rev)}</span></div><div class="mc-r"><span>Вес реализации (без возвр.)</span><span>${fmtKg(m.saleKg ?? (m.kg+m.retKg))}</span></div><div class="mc-r"><span>Себест./кг</span><span>${m.kg?fmt1(m.seb/m.kg):'0,0'} ₸</span></div><div class="mc-r"><span>Расх. реал./кг</span><span>${fmt1(expKg)} ₸</span></div><div class="mc-r"><span>Возврат</span><span class="neg">${fmtKg(Math.abs(m.retKg))}</span></div><div class="mc-r"><span>% возврата</span><span class="neg">${fmt1(retPct)}%</span></div></div>`}).join('');
+    document.getElementById('kgCards').innerHTML=Q_MONTHS.map((mk,i)=>{const m=byMonth[i]; const expKg=expenseFactPerKg(mk,m); return `<div class="mc"><div class="mc-name">${MONTH_LABEL[mk]}</div><div class="mc-v" style="color:var(--green)">${fmtKg(m.kg)}</div><div class="mc-r"><span>Реализация</span><span>${fmtMoney(m.rev)}</span></div><div class="mc-r"><span>Себест./кг</span><span>${m.kg?fmt1(m.seb/m.kg):'0,0'} ₸</span></div><div class="mc-r"><span>Расх. реал./кг</span><span>${fmt1(expKg)} ₸</span></div><div class="mc-r"><span>Возврат</span><span class="neg">${fmtKg(m.retKg)}</span></div></div>`}).join('');
     document.getElementById('kgTables').innerHTML=buildKgFactTable(rows,byMonth);
     makeChart('cKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Реализация кг',data:byMonth.map(x=>Math.round(x.kg)),backgroundColor:CC[1],borderRadius:4},{label:'Возврат кг',data:byMonth.map(x=>Math.round(Math.abs(x.retKg))),backgroundColor:CC[3],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>fmtFull(v)}}}});
     makeChart('cCostKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Себестоимость / кг',data:byMonth.map(x=>x.kg?+(x.seb/x.kg).toFixed(1):0),backgroundColor:CC[2],borderRadius:4},{label:'Расходы реал. / кг факт',data:Q_MONTHS.map((mk,i)=>+expenseFactPerKg(mk,byMonth[i]).toFixed(1)),backgroundColor:CC[0],borderRadius:4},{label:'Расходы реал. / кг план',data:Q_MONTHS.map(mk=>+expensePlanPerKg(mk).toFixed(1)),backgroundColor:CC[3],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>v+' ₸'}}}});

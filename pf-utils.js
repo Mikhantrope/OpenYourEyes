@@ -51,21 +51,7 @@
       [...nav.querySelectorAll('a')].forEach(a=>{ const href=(a.getAttribute('href')||'').split('#')[0].toLowerCase(); if(href && href===PFU.getPage()) a.classList.add('active'); });
     });
   };
-  PFU.applyTheme = function(theme){
-    theme = theme === 'light' ? 'light' : 'dark';
-    document.body.dataset.theme=theme;
-    try{localStorage.setItem('pf.theme',theme);}catch(e){};
-    const btn=document.getElementById('pfThemeBtn');
-    if(btn) btn.textContent = theme==='light'?'🌙 Тёмная':'☀️ Светлая';
-    /* Update Chart.js globals if loaded */
-    if(window.Chart){
-      const cs=getComputedStyle(document.body);
-      Chart.defaults.color=cs.getPropertyValue('--muted').trim()||'#5a7a96';
-      Chart.defaults.borderColor=cs.getPropertyValue('--border').trim()||'#1e2d40';
-      /* Re-render all active charts */
-      Object.values(Chart.instances||{}).forEach(c=>{try{c.update();}catch(e){}});
-    }
-  };
+  PFU.applyTheme = function(theme){ theme = theme === 'light' ? 'light' : 'dark'; document.body.dataset.theme=theme; try{localStorage.setItem('pf.theme',theme);}catch(e){}; const btn=document.getElementById('pfThemeBtn'); if(btn) btn.textContent = theme==='light'?'🌙 Тёмная':'☀️ Светлая'; };
   PFU.toggleTheme = function(){ PFU.applyTheme(document.body.dataset.theme==='light'?'dark':'light'); };
   PFU.initTheme = function(){ let theme='dark'; try{ theme=localStorage.getItem('pf.theme') || 'dark'; }catch(e){} PFU.applyTheme(theme); if(!document.getElementById('pfThemeBtn')){ const btn=document.createElement('button'); btn.id='pfThemeBtn'; btn.className='pf-theme-btn'; btn.type='button'; btn.onclick=PFU.toggleTheme; const target=document.querySelector('.hdr-r') || document.querySelector('.nav-r') || document.querySelector('.nav'); if(target) target.appendChild(btn); PFU.applyTheme(theme); } };
   PFU.initPage = function(){ PFU.ensureDirLink(); PFU.initTheme(); };

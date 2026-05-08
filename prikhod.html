@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PF — Приход</title>
 <style>
-:root{--mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif}
+:root{--bg:#07090f;--s1:#0d1219;--s2:#131a23;--border:#1e2d40;
+  --accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;
+  --text:#dde8f5;--muted:#5a7a96;--dim:#2d4055;
+  --mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:12px;}
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
@@ -73,7 +76,7 @@ td.conflict-cell{color:var(--red);font-weight:700;}
 .page-btn:disabled{opacity:.3;cursor:default;}
 .page-info{font-family:var(--mono);font-size:11px;color:var(--text);}
 </style>
-<link rel="stylesheet" href="pf-ui.css?v=20260509">
+<link rel="stylesheet" href="pf-ui.css?v=20260508">
 </head>
 <body>
 
@@ -87,7 +90,6 @@ td.conflict-cell{color:var(--red);font-weight:700;}
   <a href="analytics.html">🔬 Аналитика</a>
   <a href="quality.html">🧪 Качество</a>
   <a href="dir.html">📑 ДиР</a>
-  <div class="nav-r" id="navInfo"></div>
 </div>
 
 <div class="toolbar">
@@ -154,7 +156,7 @@ td.conflict-cell{color:var(--red);font-weight:700;}
 
 <script src="pf-prikhod.js?v=20260429-safe2"></script>
 <script src="pf-data.js?v=20260429-safe2"></script>
-<script src="pf-utils.js?v=20260509"></script>
+<script src="pf-utils.js?v=20260508"></script>
 <script>
 const PAGE_SIZE = 200;
 
