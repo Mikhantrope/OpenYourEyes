@@ -4,161 +4,801 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PF — ДиР 1 КВ. 2026</title>
-<link rel="icon" href="data:,">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="pf-ui.css?v=20260510">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;800&display=swap');
-:root{--bg:#07090f;--s1:#0d1219;--s2:#131a23;--border:#1e2d40;--border2:#253347;--accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;--text:#dde8f5;--muted:#5a7a96;--dim:#2d4055;--mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;--head:'Bebas Neue',sans-serif;}
-*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13px;}
-#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}.ll{font-family:var(--head);font-size:52px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}.pb{width:280px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .4s;width:0%}.lserr{display:none;color:var(--red);font-size:12px;max-width:560px;text-align:center;line-height:1.6;background:rgba(255,61,87,.08);border:1px solid rgba(255,61,87,.3);border-radius:10px;padding:12px 14px;}
-.nav{display:flex;align-items:center;padding:7px 16px;background:var(--s1);border-bottom:1px solid var(--border);gap:3px;position:sticky;top:0;z-index:200;flex-wrap:wrap}.nl{font-family:var(--head);font-size:22px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px;letter-spacing:1.5px}.nav a{padding:4px 8px;border-radius:5px;text-decoration:none;color:var(--muted);font-size:11px;font-weight:700}.nav a:hover,.nav a.active{color:var(--text)}.nav a.active{background:var(--s2)}.nav-r{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);}
-.hero{padding:22px 18px 14px;background:linear-gradient(135deg,rgba(0,200,255,.05),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.hero-title{font-family:var(--head);font-size:34px;letter-spacing:1px}.hero-sub{font-size:11px;color:var(--muted);line-height:1.55;margin-top:3px}.source-badge{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:5px 10px;border-radius:999px;background:rgba(0,230,118,.09);border:1px solid rgba(0,230,118,.32);color:var(--green);font-size:11px;font-weight:800;}
-.kpi-band{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}.kpi{background:var(--s1);padding:13px 15px;border-top:2px solid transparent}.kpi.bl{border-top-color:var(--accent)}.kpi.gr{border-top-color:var(--green)}.kpi.am{border-top-color:var(--amber)}.kpi.pu{border-top-color:var(--purple)}.kpi-l{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}.kpi-v{font-family:var(--mono);font-size:18px;font-weight:800;line-height:1}.kpi-s{font-size:10px;color:var(--dim);margin-top:4px;font-family:var(--mono)}
-.main{max-width:1520px;margin:0 auto;padding:18px 16px 32px}.sh{font-family:var(--head);font-size:22px;letter-spacing:1px;margin:22px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}.sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}.sd{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.55}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.mc,.card,.table-card{background:var(--s1);border:1px solid var(--border);border-radius:10px}.mc{padding:13px;border-top:3px solid var(--accent)}.mc-name{font-family:var(--head);font-size:20px;letter-spacing:1px}.mc-v{font-family:var(--mono);font-size:16px;font-weight:800;margin-top:5px}.mc-r{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px}.card{padding:14px}.card canvas{max-height:210px}.ct{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}.table-card{overflow:hidden;margin-bottom:14px}.table-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(0,200,255,.04),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.table-title{font-size:14px;font-weight:800}.table-sub{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}.copy-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.copy-btn:hover{border-color:var(--accent);color:var(--accent)}.copy-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green)}.copy-btn.err{border-color:rgba(255,61,87,.45);color:var(--red)}.table-wrap{overflow:auto;max-width:100%}.tbl{width:max-content;min-width:100%;border-collapse:collapse}.tbl th{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);border-right:1px solid rgba(30,45,64,.55);white-space:nowrap;background:var(--s2)}.tbl th.month-h{font-size:11px;color:var(--accent);text-align:center;background:#152033}.tbl th:first-child,.tbl td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:var(--s1)}.tbl th:first-child{z-index:3;background:var(--s2)}.tbl td{padding:5px 8px;text-align:right;font-family:var(--mono);font-size:10px;border-bottom:1px solid rgba(30,45,64,.5);border-right:1px solid rgba(30,45,64,.24);white-space:nowrap}.tbl td:first-child{font-family:var(--body);font-size:11px;font-weight:700}.tbl tr:hover td{background:rgba(255,255,255,.025)}.tbl tr.tot td{font-weight:800;border-top:2px solid rgba(0,230,118,.45);background:rgba(0,230,118,.08)!important}.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--amber)}.note{font-size:11px;color:var(--muted);line-height:1.6;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.16);padding:10px 12px;border-radius:10px;margin-bottom:14px}@media(max-width:900px){.kpi-band,.g3,.g2{grid-template-columns:1fr}.nav-r{width:100%;margin-left:0}.hero-title{font-size:28px}}
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+:root{--bg:#07090f;--s1:#0d1219;--s2:#131a23;--border:#1e2d40;
+  --accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;
+  --text:#dde8f5;--muted:#5a7a96;--dim:#2d4055;
+  --mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13px;}
+
+#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+.ll{font-family:'Bebas Neue',sans-serif;font-size:52px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.pb{width:280px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .4s;width:0%;}
+
+.nav{display:flex;align-items:center;padding:7px 16px;background:var(--s1);border-bottom:1px solid var(--border);gap:3px;position:sticky;top:0;z-index:200;flex-wrap:wrap;}
+.nl{font-family:'Bebas Neue',sans-serif;font-size:22px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px;}
+.nav a{padding:4px 8px;border-radius:5px;text-decoration:none;color:var(--muted);font-size:11px;font-weight:600;}
+.nav a:hover,.nav a.active{color:var(--text);}
+.nav a.active{background:var(--s2);}
+.nav-r{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);}
+
+.kpi-band{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border);}
+.kpi{background:var(--s1);padding:14px 16px;border-top:2px solid transparent;}
+.kpi.bl{border-top-color:var(--accent);}
+.kpi.gr{border-top-color:var(--green);}
+.kpi.rd{border-top-color:var(--red);}
+.kpi.am{border-top-color:var(--amber);}
+.kpi.pu{border-top-color:var(--purple);}
+.kpi-l{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.kpi-v{font-family:var(--mono);font-size:19px;font-weight:600;line-height:1;}
+.kpi-s{font-size:10px;color:var(--dim);margin-top:4px;font-family:var(--mono);}
+
+.main{max-width:1400px;margin:0 auto;padding:18px 16px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
+.card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.card canvas{max-height:220px;}
+.ct{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+
+.mc{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:13px;border-top:3px solid var(--dim);}
+.mc.m1{border-top-color:#2a4a7a;}.mc.m2{border-top-color:#2a7a5a;}.mc.m3{border-top-color:var(--green);}
+.mc-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;}
+.mc-rev{font-family:var(--mono);font-size:15px;font-weight:600;margin:4px 0;}
+.mc-r{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;font-family:var(--mono);}
+.pos{color:var(--green);}.neg{color:var(--red);}.neu{color:var(--amber);}
+
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);}
+.tbl th:first-child{text-align:left;}
+.tbl td{padding:5px 8px;text-align:right;font-family:var(--mono);font-size:10px;border-bottom:1px solid rgba(30,45,64,.4);}
+.tbl td:first-child{text-align:left;font-family:var(--body);font-size:11px;}
+.tbl tr:hover td{background:rgba(255,255,255,.02);}
+.tbl tr.tot td{font-weight:700;border-top:2px solid var(--border);background:rgba(0,200,255,.02);}
+
+.sh{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;margin-bottom:12px;color:var(--text);display:flex;align-items:center;gap:8px;}
+.sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent);}
+
+.mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.mini-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:13px;}
+.mini-card.warn{border-color:rgba(255,170,0,.35);background:rgba(255,170,0,.035);}
+.mini-card.good{border-color:rgba(0,230,118,.28);background:rgba(0,230,118,.025);}
+.mini-card.bad{border-color:rgba(255,61,87,.28);background:rgba(255,61,87,.025);}
+.mini-v{font-family:var(--mono);font-size:18px;font-weight:700;margin-bottom:4px;}
+.mini-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;}
+.mini-s{font-size:10px;color:var(--dim);margin-top:4px;line-height:1.4;}
+
+.tab-bar{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap;}
+.tab-btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;}
+.tab-btn:hover{color:var(--text);border-color:var(--accent);}
+.tab-btn.active{background:rgba(0,200,255,.1);color:var(--accent);border-color:var(--accent);}
+.ch-section{display:none;}.ch-section.active{display:block;}
+
+.copy-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.copy-title{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);}
+.copy-btn{padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--s2);color:var(--text);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent);}
+.copy-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green);}
+.copy-btn.err{border-color:rgba(255,61,87,.45);color:var(--red);}
+
+
+.plan-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px;}
+.plan-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.plan-month{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.plan-row{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;gap:8px;padding:6px 0;border-bottom:1px solid rgba(30,45,64,.3);}
+.plan-row.head{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+.plan-row div{font-family:var(--mono);font-size:11px;}
+.plan-row div:first-child{font-family:var(--body);font-size:11px;color:var(--text);}
+.plan-row div:not(:first-child){text-align:right;}
+
 </style>
 </head>
 <body>
-<div id="ls"><div class="ll">PF</div><div style="font-size:12px;color:var(--muted)">Загрузка ДиР из того же источника, что и Таблица...</div><div class="pb"><div class="pf" id="prog"></div></div><div style="font-size:10px;color:var(--dim)" id="lstep">Инициализация...</div><div class="lserr" id="lerr"></div></div>
-<div class="nav"><span class="nl">PF</span><a href="index.html">📊 Таблица</a><a href="dashboard.html">📈 Дашборд</a><a href="prikhod.html">📦 Приход</a><a href="compare.html">📅 Сравнение</a><a href="pnl.html">💰 P&L</a><a href="analytics.html">🔬 Аналитика</a><a href="quality.html">🧪 Качество</a><a href="dir.html" class="active">📑 ДиР</a><div class="nav-r" id="navInfo">ДиР · Q1 · LIVE</div></div>
-<div class="hero"><div class="hero-title">ДиР 1 КВ. 2026</div><div class="hero-sub">Раздел построен по форме Excel, но цифры считаются из того же живого источника, что и главная таблица: <b>PF.loadSales → ИсхРеал + справочники + цены прихода</b>. Для сверки в главной таблице выбери Январь + Февраль + Март.</div><div class="source-badge">✅ Один источник с Таблицей / Дашбордом</div></div>
-<div class="kpi-band"><div class="kpi bl"><div class="kpi-l">Реализация 1 КВ.</div><div class="kpi-v" style="color:var(--accent)" id="kRevQ">—</div><div class="kpi-s">январь + февраль + март</div></div><div class="kpi am"><div class="kpi-l">Себестоимость</div><div class="kpi-v" style="color:var(--amber)" id="kSebQ">—</div><div class="kpi-s">как в таблице</div></div><div class="kpi" id="kProfQ"><div class="kpi-l">Валовая прибыль</div><div class="kpi-v" id="kProfV">—</div><div class="kpi-s" id="kMarQ">маржа</div></div><div class="kpi gr"><div class="kpi-l">Реализация кг</div><div class="kpi-v" style="color:var(--green)" id="kQtyQ">—</div><div class="kpi-s">с возвратами</div></div><div class="kpi pu"><div class="kpi-l">Возвраты кг</div><div class="kpi-v" style="color:var(--purple)" id="kRetQ">—</div><div class="kpi-s" id="kRetPctQ">% от кг</div></div></div>
-<div class="main">
-  <div class="note">Важно: Excel-файл больше не является источником цифр для этого раздела. Он используется только как ориентир по структуре: реализация по каналам/категориям и блок “на кг”. Поэтому итог ДиР должен совпадать с главной таблицей при фильтре <b>Январь + Февраль + Март</b>.</div>
-  <div class="sh">01 · Реализация 1 КВ. 2026 — по каналам продаж</div>
-  <div class="sd">Таблицы в формате Excel: месяцы расположены горизонтально, строки — группы SKU. Возле каждой таблицы есть копирование в Excel-ready TSV.</div>
-  <div id="salesTables"></div>
-  <div class="sh">02 · На кг. — факт из того же источника</div>
-  <div class="sd">Этот блок использует живой факт по кг из того же источника, что и Таблица/Дашборд. Расходы на реализацию добавлены отдельными суммами: план/факт из твоих вводных, а ₸/кг считается от соответствующего объёма.</div>
-  <div class="g3" id="kgCards"></div>
-  <div class="g2"><div class="card"><div class="ct">Реализация кг по месяцам</div><canvas id="cKg"></canvas></div><div class="card"><div class="ct">Себестоимость и расходы на реализацию на кг</div><canvas id="cCostKg"></canvas></div></div>
-  <div id="kgTables"></div>
+
+<div id="ls">
+  <div class="ll">PF</div>
+  <div style="font-size:12px;color:var(--muted)">Загрузка ДиР 1 КВ. 2026...</div>
+  <div class="pb"><div class="pf" id="prog"></div></div>
+  <div style="font-size:10px;color:var(--dim)" id="lstep">Инициализация...</div>
 </div>
-<script src="pf-prikhod.js?v=20260429-safe2"></script>
-<script src="pf-data.js?v=20260429-safe2"></script>
-<script src="pf-utils.js?v=20260510"></script>
+
+<div class="nav">
+  <span class="nl">PF</span>
+  <a href="index.html">📊 Таблица</a>
+  <a href="dashboard.html">📈 Дашборд</a>
+  <a href="prikhod.html">📦 Приход</a>
+  <a href="compare.html">📅 Сравнение</a>
+  <a href="pnl.html">💰 P&L</a>
+  <a href="analytics.html">🔬 Аналитика</a>
+  <a href="quality.html">🧪 Качество</a>
+  <a href="dir.html" class="active">📑 ДиР</a>
+  <div class="nav-r">ДиР 1 КВ. 2026</div>
+</div>
+
+<!-- KPI BAND -->
+<div class="kpi-band">
+  <div class="kpi bl"><div class="kpi-l">Реализация 1 КВ.</div><div class="kpi-v" style="color:var(--accent)" id="kRevQ">—</div><div class="kpi-s">за 3 месяца</div></div>
+  <div class="kpi am"><div class="kpi-l">Себестоимость</div><div class="kpi-v" style="color:var(--amber)" id="kSebQ">—</div><div class="kpi-s">всего</div></div>
+  <div class="kpi" id="kProfQ"><div class="kpi-l">Валовая прибыль</div><div class="kpi-v" id="kProfV">—</div><div class="kpi-s" id="kMarQ">маржа</div></div>
+  <div class="kpi gr"><div class="kpi-l">Объём, кг (с возвр.)</div><div class="kpi-v" style="color:var(--green)" id="kQtyQ">—</div><div class="kpi-s">общий</div></div>
+  <div class="kpi pu"><div class="kpi-l">Возвраты, кг</div><div class="kpi-v" style="color:var(--purple)" id="kRetQ">—</div><div class="kpi-s" id="kRetPctQ">% от объёма</div></div>
+</div>
+
+<div class="main">
+
+  <!-- ОБЩЕЕ: 3 месяца мини-карточки -->
+  <div class="sh">Общее — по месяцам</div>
+  <div class="g3" id="monthOverview"></div>
+
+  <!-- Графики общие -->
+  <div class="g2">
+    <div class="card"><div class="ct">Реализация по месяцам, млн ₸</div><canvas id="cRevMonth"></canvas></div>
+    <div class="card"><div class="ct">Себестоимость vs Реализация, млн ₸</div><canvas id="cSebVsRev"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ct">Реализация по категориям — январь, млн ₸</div><canvas id="cCatJan"></canvas></div>
+    <div class="card"><div class="ct">Реализация по категориям — 1 КВ., млн ₸</div><canvas id="cCatQ"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ct">Возвраты по месяцам, кг</div><canvas id="cRetMonth"></canvas></div>
+    <div class="card"><div class="ct">Цена за 1 кг по категориям, ₸</div><canvas id="cPriceKg"></canvas></div>
+  </div>
+
+  <!-- ОБЩЕЕ ТАБЛИЦА -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="copy-row"><div class="copy-title">Общее — Реализация по месяцам</div><button class="copy-btn" onclick="copyDirTable('tGeneral', this, 'Общее — Реализация по месяцам')">📋 Скопировать таблицу</button></div>
+    <div style="overflow-x:auto">
+    <table class="tbl" id="tGeneral"></table>
+    </div>
+  </div>
+
+  <!-- КАНАЛЫ ПРОДАЖ -->
+  <div class="sh" style="margin-top:20px">По каналам продаж</div>
+  <div class="tab-bar" id="channelTabs"></div>
+
+  <div id="channelSections"></div>
+
+  <!-- НА КГ — ПЛАН/ФАКТ -->
+  <div class="sh" style="margin-top:24px">📊 Общий итог на кг — План/Факт</div>
+  <div class="mini-grid" id="planFactCards"></div>
+
+  <div class="g2">
+    <div class="card"><div class="ct">Объём: План vs Факт, кг</div><canvas id="cPFVol"></canvas></div>
+    <div class="card"><div class="ct">Расходы на реализацию ₸ за кг</div><canvas id="cPFCost"></canvas></div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="copy-row"><div class="copy-title">Детальная таблица — План / Факт</div><button class="copy-btn" onclick="copyDirTable('tPlanFact', this, 'Детальная таблица — План / Факт')">📋 Скопировать таблицу</button></div>
+    <table class="tbl" id="tPlanFact"></table>
+  </div>
+
+</div>
+
 <script>
-(function(){
-'use strict';
-const Q_MONTHS=['2026-01','2026-02','2026-03'];
-const MONTH_LABEL={'2026-01':'Январь','2026-02':'Февраль','2026-03':'Март'};
-const MONTH_SHORT={'2026-01':'Янв','2026-02':'Фев','2026-03':'Мар'};
-const DIR_EXPENSES={
-  '2026-01':{plan:29727006,fact:20280248,planKg:565017.0},
-  '2026-02':{plan:45670081,fact:42056740,planKg:492024.8},
-  '2026-03':{plan:36722706,fact:36722706,planKg:552237.9}
+Chart.defaults.color='#5a7a96';
+Chart.defaults.borderColor='#1e2d40';
+Chart.defaults.font.family="'IBM Plex Mono',monospace";
+Chart.defaults.font.size=10;
+
+const fmtRev = v => {
+  if(Math.abs(v)>=1e6) return (v/1e6).toFixed(1)+' млн';
+  if(Math.abs(v)>=1e3) return (v/1e3).toFixed(0)+' тыс';
+  return Math.round(v)+'';
 };
-const CC=['rgba(0,200,255,.65)','rgba(0,230,118,.65)','rgba(255,170,0,.65)','rgba(176,77,255,.65)'];
-const fmtFull=v=>Math.round(Number(v)||0).toLocaleString('ru-RU');
-const fmt1=v=>(Math.round((Number(v)||0)*10)/10).toLocaleString('ru-RU',{minimumFractionDigits:1,maximumFractionDigits:1});
-const fmtMoney=v=>fmtFull(v)+' ₸';
-const fmtKg=v=>fmt1(v)+' кг';
-const copyNum=v=>String(Math.round((Number(v)||0)*100)/100).replace('.',',');
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-function prog(p,s){document.getElementById('prog').style.width=p+'%'; if(s) document.getElementById('lstep').textContent=s;}
-function groupBy(arr,fn){const m={}; for(const x of arr){const k=fn(x)||'—'; (m[k]=m[k]||[]).push(x);} return m;}
-function agg(rows){rows=rows||[]; const m=PF.agg(rows); m.saleKg=rows.reduce((sum,r)=>sum+((r.qtyReal||0)*(r.weight||1)),0); return m}
-function td(v, text, cls=''){return `<td class="${cls}" data-copy="${copyNum(v)}">${text}</td>`}
-function metricCells(m){
-  const priceKg=m.kg?m.rev/m.kg:0;
-  const retPct=m.kg?m.retKg/m.kg*100:0;
-  return [
-    td(m.rev,fmtMoney(m.rev)),
-    td(m.seb,fmtMoney(m.seb)),
-    td(m.kg,fmtKg(m.kg)),
-    td(priceKg,fmt1(priceKg)+' ₸'),
-    td(m.saleKg ?? (m.kg+m.retKg),fmtKg(m.saleKg ?? (m.kg+m.retKg))),
-    td(m.retKg,fmtKg(m.retKg),m.retKg?'neg':''),
-    td(retPct,fmt1(retPct)+'%',retPct?'neg':'')
-  ].join('');
-}
-function expenseFactPerKg(mk,m){const e=DIR_EXPENSES[mk]||{}; return m&&m.kg ? (e.fact||0)/m.kg : 0;}
-function expensePlanPerKg(mk){const e=DIR_EXPENSES[mk]||{}; return e.planKg ? (e.plan||0)/e.planKg : 0;}
-function expenseTotal(kind){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.[kind]||0),0);}
-function expenseTotalPlanKg(){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.planKg||0),0);}
-function buildSalesTable(id,title,rows){
-  const cats=Object.keys(groupBy(rows,r=>r.skuGroup||'Прочее')).sort((a,b)=>agg(rows.filter(r=>r.skuGroup===b)).rev-agg(rows.filter(r=>r.skuGroup===a)).rev);
-  const total=agg(rows);
-  let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Реализация по каналам</div><div class="table-title">${esc(title)}</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}">`;
-  html+=`<thead><tr><th rowspan="2">SKU / Категория</th>${Q_MONTHS.map(m=>`<th class="month-h" colspan="7">${MONTH_LABEL[m]}</th>`).join('')}<th class="month-h" colspan="7">Итого 1 КВ.</th></tr>`;
-  html+=`<tr>${[...Q_MONTHS,'TOTAL'].map(()=>'<th>Реализация, ₸</th><th>Себестоимость, ₸</th><th>Реализация, кг<br>(с возвратами)</th><th>Цена за 1 кг, ₸</th><th>Реализация, кг<br>(без возвратов)</th><th>Возврат, кг</th><th>% возврата</th>').join('')}</tr></thead><tbody>`;
-  for(const cat of cats){
-    const rs=rows.filter(r=>(r.skuGroup||'Прочее')===cat);
-    html+=`<tr><td data-copy="${esc(cat)}">${esc(cat)}</td>`;
-    for(const mk of Q_MONTHS) html+=metricCells(agg(rs.filter(r=>r.mk===mk)));
-    html+=metricCells(agg(rs))+`</tr>`;
+const fmtN = v => Math.round(v).toLocaleString('ru');
+const fmtD = v => v.toFixed(1);
+const fmtPct = v => (v*100).toFixed(1)+'%';
+
+const SKUS = ['Молоко','Сметана','Творог','Кисломолочная','Масло','Сливки','Национальный продукт','Сыр'];
+const CC=['#00c8ff','#b04dff','#ffaa00','#00e676','#ff7043','#26c6da','#ab47bc','#ff4da6'];
+
+// ═══════════════════════════════════════════════════════════
+// DATA — Общее (row 8-16)
+// ═══════════════════════════════════════════════════════════
+const general = {
+  jan: [
+    {sku:'Молоко',rev:8725328.08,seb:9040627.85,kgW:25281.5,price:330.81,kgNoRet:26375.5,ret:-1094,retPct:-0.0433},
+    {sku:'Сметана',rev:6867320.40,seb:7442966.85,kgW:3163.2,price:2165.94,kgNoRet:3170.6,ret:-7.4,retPct:-0.0023},
+    {sku:'Творог',rev:4897855.40,seb:5100163.57,kgW:3834.45,price:1276.33,kgNoRet:3837.45,ret:-3,retPct:-0.0008},
+    {sku:'Кисломолочная',rev:3307737.65,seb:3400273.78,kgW:7326.45,price:415.35,kgNoRet:7963.8,ret:-637.35,retPct:-0.087},
+    {sku:'Масло',rev:3528491.55,seb:3612409.83,kgW:717.55,price:4896.94,kgNoRet:720.55,ret:-3,retPct:-0.0042},
+    {sku:'Сливки',rev:2089915.77,seb:2265937.68,kgW:669.75,price:3091.59,kgNoRet:676,ret:-6.25,retPct:-0.0093},
+    {sku:'Национальный продукт',rev:870430.78,seb:867474.04,kgW:546.5,price:1592.74,kgNoRet:546.5,ret:0,retPct:0},
+    {sku:'Сыр',rev:606315.10,seb:597933.79,kgW:147.86,price:4073.60,kgNoRet:148.84,ret:-0.089,retPct:-0.0006}
+  ],
+  feb: [
+    {sku:'Молоко',rev:67148168.73,seb:67673565.62,kgW:198669.5,price:334.49,kgNoRet:200745.5,ret:-2076,retPct:-0.0104},
+    {sku:'Сметана',rev:16794321.83,seb:17915957.91,kgW:9906.2,price:1681.00,kgNoRet:9990.7,ret:-84.5,retPct:-0.0085},
+    {sku:'Творог',rev:14581446.92,seb:16592726.08,kgW:10285.1,price:1406.29,kgNoRet:10368.7,ret:-83.6,retPct:-0.0081},
+    {sku:'Кисломолочная',rev:12011504.27,seb:12417479.28,kgW:27185.9,price:429.25,kgNoRet:27982.7,ret:-796.8,retPct:-0.0293},
+    {sku:'Масло',rev:13386613.34,seb:13461478.18,kgW:2647.35,price:5038.43,kgNoRet:2656.9,ret:-9.55,retPct:-0.0036},
+    {sku:'Сливки',rev:3623749.17,seb:3877201.92,kgW:1132.5,price:3112.52,kgNoRet:1164.25,ret:-31.75,retPct:-0.028},
+    {sku:'Национальный продукт',rev:2420173.11,seb:1822043.04,kgW:1600.7,price:1468.46,kgNoRet:1648.1,ret:-47.4,retPct:-0.0296},
+    {sku:'Сыр',rev:3014031.11,seb:2925069.56,kgW:789.92,price:3781.11,kgNoRet:797.13,ret:-7.69,retPct:-0.0097}
+  ],
+  mar: [
+    {sku:'Молоко',rev:112717332.04,seb:112494535.52,kgW:333315,price:338.17,kgNoRet:337136,ret:-3821,retPct:-0.0113},
+    {sku:'Сметана',rev:21568541.79,seb:22328062.74,kgW:11389.5,price:1893.72,kgNoRet:11715.4,ret:-325.9,retPct:-0.0278},
+    {sku:'Творог',rev:21542710.79,seb:21599402.05,kgW:14410.08,price:1494.98,kgNoRet:15023.68,ret:-613.6,retPct:-0.0408},
+    {sku:'Кисломолочная',rev:16272818.19,seb:15927584.65,kgW:35606.7,price:457.02,kgNoRet:37316.7,ret:-1710,retPct:-0.0458},
+    {sku:'Масло',rev:15398041.52,seb:14920614.44,kgW:2987.55,price:5154.07,kgNoRet:3013.2,ret:-25.65,retPct:-0.0085},
+    {sku:'Сливки',rev:2628890.35,seb:2816346.74,kgW:770.25,price:3413.04,kgNoRet:788,ret:-17.75,retPct:-0.0225},
+    {sku:'Национальный продукт',rev:4513920.39,seb:3654640.48,kgW:3061.8,price:1474.27,kgNoRet:3183.9,ret:-122.1,retPct:-0.0383},
+    {sku:'Сыр',rev:4544728.15,seb:4192389.41,kgW:1151.15,price:3948.00,kgNoRet:1190.86,ret:-39.71,retPct:-0.0333}
+  ]
+};
+
+// ═══════════════════════════════════════════════════════════
+// DATA — Каналы
+// ═══════════════════════════════════════════════════════════
+const channels = {
+  'Юридические лица': {
+    jan: [
+      {sku:'Молоко',rev:7534.48,seb:8608.71,kgW:25,price:301.38,kgNoRet:25,ret:0,retPct:0},
+      {sku:'Сметана',rev:10586.2,seb:10586.2,kgW:8.7,price:1216.80,kgNoRet:8.7,ret:0,retPct:0},
+      {sku:'Творог',rev:8405.17,seb:8405.17,kgW:6.5,price:1293.10,kgNoRet:6.5,ret:0,retPct:0},
+      {sku:'Кисломолочная',rev:14172.41,seb:14721.37,kgW:25.65,price:552.53,kgNoRet:25.65,ret:0,retPct:0},
+      {sku:'Масло',rev:96293.1,seb:96293.1,kgW:21.35,price:4510.22,kgNoRet:21.35,ret:0,retPct:0},
+      {sku:'Сливки',rev:3948.28,seb:3948.28,kgW:1.25,price:3158.62,kgNoRet:1.25,ret:0,retPct:0},
+      {sku:'Национальный продукт',rev:862.07,seb:862.07,kgW:1,price:862.07,kgNoRet:1,ret:0,retPct:0},
+      {sku:'Сыр',rev:5086.21,seb:5086.21,kgW:1.46,price:3483.71,kgNoRet:1.46,ret:0,retPct:0}
+    ],
+    mar: [
+      {sku:'Молоко',rev:9375,seb:9748.38,kgW:29,price:323.28,kgNoRet:29,ret:0,retPct:0},
+      {sku:'Сметана',rev:20413.8,seb:21442.9,kgW:11,price:1855.80,kgNoRet:11,ret:0,retPct:0},
+      {sku:'Творог',rev:27814.66,seb:29980.71,kgW:17.28,price:1609.64,kgNoRet:17.28,ret:0,retPct:0},
+      {sku:'Кисломолочная',rev:34142.25,seb:34868.08,kgW:54.05,price:631.68,kgNoRet:54.05,ret:0,retPct:0},
+      {sku:'Масло',rev:87875,seb:92080.46,kgW:19.35,price:4541.34,kgNoRet:19.35,ret:0,retPct:0},
+      {sku:'Сливки',rev:3620.68,seb:3207.91,kgW:1,price:3620.68,kgNoRet:1,ret:0,retPct:0},
+      {sku:'Национальный продукт',rev:20948.27,seb:19181.46,kgW:7.6,price:2756.35,kgNoRet:7.6,ret:0,retPct:0},
+      {sku:'Сыр',rev:14718.09,seb:24252.21,kgW:4.12,price:3572.35,kgNoRet:4.12,ret:0,retPct:0}
+    ]
+  },
+  'Кофейни': {
+    feb: [
+      {sku:'Молоко',rev:27456531.65,seb:27983400.70,kgW:83111,price:330.36,kgNoRet:83111,ret:0,retPct:0},
+      {sku:'Сметана',rev:518082.10,seb:513246.05,kgW:382.7,price:1353.76,kgNoRet:382.7,ret:0,retPct:0},
+      {sku:'Творог',rev:121160.35,seb:123031.42,kgW:80.3,price:1508.85,kgNoRet:80.3,ret:0,retPct:0},
+      {sku:'Кисломолочная',rev:661923.79,seb:671485.58,kgW:1564.9,price:422.98,kgNoRet:1564.9,ret:0,retPct:0},
+      {sku:'Масло',rev:429544.82,seb:405865.92,kgW:82.4,price:5212.92,kgNoRet:82.4,ret:0,retPct:0},
+      {sku:'Сливки',rev:48929.66,seb:41379.41,kgW:14,price:3494.98,kgNoRet:14,ret:0,retPct:0},
+      {sku:'Национальный продукт',rev:37068.97,seb:30440.35,kgW:34.1,price:1087.07,kgNoRet:34.1,ret:0,retPct:0},
+      {sku:'Сыр',rev:33005.54,seb:30805.01,kgW:9.11,price:3623.00,kgNoRet:9.11,ret:0,retPct:0}
+    ],
+    mar: [
+      {sku:'Молоко',rev:57553235.77,seb:58498945.46,kgW:174023,price:330.72,kgNoRet:174047,ret:-24,retPct:-0.0001},
+      {sku:'Сметана',rev:461862.11,seb:454594.83,kgW:315.9,price:1462.05,kgNoRet:315.9,ret:0,retPct:0},
+      {sku:'Творог',rev:79362.09,seb:74397.54,kgW:47.4,price:1674.31,kgNoRet:47.4,ret:0,retPct:0},
+      {sku:'Кисломолочная',rev:906862.09,seb:898958.01,kgW:2165.75,price:418.73,kgNoRet:2165.75,ret:0,retPct:0},
+      {sku:'Масло',rev:367887.93,seb:348031.07,kgW:70.1,price:5248.04,kgNoRet:70.1,ret:0,retPct:0},
+      {sku:'Сливки',rev:58293.11,seb:63502.11,kgW:17.25,price:3379.31,kgNoRet:17.25,ret:0,retPct:0},
+      {sku:'Национальный продукт',rev:34741.38,seb:22582.63,kgW:25,price:1389.66,kgNoRet:25,ret:0,retPct:0},
+      {sku:'Сыр',rev:41991.40,seb:37136.52,kgW:10.64,price:3946.56,kgNoRet:10.64,ret:0,retPct:0}
+    ]
+  },
+  'Ритейл — Онлайн': {
+    feb: [
+      {sku:'Молоко',rev:6749836.21,seb:6583682.08,kgW:19579,price:342.32,kgNoRet:19718,ret:-139,retPct:-0.0071},
+      {sku:'Сметана',rev:328737.95,seb:329793.04,kgW:199.6,price:1486.16,kgNoRet:221.2,ret:-21.6,retPct:-0.1082},
+      {sku:'Творог',rev:1583293.12,seb:1589283.14,kgW:936.8,price:1666.10,kgNoRet:950.3,ret:-13.5,retPct:-0.0144},
+      {sku:'Кисломолочная',rev:385422.49,seb:334158.72,kgW:551.85,price:606.34,kgNoRet:635.65,ret:-83.8,retPct:-0.1519},
+      {sku:'Масло',rev:1873620.70,seb:1916191.87,kgW:350.75,price:5237.23,kgNoRet:357.75,ret:-7,retPct:-0.02},
+      {sku:'Национальный продукт',rev:138275.83,seb:88727.01,kgW:62.4,price:1781.91,kgNoRet:77.6,ret:-15.2,retPct:-0.2436},
+      {sku:'Сыр',rev:388189.65,seb:295758.20,kgW:85.02,price:4371.51,kgNoRet:88.8,ret:-3.78,retPct:-0.0445}
+    ],
+    mar: [
+      {sku:'Молоко',rev:12707146.53,seb:12391658.51,kgW:36858,price:344.76,kgNoRet:38223,ret:-1365,retPct:-0.037},
+      {sku:'Сметана',rev:1040256.82,seb:1052722.82,kgW:534.6,price:1945.86,kgNoRet:557.6,ret:-23,retPct:-0.043},
+      {sku:'Творог',rev:3956965.48,seb:3712710.96,kgW:2346.6,price:1686.25,kgNoRet:2497.4,ret:-150.8,retPct:-0.0643},
+      {sku:'Кисломолочная',rev:496086.31,seb:441750.52,kgW:884.55,price:560.83,kgNoRet:1015.75,ret:-131.2,retPct:-0.1483},
+      {sku:'Масло',rev:2698362.09,seb:2683350.11,kgW:517.55,price:5213.72,kgNoRet:536.95,ret:-19.4,retPct:-0.0375},
+      {sku:'Национальный продукт',rev:560517.23,seb:331109.33,kgW:321.2,price:1745.07,kgNoRet:328.8,ret:-7.6,retPct:-0.0237},
+      {sku:'Сыр',rev:1014698.32,seb:922247.04,kgW:254.41,price:3988.44,kgNoRet:264.39,ret:-9.98,retPct:-0.0392}
+    ]
+  },
+  'BC': {
+    feb: [
+      {sku:'Молоко',rev:2489181.13,seb:2438566.07,kgW:7242,price:335.11,kgNoRet:7428,ret:-186,retPct:-0.0257},
+      {sku:'Сметана',rev:1578259.60,seb:1615652.36,kgW:1128.2,price:1359.16,kgNoRet:1161.2,ret:-33,retPct:-0.0293},
+      {sku:'Творог',rev:1368259.11,seb:1455998.95,kgW:866.25,price:1540.40,kgNoRet:888.25,ret:-22,retPct:-0.0254},
+      {sku:'Кисломолочная',rev:1323597.65,seb:1333881.54,kgW:2984.05,price:422.71,kgNoRet:3131.2,ret:-147.15,retPct:-0.0493},
+      {sku:'Масло',rev:596982.78,seb:594672.47,kgW:101.05,price:5887.40,kgNoRet:101.4,ret:-0.35,retPct:-0.0035},
+      {sku:'Сливки',rev:119491.34,seb:111651.89,kgW:35.75,price:3342.42,kgNoRet:35.75,ret:0,retPct:0},
+      {sku:'Национальный продукт',rev:456982.83,seb:348838.81,kgW:342.1,price:1286.19,kgNoRet:355.3,ret:-13.2,retPct:-0.0386},
+      {sku:'Сыр',rev:393171.36,seb:433409.05,kgW:113.41,price:3351.13,kgNoRet:117.33,ret:-3.91,retPct:-0.0345}
+    ],
+    mar: [
+      {sku:'Молоко',rev:4018786.01,seb:3802811.94,kgW:11495,price:349.61,kgNoRet:12277,ret:-782,retPct:-0.068},
+      {sku:'Сметана',rev:2736913.33,seb:2663083.66,kgW:1751.4,price:1562.70,kgNoRet:1912.4,ret:-161,retPct:-0.0919},
+      {sku:'Творог',rev:2804285.94,seb:2606870.44,kgW:1624.75,price:1725.98,kgNoRet:1956.15,ret:-331.4,retPct:-0.204},
+      {sku:'Кисломолочная',rev:2966135.74,seb:2766884.90,kgW:6489.15,price:457.09,kgNoRet:7380.15,ret:-891,retPct:-0.1373},
+      {sku:'Масло',rev:1220431.22,seb:1172777.09,kgW:205.55,price:5937.39,kgNoRet:210.2,ret:-4.65,retPct:-0.0226},
+      {sku:'Сливки',rev:106448.42,seb:114869.90,kgW:31.5,price:3379.31,kgNoRet:33.5,ret:-2,retPct:-0.0635},
+      {sku:'Национальный продукт',rev:804438.27,seb:657408.52,kgW:702.8,price:1144.62,kgNoRet:776.3,ret:-73.5,retPct:-0.1046},
+      {sku:'Сыр',rev:672759.64,seb:607769.06,kgW:172.59,price:3898.02,kgNoRet:193.48,ret:-20.89,retPct:-0.121}
+    ]
+  },
+  'Торговые точки': {
+    feb: [
+      {sku:'Молоко',rev:175948.27,seb:171578.75,kgW:510,price:345.00,kgNoRet:510,ret:0,retPct:0},
+      {sku:'Сметана',rev:150310.33,seb:152762.66,kgW:106.8,price:1407.40,kgNoRet:106.8,ret:0,retPct:0},
+      {sku:'Творог',rev:92887.94,seb:100233.46,kgW:62.5,price:1486.21,kgNoRet:62.5,ret:0,retPct:0},
+      {sku:'Кисломолочная',rev:149310.33,seb:157100.84,kgW:390,price:382.85,kgNoRet:390,ret:0,retPct:0},
+      {sku:'Масло',rev:164137.93,seb:161194.69,kgW:34,price:4827.59,kgNoRet:34,ret:0,retPct:0},
+      {sku:'Сливки',rev:42241.40,seb:36639.13,kgW:12.5,price:3379.31,kgNoRet:12.5,ret:0,retPct:0},
+      {sku:'Сыр',rev:7112.07,seb:7243.45,kgW:2.1,price:3386.70,kgNoRet:2.1,ret:0,retPct:0}
+    ],
+    mar: [
+      {sku:'Молоко',rev:233275.94,seb:221883.36,kgW:660,price:353.45,kgNoRet:660,ret:0,retPct:0},
+      {sku:'Сметана',rev:245344.82,seb:304285.70,kgW:164.4,price:1492.37,kgNoRet:165.2,ret:-0.8,retPct:-0.0049},
+      {sku:'Творог',rev:284181.07,seb:280261.14,kgW:173.5,price:1637.93,kgNoRet:176,ret:-2.5,retPct:-0.0144},
+      {sku:'Кисломолочная',rev:263448.24,seb:263116.39,kgW:645,price:408.45,kgNoRet:645,ret:0,retPct:0},
+      {sku:'Масло',rev:302586.25,seb:284528.47,kgW:60,price:5043.10,kgNoRet:60,ret:0,retPct:0},
+      {sku:'Сливки',rev:59137.96,seb:58589.41,kgW:17.5,price:3379.31,kgNoRet:17.5,ret:0,retPct:0}
+    ]
+  },
+  'Прочее': {
+    jan: [
+      {sku:'Молоко',rev:8717793.60,seb:9032019.14,kgW:25256.5,price:330.84,kgNoRet:26350.5,ret:-1094,retPct:-0.0433},
+      {sku:'Сметана',rev:6856734.20,seb:7432380.65,kgW:3154.5,price:2168.55,kgNoRet:3161.9,ret:-7.4,retPct:-0.0023},
+      {sku:'Творог',rev:4889450.23,seb:5091758.40,kgW:3827.95,price:1276.30,kgNoRet:3830.95,ret:-3,retPct:-0.0008},
+      {sku:'Кисломолочная',rev:3293565.24,seb:3385552.41,kgW:7300.8,price:414.90,kgNoRet:7938.15,ret:-637.35,retPct:-0.0873},
+      {sku:'Масло',rev:3432198.45,seb:3516116.73,kgW:696.2,price:4908.75,kgNoRet:699.2,ret:-3,retPct:-0.0043},
+      {sku:'Сливки',rev:2085967.49,seb:2261989.40,kgW:668.5,price:3091.47,kgNoRet:674.75,ret:-6.25,retPct:-0.0094},
+      {sku:'Национальный продукт',rev:869568.71,seb:866611.97,kgW:545.5,price:1594.08,kgNoRet:545.5,ret:0,retPct:0},
+      {sku:'Сыр',rev:601228.89,seb:592847.58,kgW:146.4,price:4079.45,kgNoRet:147.38,ret:-0.089,retPct:-0.0006}
+    ],
+    feb: [
+      {sku:'Молоко',rev:30276671.47,seb:30496338.02,kgW:88227.5,price:336.49,kgNoRet:89978.5,ret:-1751,retPct:-0.0198},
+      {sku:'Сметана',rev:14218931.85,seb:15304503.80,kgW:8088.9,price:1751.36,kgNoRet:8118.8,ret:-29.9,retPct:-0.0037},
+      {sku:'Творог',rev:11415846.40,seb:13324179.11,kgW:8339.25,price:1361.08,kgNoRet:8387.35,ret:-48.1,retPct:-0.0058},
+      {sku:'Кисломолочная',rev:9491250.01,seb:9920852.60,kgW:21695.1,price:426.36,kgNoRet:22260.95,ret:-565.85,retPct:-0.0261},
+      {sku:'Масло',rev:10322327.11,seb:10383553.23,kgW:2079.15,price:4959.44,kgNoRet:2081.35,ret:-2.2,retPct:-0.0011},
+      {sku:'Сливки',rev:3413086.77,seb:3687531.49,kgW:1070.25,price:3097.17,kgNoRet:1102,ret:-31.75,retPct:-0.0297},
+      {sku:'Национальный продукт',rev:1787845.48,seb:1354036.87,kgW:1162.1,price:1513.71,kgNoRet:1181.1,ret:-19,retPct:-0.0163},
+      {sku:'Сыр',rev:2192552.49,seb:2157853.85,kgW:580.28,price:3781.61,kgNoRet:579.79,ret:0,retPct:0}
+    ],
+    mar: [
+      {sku:'Молоко',rev:38195512.79,seb:37569487.87,kgW:110250,price:346.44,kgNoRet:111900,ret:-1650,retPct:-0.015},
+      {sku:'Сметана',rev:17063750.91,seb:17831932.83,kgW:8612.2,price:1981.35,kgNoRet:8753.3,ret:-141.1,retPct:-0.0164},
+      {sku:'Творог',rev:14390101.55,seb:14895181.26,kgW:10200.55,price:1410.72,kgNoRet:10329.45,ret:-128.9,retPct:-0.0126},
+      {sku:'Кисломолочная',rev:11606143.56,seb:11522006.75,kgW:25368.2,price:457.51,kgNoRet:26056,ret:-687.8,retPct:-0.0271},
+      {sku:'Масло',rev:10720899.03,seb:10339847.24,kgW:2115,price:5068.98,kgNoRet:2116.6,ret:-1.6,retPct:-0.0008},
+      {sku:'Сливки',rev:2401390.18,seb:2576177.41,kgW:703,price:3415.92,kgNoRet:718.75,ret:-15.75,retPct:-0.0224},
+      {sku:'Национальный продукт',rev:3093275.24,seb:2624358.54,kgW:2005.2,price:1542.63,kgNoRet:2046.2,ret:-41,retPct:-0.0204},
+      {sku:'Сыр',rev:2800560.70,seb:2600984.58,kgW:709.39,price:3947.87,kgNoRet:718.23,ret:-8.84,retPct:-0.0125}
+    ]
   }
-  html+=`<tr class="tot"><td data-copy="Итого">Итого</td>`;
-  for(const mk of Q_MONTHS) html+=metricCells(agg(rows.filter(r=>r.mk===mk)));
-  html+=metricCells(total)+`</tr>`;
-  html+='</tbody></table></div></div>';
-  return html;
-}
-function buildKgFactTable(rows, byMonth){
-  const id='tblKgFact';
-  let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Факт на кг + расходы реализации</div><div class="table-title">Месячная сверка по кг, себестоимости и расходам на реализацию</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}"><thead><tr><th>Показатель</th>${Q_MONTHS.map(m=>`<th>${MONTH_LABEL[m]}</th>`).join('')}<th>Итого 1 КВ.</th></tr></thead><tbody>`;
-  const total=agg(rows);
-  const expPlanTotal=expenseTotal('plan');
-  const expFactTotal=expenseTotal('fact');
-  const expPlanKgTotal=expenseTotalPlanKg();
-  const expPlanPerKgTotal=expPlanKgTotal?expPlanTotal/expPlanKgTotal:0;
-  const expFactPerKgTotal=total.kg?expFactTotal/total.kg:0;
-  const expDiffPerKgTotal=expFactPerKgTotal-expPlanPerKgTotal;
-  const rowsDef=[
-    ['Реализация, кг', byMonth.map(x=>x.kg), total.kg, v=>fmtKg(v)],
-    ['Реализация кг без возвратов', byMonth.map(x=>x.saleKg ?? (x.kg+x.retKg)), total.saleKg ?? (total.kg+total.retKg), v=>fmtKg(v)],
-    ['Возврат, кг', byMonth.map(x=>x.retKg), total.retKg, v=>fmtKg(v), 'neg'],
-    ['% возврата от кг', byMonth.map(x=>x.kg?x.retKg/x.kg*100:0), total.kg?total.retKg/total.kg*100:0, v=>fmt1(v)+'%', 'neg'],
-    ['Себестоимость / кг', byMonth.map(x=>x.kg?x.seb/x.kg:0), total.kg?total.seb/total.kg:0, v=>fmt1(v)+' ₸'],
-    ['Расходы на реализацию — План, ₸', Q_MONTHS.map(mk=>DIR_EXPENSES[mk]?.plan||0), expPlanTotal, v=>fmtMoney(v)],
-    ['Расходы на реализацию — Факт, ₸', Q_MONTHS.map(mk=>DIR_EXPENSES[mk]?.fact||0), expFactTotal, v=>fmtMoney(v)],
-    ['Расходы на реализацию — План, ₸/кг', Q_MONTHS.map(mk=>expensePlanPerKg(mk)), expPlanPerKgTotal, v=>fmt1(v)+' ₸'],
-    ['Расходы на реализацию — Факт, ₸/кг', Q_MONTHS.map((mk,i)=>expenseFactPerKg(mk,byMonth[i])), expFactPerKgTotal, v=>fmt1(v)+' ₸'],
-    ['Отклонение расходов, Факт-План, ₸/кг', Q_MONTHS.map((mk,i)=>expenseFactPerKg(mk,byMonth[i])-expensePlanPerKg(mk)), expDiffPerKgTotal, v=>(v>0?'+':'')+fmt1(v)+' ₸', expDiffPerKgTotal>0?'neg':'pos'],
-    ['Себестоимость сумма', byMonth.map(x=>x.seb), total.seb, v=>fmtMoney(v)],
-    ['Реализация сумма', byMonth.map(x=>x.rev), total.rev, v=>fmtMoney(v)],
-    ['Валовая прибыль', byMonth.map(x=>x.prof), total.prof, v=>fmtMoney(v), total.prof>=0?'pos':'neg']
-  ];
-  for(const r of rowsDef){html+=`<tr><td data-copy="${esc(r[0])}">${esc(r[0])}</td>`; r[1].forEach(v=>html+=td(v,r[3](v),r[4]||'')); html+=td(r[2],r[3](r[2]),r[4]||'')+'</tr>';}
-  html+='</tbody></table></div></div>';
-  return html;
-}
-window.copyDirTable=async function(id,btn){
-  const table=document.getElementById(id); if(!table) return;
-  const rows=[...table.rows].map(tr=>[...tr.cells].map(cell=>cell.dataset.copy ?? cell.innerText.replace(/\s+/g,' ').trim()).join('\t')).join('\n');
-  if(window.PFU && PFU.copyText) return PFU.copyText(rows,btn);
-  try{await navigator.clipboard.writeText(rows); const old=btn.textContent; btn.textContent='✅ Скопировано'; btn.classList.add('ok'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('ok')},1600);}catch(e){const old=btn.textContent; btn.textContent='❌ Ошибка'; btn.classList.add('err'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('err')},1800);}
 };
-function makeChart(id,type,data,options={}){ if(!window.Chart) return null; return new Chart(document.getElementById(id),{type,data,options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:8,font:{size:10}}}},...options}}); }
-async function init(){
-  try{
-    prog(5,'Загрузка продаж...');
-    const {rawRows}=await PF.loadSales((p,s)=>prog(Math.min(80,Math.round(p*.8)),s));
-    prog(84,'Фильтр 1 квартала...');
-    const rows=rawRows.filter(r=>Q_MONTHS.includes(r.mk));
-    const total=agg(rows); const byMonth=Q_MONTHS.map(m=>agg(rows.filter(r=>r.mk===m)));
-    document.getElementById('kRevQ').textContent=fmtMoney(total.rev);
-    document.getElementById('kSebQ').textContent=fmtMoney(total.seb);
-    const pe=document.getElementById('kProfV'); pe.textContent=fmtMoney(total.prof); pe.className='kpi-v '+(total.prof>=0?'pos':'neg'); document.getElementById('kProfQ').style.borderTopColor=total.prof>=0?'var(--green)':'var(--red)';
-    document.getElementById('kMarQ').textContent='маржа '+(total.mar>=0?'+':'')+fmt1(total.mar)+'%';
-    document.getElementById('kQtyQ').textContent=fmtKg(total.kg);
-    document.getElementById('kRetQ').textContent=fmtKg(total.retKg);
-    document.getElementById('kRetPctQ').textContent=(total.kg?fmt1(total.retKg/total.kg*100):'0,0')+'% от кг';
-    document.getElementById('navInfo').textContent='Q1 live · '+new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    const byGroup=groupBy(rows,r=>r.group||'Без группы');
-    const groups=Object.keys(byGroup).sort((a,b)=>agg(byGroup[b]).rev-agg(byGroup[a]).rev);
-    let tables=buildSalesTable('tblSalesAll','Общее',rows);
-    groups.forEach((g,i)=>tables+=buildSalesTable('tblSalesGroup'+i,g,byGroup[g]));
-    document.getElementById('salesTables').innerHTML=tables;
-    document.getElementById('kgCards').innerHTML=Q_MONTHS.map((mk,i)=>{const m=byMonth[i]; const expKg=expenseFactPerKg(mk,m); return `<div class="mc"><div class="mc-name">${MONTH_LABEL[mk]}</div><div class="mc-v" style="color:var(--green)">${fmtKg(m.kg)}</div><div class="mc-r"><span>Реализация</span><span>${fmtMoney(m.rev)}</span></div><div class="mc-r"><span>Себест./кг</span><span>${m.kg?fmt1(m.seb/m.kg):'0,0'} ₸</span></div><div class="mc-r"><span>Расх. реал./кг</span><span>${fmt1(expKg)} ₸</span></div><div class="mc-r"><span>Возврат</span><span class="neg">${fmtKg(m.retKg)}</span></div></div>`}).join('');
-    document.getElementById('kgTables').innerHTML=buildKgFactTable(rows,byMonth);
-    makeChart('cKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Реализация кг',data:byMonth.map(x=>Math.round(x.kg)),backgroundColor:CC[1],borderRadius:4},{label:'Возврат кг',data:byMonth.map(x=>Math.round(Math.abs(x.retKg))),backgroundColor:CC[3],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>fmtFull(v)}}}});
-    makeChart('cCostKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Себестоимость / кг',data:byMonth.map(x=>x.kg?+(x.seb/x.kg).toFixed(1):0),backgroundColor:CC[2],borderRadius:4},{label:'Расходы реал. / кг факт',data:Q_MONTHS.map((mk,i)=>+expenseFactPerKg(mk,byMonth[i]).toFixed(1)),backgroundColor:CC[0],borderRadius:4},{label:'Расходы реал. / кг план',data:Q_MONTHS.map(mk=>+expensePlanPerKg(mk).toFixed(1)),backgroundColor:CC[3],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>v+' ₸'}}}});
-    prog(100,'Готово'); setTimeout(()=>document.getElementById('ls').style.display='none',250);
-  }catch(err){console.error(err); document.getElementById('lstep').textContent='Ошибка загрузки'; const le=document.getElementById('lerr'); le.style.display='block'; le.textContent=err.message||String(err); document.getElementById('prog').style.background='var(--red)';}
+
+// ═══════════════════════════════════════════════════════════
+// DATA — На кг (План/Факт)
+// ═══════════════════════════════════════════════════════════
+const planFact = {
+  jan: {plan_vol:565017.03,fact_vol:373136.817,diff_vol:-191880.213,diff_day_vol:-6189.68,plan_cost:52.61,fact_cost:54.35,diff_cost:1.74,plan_sum:29727.006,fact_sum:20280.248,diff_sum:-9446.758},
+  feb: {plan_vol:492024.81,fact_vol:279613.576,diff_vol:-212411.234,diff_day_vol:-7080.37,plan_cost:92.82,fact_cost:150.41,diff_cost:57.59,plan_sum:45670.081,fact_sum:42056.740,diff_sum:-3613.341},
+  mar: {plan_vol:552237.91,fact_vol:444969.082,diff_vol:-107268.828,diff_day_vol:-3575.63,plan_cost:66.50,fact_cost:82.53,diff_cost:16.03,plan_sum:36722.706,fact_sum:36722.706,diff_sum:0}
+};
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function sumArr(arr, key){ return arr.reduce((s,r)=>s+(r[key]||0),0); }
+function totals(arr){ return {rev:sumArr(arr,'rev'),seb:sumArr(arr,'seb'),kgW:sumArr(arr,'kgW'),kgNoRet:sumArr(arr,'kgNoRet'),ret:sumArr(arr,'ret')}; }
+
+function buildTable(data, months, el){
+  const mNames = {jan:'Январь',feb:'Февраль',mar:'Март'};
+  const avail = months.filter(m=>data[m]);
+  let html = '<tr><th>SKU</th>';
+  for(const m of avail) html += `<th colspan="4" style="text-align:center;border-left:1px solid var(--border)">${mNames[m]}</th>`;
+  html += '</tr><tr><th></th>';
+  for(const m of avail) html += '<th style="border-left:1px solid var(--border)">Реал. ₸</th><th>Себест. ₸</th><th>Кг</th><th>₸/кг</th>';
+  html += '</tr>';
+  for(const sku of SKUS){
+    let hasData = false;
+    for(const m of avail){ if(data[m]?.find(r=>r.sku===sku)) hasData=true; }
+    if(!hasData) continue;
+    html += `<tr><td>${sku}</td>`;
+    for(const m of avail){
+      const r = data[m]?.find(x=>x.sku===sku);
+      if(r){
+        const mar = r.rev>0 ? (r.rev-r.seb)/r.rev*100 : 0;
+        html += `<td style="border-left:1px solid rgba(30,45,64,.4)">${fmtRev(r.rev)}</td><td>${fmtRev(r.seb)}</td><td>${fmtN(r.kgW)}</td><td>${fmtN(r.price)}</td>`;
+      } else {
+        html += '<td style="border-left:1px solid rgba(30,45,64,.4)">—</td><td>—</td><td>—</td><td>—</td>';
+      }
+    }
+    html += '</tr>';
+  }
+  // Итого
+  html += '<tr class="tot"><td>Итого</td>';
+  for(const m of avail){
+    if(data[m]){
+      const t = totals(data[m]);
+      const avgP = t.kgW>0?t.rev/t.kgW:0;
+      html += `<td style="border-left:1px solid rgba(30,45,64,.4)">${fmtRev(t.rev)}</td><td>${fmtRev(t.seb)}</td><td>${fmtN(t.kgW)}</td><td>${fmtN(avgP)}</td>`;
+    } else {
+      html += '<td style="border-left:1px solid rgba(30,45,64,.4)">—</td><td>—</td><td>—</td><td>—</td>';
+    }
+  }
+  html += '</tr>';
+  el.innerHTML = html;
 }
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
-})();
+
+
+function escapeHtml(v){
+  return String(v ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+}
+
+function parseExcelNumber(text){
+  let s = String(text || '').replace(/\u00a0/g,' ').trim();
+  if(!s || s === '—') return null;
+  const isPct = /%$/.test(s);
+  s = s.replace(/[₸кг]/gi,'').replace(/тенге/gi,'').replace(/%/g,'').trim();
+  s = s.replace(/\s+/g,'').replace(/,/g,'.');
+  if(!/^[-+]?\d+(\.\d+)?$/.test(s)) return null;
+  let n = Number(s);
+  if(!Number.isFinite(n)) return null;
+  if(isPct) n = n / 100;
+  return {value:n, isPct};
+}
+
+function cellCopyText(cell){
+  const txt = (cell.getAttribute('data-copy') ?? cell.textContent ?? '').replace(/\s+/g,' ').trim();
+  const parsed = parseExcelNumber(txt);
+  if(parsed){
+    if(parsed.isPct) return String(parsed.value).replace('.', ',');
+    return String(parsed.value).replace('.', ',');
+  }
+  return txt.replace(/\n/g,' ');
+}
+
+function tableToPlainText(table){
+  return Array.from(table.rows).map(row=>{
+    const out=[];
+    Array.from(row.cells).forEach(cell=>{
+      const val=cellCopyText(cell);
+      const span=Math.max(1, Number(cell.colSpan)||1);
+      out.push(val);
+      for(let i=1;i<span;i++) out.push('');
+    });
+    return out.join('\t');
+  }).join('\n');
+}
+
+function excelHtmlFromTable(table, title){
+  const isLight = document.body.dataset && document.body.dataset.theme === 'light';
+  const palette = isLight ? {
+    bg:'#ffffff', head:'#eaf2fb', month:'#d9ecff', total:'#e7f6ed', text:'#172033', muted:'#5f6f83', border:'#b7c7da', accent:'#0969da', red:'#cf222e', green:'#1a7f37'
+  } : {
+    bg:'#0d1219', head:'#131a23', month:'#162033', total:'#0f2a20', text:'#dde8f5', muted:'#8aa3ba', border:'#1e2d40', accent:'#00c8ff', red:'#ff3d57', green:'#00e676'
+  };
+
+  let html = `<table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;font-size:11pt;color:${palette.text};background:${palette.bg};">`;
+  Array.from(table.rows).forEach((row, ri)=>{
+    const isTotal = row.classList.contains('tot') || /итого/i.test((row.cells[0]?.textContent||'').trim());
+    html += '<tr>';
+    Array.from(row.cells).forEach((cell, ci)=>{
+      const tag = (cell.tagName || '').toLowerCase() === 'th' ? 'th' : 'td';
+      const colspan = cell.colSpan && cell.colSpan > 1 ? ` colspan="${cell.colSpan}"` : '';
+      const rowspan = cell.rowSpan && cell.rowSpan > 1 ? ` rowspan="${cell.rowSpan}"` : '';
+      const visible = (cell.getAttribute('data-copy') ?? cell.textContent ?? '').replace(/\s+/g,' ').trim();
+      const parsed = parseExcelNumber(visible);
+      const isNeg = (parsed && parsed.value < 0) || cell.classList.contains('neg');
+      const align = ri < 2 || tag === 'th' ? (ci===0 ? 'left' : 'center') : (ci===0 ? 'left' : 'right');
+      let bg = palette.bg;
+      let color = isNeg ? palette.red : palette.text;
+      let weight = '400';
+      if(ri === 0){ bg = palette.month; color = palette.accent; weight = '700'; }
+      if(ri === 1 || tag === 'th'){ bg = palette.head; color = palette.muted; weight = '700'; }
+      if(isTotal){ bg = palette.total; color = isNeg ? palette.red : palette.text; weight = '700'; }
+      let style = `border:1px solid ${palette.border};background:${bg};color:${color};font-weight:${weight};text-align:${align};white-space:nowrap;vertical-align:middle;`;
+      let content;
+      if(parsed && ci !== 0 && ri > 1){
+        const numberText = parsed.isPct ? String(parsed.value).replace('.', ',') : String(parsed.value).replace('.', ',');
+        style += parsed.isPct ? 'mso-number-format:"0.0%";' : 'mso-number-format:"# ##0.0";';
+        content = numberText;
+      } else {
+        content = escapeHtml(visible);
+      }
+      html += `<${tag}${colspan}${rowspan} style="${style}">${content}</${tag}>`;
+    });
+    html += '</tr>';
+  });
+  html += '</table>';
+
+  return `<!doctype html><html><head><meta charset="utf-8"></head><body><div style="font-family:Calibri,Arial,sans-serif;font-size:12pt;font-weight:700;margin:0 0 8px 0;color:${palette.text};">${escapeHtml(title||'ДиР')}</div>${html}</body></html>`;
+}
+
+async function copyDirTable(tableId, btn, title){
+  const table = document.getElementById(tableId);
+  const old = btn ? btn.textContent : '';
+  try{
+    if(!table) throw new Error('Таблица не найдена');
+    if(btn) btn.textContent='Копирую...';
+    const plain = tableToPlainText(table);
+    const html = excelHtmlFromTable(table, title);
+    if(navigator.clipboard && navigator.clipboard.write && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html], {type:'text/html'}),
+        'text/plain': new Blob([plain], {type:'text/plain'})
+      })]);
+    } else if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(plain);
+    } else {
+      const ta=document.createElement('textarea');
+      ta.value=plain; ta.style.position='fixed'; ta.style.left='-9999px';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    }
+    if(btn){btn.classList.remove('err');btn.classList.add('ok');btn.textContent='✅ Скопировано';setTimeout(()=>{btn.classList.remove('ok');btn.textContent=old;},1600);}
+  }catch(e){
+    console.error(e);
+    if(btn){btn.classList.remove('ok');btn.classList.add('err');btn.textContent='❌ Ошибка';setTimeout(()=>{btn.classList.remove('err');btn.textContent=old;},2000);}
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+function init(){
+  const prog = p => document.getElementById('prog').style.width=p+'%';
+  const step = s => document.getElementById('lstep').textContent=s;
+
+  try{
+    step('Загрузка данных ДиР...'); prog(20);
+
+    // KPIs — Общее
+    const allMonths = ['jan','feb','mar'];
+    let totalRev=0, totalSeb=0, totalKg=0, totalRet=0;
+    for(const m of allMonths){
+      const t = totals(general[m]);
+      totalRev+=t.rev; totalSeb+=t.seb; totalKg+=t.kgW; totalRet+=t.ret;
+    }
+    const totalProf = totalRev - totalSeb;
+    const totalMar = totalRev>0 ? totalProf/totalRev*100 : 0;
+
+    document.getElementById('kRevQ').textContent = fmtRev(totalRev)+' ₸';
+    document.getElementById('kSebQ').textContent = fmtRev(totalSeb)+' ₸';
+    const pEl = document.getElementById('kProfV');
+    pEl.textContent = fmtRev(totalProf)+' ₸';
+    pEl.style.color = totalProf>=0?'var(--green)':'var(--red)';
+    document.getElementById('kProfQ').style.borderTopColor = totalProf>=0?'var(--green)':'var(--red)';
+    document.getElementById('kMarQ').textContent = `маржа ${totalMar>0?'+':''}${totalMar.toFixed(1)}%`;
+    document.getElementById('kQtyQ').textContent = fmtN(totalKg)+' кг';
+    document.getElementById('kRetQ').textContent = fmtN(Math.abs(totalRet))+' кг';
+    document.getElementById('kRetPctQ').textContent = `${(Math.abs(totalRet)/totalKg*100).toFixed(1)}% от объёма`;
+
+    prog(40); step('Графики общее...');
+
+    // Monthly overview cards
+    const mNm={jan:'Январь',feb:'Февраль',mar:'Март'};
+    const mCls={jan:'m1',feb:'m2',mar:'m3'};
+    let mcHtml='';
+    for(const m of allMonths){
+      const t = totals(general[m]);
+      const prof = t.rev-t.seb;
+      const mar = t.rev>0?prof/t.rev*100:0;
+      const retPct = t.kgW>0?Math.abs(t.ret)/t.kgW*100:0;
+      const mc = mar>=0?'pos':'neg';
+      mcHtml+=`<div class="mc ${mCls[m]}">
+        <div class="mc-name">${mNm[m]}</div>
+        <div class="mc-rev">${fmtRev(t.rev)} ₸</div>
+        <div class="mc-r"><span>Себест.</span><span>${fmtRev(t.seb)} ₸</span></div>
+        <div class="mc-r"><span>Маржа</span><span class="${mc}">${mar>0?'+':''}${mar.toFixed(1)}%</span></div>
+        <div class="mc-r"><span>Объём</span><span>${fmtN(t.kgW)} кг</span></div>
+        <div class="mc-r"><span>Возврат</span><span class="neg">${fmtN(Math.abs(t.ret))} кг (${retPct.toFixed(1)}%)</span></div>
+      </div>`;
+    }
+    document.getElementById('monthOverview').innerHTML=mcHtml;
+
+    // Chart: Revenue by month
+    const revByMonth = allMonths.map(m=>+(totals(general[m]).rev/1e6).toFixed(1));
+    new Chart(document.getElementById('cRevMonth'),{type:'bar',
+      data:{labels:['Январь','Февраль','Март'],datasets:[{data:revByMonth,
+        backgroundColor:['rgba(58,90,122,.8)','rgba(42,106,90,.8)','rgba(0,230,118,.75)'],borderRadius:4}]},
+      options:{responsive:true,plugins:{legend:{display:false}},
+        scales:{y:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>v+' млн'}},x:{grid:{display:false}}}}});
+
+    // Chart: Seb vs Rev
+    const sebByMonth = allMonths.map(m=>+(totals(general[m]).seb/1e6).toFixed(1));
+    new Chart(document.getElementById('cSebVsRev'),{type:'bar',
+      data:{labels:['Январь','Февраль','Март'],datasets:[
+        {label:'Реализация',data:revByMonth,backgroundColor:'rgba(0,200,255,.7)',borderRadius:4},
+        {label:'Себестоимость',data:sebByMonth,backgroundColor:'rgba(255,170,0,.6)',borderRadius:4}
+      ]},
+      options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:6,font:{size:9}}}},
+        scales:{y:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>v+' млн'}},x:{grid:{display:false}}}}});
+
+    // Chart: Categories Jan
+    const janCatData = general.jan.map((r,i)=>({sku:r.sku,rev:r.rev/1e6}));
+    new Chart(document.getElementById('cCatJan'),{type:'doughnut',
+      data:{labels:janCatData.map(c=>c.sku),datasets:[{data:janCatData.map(c=>+c.rev.toFixed(2)),
+        backgroundColor:CC.map(c=>c+'bb'),borderColor:CC,borderWidth:1,hoverOffset:4}]},
+      options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:6,font:{size:9}}}}}});
+
+    // Chart: Categories Q1
+    const qCat = {};
+    for(const m of allMonths) for(const r of general[m]){
+      if(!qCat[r.sku]) qCat[r.sku]=0;
+      qCat[r.sku]+=r.rev;
+    }
+    const qCatArr = SKUS.map(s=>({sku:s,rev:(qCat[s]||0)/1e6}));
+    new Chart(document.getElementById('cCatQ'),{type:'doughnut',
+      data:{labels:qCatArr.map(c=>c.sku),datasets:[{data:qCatArr.map(c=>+c.rev.toFixed(2)),
+        backgroundColor:CC.map(c=>c+'bb'),borderColor:CC,borderWidth:1,hoverOffset:4}]},
+      options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:6,font:{size:9}}}}}});
+
+    // Chart: Returns by month
+    const retByMonth = allMonths.map(m=>Math.abs(totals(general[m]).ret));
+    new Chart(document.getElementById('cRetMonth'),{type:'bar',
+      data:{labels:['Январь','Февраль','Март'],datasets:[{data:retByMonth.map(v=>Math.round(v)),
+        backgroundColor:['rgba(255,61,87,.5)','rgba(255,61,87,.65)','rgba(255,61,87,.8)'],borderRadius:4}]},
+      options:{responsive:true,plugins:{legend:{display:false}},
+        scales:{y:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>fmtN(v)+' кг'}},x:{grid:{display:false}}}}});
+
+    // Chart: Price per kg by category (March)
+    new Chart(document.getElementById('cPriceKg'),{type:'bar',
+      data:{labels:general.mar.map(r=>r.sku.length>12?r.sku.slice(0,12)+'…':r.sku),
+        datasets:[
+          {label:'Январь',data:general.jan.map(r=>Math.round(r.price)),backgroundColor:'rgba(58,90,122,.7)',borderRadius:3},
+          {label:'Февраль',data:general.feb.map(r=>Math.round(r.price)),backgroundColor:'rgba(42,106,90,.7)',borderRadius:3},
+          {label:'Март',data:general.mar.map(r=>Math.round(r.price)),backgroundColor:'rgba(0,230,118,.7)',borderRadius:3}
+        ]},
+      options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:6,font:{size:9}}}},
+        scales:{y:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>fmtN(v)+' ₸'}},x:{grid:{display:false},ticks:{font:{size:8}}}}}});
+
+    // General table
+    buildTable(general, allMonths, document.getElementById('tGeneral'));
+
+    prog(60); step('Каналы продаж...');
+
+    // Channel tabs
+    const chNames = Object.keys(channels);
+    const tabBar = document.getElementById('channelTabs');
+    const sectionsEl = document.getElementById('channelSections');
+
+    chNames.forEach((ch, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-btn' + (idx===0?' active':'');
+      btn.textContent = ch;
+      btn.onclick = () => {
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.ch-section').forEach(s=>s.classList.remove('active'));
+        document.getElementById('ch-'+idx).classList.add('active');
+      };
+      tabBar.appendChild(btn);
+    });
+
+    chNames.forEach((ch, idx) => {
+      const data = channels[ch];
+      const avail = allMonths.filter(m=>data[m]);
+      const div = document.createElement('div');
+      div.className = 'ch-section'+(idx===0?' active':'');
+      div.id = 'ch-'+idx;
+
+      // Channel totals
+      let chRev=0,chSeb=0,chKg=0,chRet=0;
+      for(const m of avail){ const t=totals(data[m]); chRev+=t.rev; chSeb+=t.seb; chKg+=t.kgW; chRet+=t.ret; }
+      const chMar = chRev>0?(chRev-chSeb)/chRev*100:0;
+      const marClass = chMar>=0?'pos':'neg';
+
+      // Mini-cards for channel
+      let miniHtml = '<div class="mini-grid">';
+      miniHtml += `<div class="mini-card"><div class="mini-l">Реализация</div><div class="mini-v" style="color:var(--accent)">${fmtRev(chRev)} ₸</div><div class="mini-s">${avail.map(m=>mNm[m]).join(', ')}</div></div>`;
+      miniHtml += `<div class="mini-card"><div class="mini-l">Маржа</div><div class="mini-v ${marClass}">${chMar>0?'+':''}${chMar.toFixed(1)}%</div><div class="mini-s">валовая</div></div>`;
+      miniHtml += `<div class="mini-card"><div class="mini-l">Объём</div><div class="mini-v" style="color:var(--green)">${fmtN(chKg)} кг</div><div class="mini-s">возврат: ${fmtN(Math.abs(chRet))} кг</div></div>`;
+      miniHtml += '</div>';
+
+      // Charts
+      const chartId1 = 'chRev'+idx;
+      const chartId2 = 'chCat'+idx;
+      miniHtml += '<div class="g2">';
+      miniHtml += `<div class="card"><div class="ct">${ch} — Реализация по месяцам, млн ₸</div><canvas id="${chartId1}"></canvas></div>`;
+      miniHtml += `<div class="card"><div class="ct">${ch} — Категории (все мес.), млн ₸</div><canvas id="${chartId2}"></canvas></div>`;
+      miniHtml += '</div>';
+
+      // Table
+      miniHtml += `<div class="card" style="margin-bottom:14px"><div class="copy-row"><div class="copy-title">${ch} — детализация</div><button class="copy-btn" onclick="copyDirTable('tCh${idx}', this, '${ch} — детализация')">📋 Скопировать таблицу</button></div><div style="overflow-x:auto"><table class="tbl" id="tCh${idx}"></table></div></div>`;
+
+      div.innerHTML = miniHtml;
+      sectionsEl.appendChild(div);
+
+      // Build table
+      setTimeout(()=>{
+        buildTable(data, allMonths, document.getElementById('tCh'+idx));
+
+        // Revenue chart
+        const mColors = {jan:'rgba(58,90,122,.8)',feb:'rgba(42,106,90,.8)',mar:'rgba(0,230,118,.75)'};
+        const chRevData = allMonths.map(m=>data[m]?+(totals(data[m]).rev/1e6).toFixed(2):0);
+        new Chart(document.getElementById(chartId1),{type:'bar',
+          data:{labels:['Январь','Февраль','Март'],datasets:[{data:chRevData,
+            backgroundColor:allMonths.map(m=>mColors[m]),borderRadius:4}]},
+          options:{responsive:true,plugins:{legend:{display:false}},
+            scales:{y:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>v+' млн'}},x:{grid:{display:false}}}}});
+
+        // Categories doughnut
+        const catMap={};
+        for(const m of avail) for(const r of data[m]){
+          if(!catMap[r.sku]) catMap[r.sku]=0;
+          catMap[r.sku]+=r.rev;
+        }
+        const catArr=SKUS.filter(s=>catMap[s]>0).map(s=>({sku:s,rev:catMap[s]/1e6}));
+        new Chart(document.getElementById(chartId2),{type:'doughnut',
+          data:{labels:catArr.map(c=>c.sku),datasets:[{data:catArr.map(c=>+c.rev.toFixed(2)),
+            backgroundColor:CC.slice(0,catArr.length).map(c=>c+'bb'),borderColor:CC.slice(0,catArr.length),borderWidth:1,hoverOffset:4}]},
+          options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:6,font:{size:9}}}}}});
+      }, 50);
+    });
+
+    prog(80); step('План/Факт...');
+
+    // Plan/Fact cards
+    const pfMonths = ['jan','feb','mar'];
+    let pfCardsHtml = '';
+    for(const m of pfMonths){
+      const d = planFact[m];
+      const volDiffPct = d.plan_vol>0?((d.fact_vol-d.plan_vol)/d.plan_vol*100).toFixed(1):'0';
+      const volClass = d.diff_vol>=0?'good':'bad';
+      const costClass = d.diff_cost<=0?'good':'warn';
+      pfCardsHtml += `<div class="mini-card ${volClass}">
+        <div class="mini-l">${mNm[m]} — Объём</div>
+        <div class="mini-v">${fmtN(d.fact_vol)} кг</div>
+        <div class="mini-s">
+          План: ${fmtN(d.plan_vol)} кг<br>
+          Разница: <span class="${d.diff_vol>=0?'pos':'neg'}">${fmtN(d.diff_vol)} кг (${volDiffPct}%)</span><br>
+          ₸/кг факт: <span class="${d.diff_cost>0?'neg':'pos'}">${fmtD(d.fact_cost)} ₸</span> (план: ${fmtD(d.plan_cost)} ₸)
+        </div>
+      </div>`;
+    }
+    document.getElementById('planFactCards').innerHTML = pfCardsHtml;
+
+    // Plan/Fact Volume chart
+    new Chart(document.getElementById('cPFVol'),{type:'bar',
+      data:{labels:['Январь','Февраль','Март'],datasets:[
+        {label:'План',data:pfMonths.map(m=>Math.round(planFact[m].plan_vol)),backgroundColor:'rgba(0,200,255,.5)',borderRadius:4},
+        {label:'Факт',data:pfMonths.map(m=>Math.round(planFact[m].fact_vol)),backgroundColor:'rgba(0,230,118,.65)',borderRadius:4}
+      ]},
+      options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:6,font:{size:9}}}},
+        scales:{y:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>fmtN(v)+' кг'}},x:{grid:{display:false}}}}});
+
+    // Plan/Fact Cost chart
+    new Chart(document.getElementById('cPFCost'),{type:'bar',
+      data:{labels:['Январь','Февраль','Март'],datasets:[
+        {label:'План ₸/кг',data:pfMonths.map(m=>+planFact[m].plan_cost.toFixed(1)),backgroundColor:'rgba(0,200,255,.5)',borderRadius:4},
+        {label:'Факт ₸/кг',data:pfMonths.map(m=>+planFact[m].fact_cost.toFixed(1)),backgroundColor:'rgba(255,170,0,.65)',borderRadius:4}
+      ]},
+      options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:6,font:{size:9}}}},
+        scales:{y:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>v+' ₸'}},x:{grid:{display:false}}}}});
+
+    // Plan/Fact table
+    document.getElementById('tPlanFact').innerHTML = `
+      <tr><th>Месяц</th><th>Показатель</th><th>План</th><th>Факт</th><th>Разница мес.</th><th>Разница/день</th></tr>
+      ${pfMonths.map(m=>{
+        const d=planFact[m];
+        return `
+          <tr><td rowspan="3" style="font-weight:700">${mNm[m]}</td><td>Объём, кг</td><td>${fmtN(d.plan_vol)}</td><td>${fmtN(d.fact_vol)}</td><td class="${d.diff_vol>=0?'pos':'neg'}">${fmtN(d.diff_vol)}</td><td class="${d.diff_day_vol>=0?'pos':'neg'}">${fmtN(d.diff_day_vol)}</td></tr>
+          <tr><td>Расходы ₸/кг</td><td>${fmtD(d.plan_cost)}</td><td>${fmtD(d.fact_cost)}</td><td class="${d.diff_cost<=0?'pos':'neg'}">${d.diff_cost>0?'+':''}${fmtD(d.diff_cost)}</td><td>—</td></tr>
+          <tr style="border-bottom:2px solid var(--border)"><td>Сумма, тыс ₸</td><td>${fmtN(d.plan_sum)}</td><td>${fmtN(d.fact_sum)}</td><td class="${d.diff_sum>=0?'pos':'neg'}">${fmtN(d.diff_sum)}</td><td>—</td></tr>
+        `;
+      }).join('')}
+    `;
+
+    prog(100); step('Готово!');
+    setTimeout(()=>document.getElementById('ls').style.display='none',300);
+
+  }catch(err){
+    document.getElementById('lstep').textContent='Ошибка: '+err.message;
+    document.getElementById('prog').style.background='var(--red)';
+    console.error(err);
+  }
+}
+
+init();
 </script>
 </body>
 </html>
