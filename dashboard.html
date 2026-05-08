@@ -84,6 +84,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 .mini-s{font-size:10px;color:var(--dim);margin-top:4px;line-height:1.4;}
 
 </style>
+<link rel="stylesheet" href="pf-ui.css?v=20260508">
 </head>
 <body>
 
@@ -103,6 +104,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
   <a href="pnl.html">💰 P&L</a>
   <a href="analytics.html">🔬 Аналитика</a>
   <a href="quality.html">🧪 Качество</a>
+  <a href="dir.html">📑 ДиР</a>
   <div class="nav-r" id="navInfo">Загрузка...</div>
 </div>
 
@@ -127,7 +129,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
       <div class="action-title">Управленческий summary</div>
       <div class="action-sub" id="summaryText">Загрузка ключевых выводов...</div>
     </div>
-    <button class="btn" onclick="copyDashboardReport()">📋 Скопировать отчёт</button>
+    <div class="pf-actions">
+      <button class="pf-export-btn" onclick="copyDashboardSummary(event)">📋 Summary</button>
+      <button class="pf-export-btn" onclick="copyDashboardReport(event)">📋 Отчёт</button>
+      <button class="pf-export-btn" onclick="copyDashboardScreen(event)">📸 Скрин</button>
+    </div>
   </div>
 
   <div class="mini-grid">
@@ -223,6 +229,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 
 <script src="pf-prikhod.js?v=20260429-safe2"></script>
 <script src="pf-data.js?v=20260429-safe2"></script>
+<script src="pf-utils.js?v=20260508"></script>
 <script>
 Chart.defaults.color='#5a7a96';
 Chart.defaults.borderColor='#1e2d40';
@@ -445,7 +452,7 @@ async function init(){
     // Categories
     const catMap={};
     for(const r of rows){
-      const cat=r.sku.split(' ')[0];
+      const cat=r.skuGroup || r.sku.split(' ')[0];
       if(!catMap[cat]) catMap[cat]={rev:0,prof:0};
       catMap[cat].rev+=r.sumBezNds; catMap[cat].prof+=r.prof;
     }
@@ -601,16 +608,19 @@ async function init(){
 }
 
 
-async function copyDashboardReport(){
+
+async function copyDashboardSummary(ev){
+  const el=document.getElementById('summaryText');
+  const text='PF Dashboard — Summary\n'+(el?el.innerText.replace(/\n{2,}/g,'\n'):'Summary ещё не сформирован');
+  return PFU.copyText(text, ev?.currentTarget);
+}
+async function copyDashboardReport(ev){
   const text = window.PF_DASHBOARD_REPORT || 'Отчёт ещё не сформирован';
-  try{
-    await navigator.clipboard.writeText(text);
-    alert('Отчёт скопирован');
-  }catch(e){
-    const ta=document.createElement('textarea');
-    ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
-    alert('Отчёт скопирован');
-  }
+  return PFU.copyText(text, ev?.currentTarget);
+}
+async function copyDashboardScreen(ev){
+  const el=document.querySelector('.main');
+  return PFU.copyElementScreenshot(el, ev?.currentTarget, 'pf-dashboard.png', 'PF — Дашборд', document.getElementById('summaryText')?.innerText || '');
 }
 
 init();

@@ -1,0 +1,39 @@
+/* PF shared UI layer — theme, navigation, shared buttons, responsive fixes */
+:root{
+  color-scheme: dark;
+  --bg:#07090f;--s1:#0d1219;--s2:#131a23;--surface:#161b22;--surface2:#21262d;
+  --border:#1e2d40;--border2:#253347;--accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;
+  --text:#dde8f5;--muted:#5a7a96;--dim:#2d4055;
+}
+body[data-theme="light"]{
+  color-scheme: light;
+  --bg:#f4f7fb;--s1:#ffffff;--s2:#eef3f8;--surface:#ffffff;--surface2:#eef3f8;
+  --border:#d8e1ec;--border2:#c9d6e6;--accent:#0969da;--green:#1a7f37;--red:#cf222e;--amber:#9a6700;--purple:#8250df;
+  --text:#172033;--muted:#5f6f83;--dim:#98a6b8;
+}
+body[data-theme="light"] .nav,
+body[data-theme="light"] .hdr,
+body[data-theme="light"] .toolbar,
+body[data-theme="light"] .kpi,
+body[data-theme="light"] .card,
+body[data-theme="light"] .mc,
+body[data-theme="light"] .mini-card,
+body[data-theme="light"] .sig,
+body[data-theme="light"] .exec,
+body[data-theme="light"] .cmp,
+body[data-theme="light"] .health-card,
+body[data-theme="light"] .pass-card,
+body[data-theme="light"] .issue-card,
+body[data-theme="light"] .detail-panel{box-shadow:0 1px 2px rgba(15,23,42,.06)}
+body[data-theme="light"] canvas{filter:none}
+body[data-theme="light"] .pos{color:var(--green)!important}
+body[data-theme="light"] .neg{color:var(--red)!important}
+body[data-theme="light"] .neu{color:var(--amber)!important}
+.nav{flex-wrap:wrap;gap:3px}.nav a,.nt{white-space:nowrap}.nav .nav-r{margin-left:auto}
+.pf-theme-btn,.pf-export-btn{padding:4px 9px;border:1px solid var(--border);border-radius:6px;background:var(--s2,var(--surface2));color:var(--text);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;text-decoration:none;font-family:inherit}
+.pf-theme-btn:hover,.pf-export-btn:hover{border-color:var(--accent);color:var(--accent)}
+.pf-export-btn.busy{opacity:.7;pointer-events:none}.pf-export-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green)}.pf-export-btn.err{border-color:rgba(255,61,87,.45);color:var(--red)}
+.pf-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.pf-actions.right{margin-left:auto}
+.pf-shot-wrap{position:fixed;left:0;top:0;transform:translateX(-200vw);z-index:-1;background:var(--bg);color:var(--text);padding:16px;min-width:1100px}
+.pf-shot-wrap table{border-collapse:collapse!important;width:auto!important;min-width:auto!important;background:var(--s1)!important}.pf-shot-wrap th,.pf-shot-wrap td{position:static!important;left:auto!important;top:auto!important;z-index:auto!important;padding:6px 9px!important;border:1px solid var(--border)!important;white-space:nowrap!important;font-size:11px!important}.pf-shot-title{font-size:16px;font-weight:800;margin-bottom:5px}.pf-shot-sub{font-size:11px;color:var(--muted);margin-bottom:10px}
+@media(max-width:900px){.g2,.g3,.g4,.mini-grid,.issues-grid,.exec-cards,.sigs,.passport-grid,.health-wrap{grid-template-columns:1fr!important}.kpi-band{grid-template-columns:1fr 1fr!important}.nav-r{width:100%;margin-left:0!important}.main{padding:14px 10px!important}.hero{padding:18px 12px!important}}

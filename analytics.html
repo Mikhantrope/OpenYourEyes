@@ -107,6 +107,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 
 .footer{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:10px;color:var(--dim);font-family:var(--mono);}
 </style>
+<link rel="stylesheet" href="pf-ui.css?v=20260508">
 </head>
 <body>
 
@@ -126,10 +127,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
   <a href="pnl.html">💰 P&L</a>
   <a href="analytics.html" class="active">🔬 Аналитика</a>
   <a href="quality.html">🧪 Качество</a>
+  <a href="dir.html">📑 ДиР</a>
   <div class="nav-r" id="navInfo">Загрузка...</div>
 </div>
 
-<div class="hero"><div class="hero">
+<div class="hero">
   <div class="hero-t">Полная аналитика продаж</div>
   <div class="hero-s">ТОО «Premium Food Astana» · Молочная продукция · Сравнение с планом и АО</div>
   <div class="hero-kpis" id="heroKpis">
@@ -238,6 +240,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 
 <script src="pf-prikhod.js?v=20260429-safe2"></script>
 <script src="pf-data.js?v=20260429-safe2"></script>
+<script src="pf-utils.js?v=20260508"></script>
 <script>
 Chart.defaults.color='#5a7a96';
 Chart.defaults.borderColor='#1e2d40';
