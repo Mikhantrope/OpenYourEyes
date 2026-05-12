@@ -126,8 +126,8 @@
     try{localStorage.setItem('pf.theme',theme);}catch(e){}
     const btn=document.getElementById('pfThemeBtn');
     if(btn){
-      btn.textContent = theme==='light'?'🌙 Тёмная':'☀️ Светлая';
-      btn.title = theme==='light'?'Переключить на тёмную тему':'Переключить на светлую тему';
+      btn.textContent = theme==='light'?'🌙 Qara':'☀️ Aq';
+      btn.title = theme==='light'?'Qara тема':'Aq тема';
       btn.setAttribute('aria-label', btn.title);
     }
     PFU.updateChartTheme();
@@ -146,8 +146,7 @@
     if(hdr){ hdr.appendChild(btn); return btn; }
     const nav=document.querySelector('.nav');
     if(nav){
-      const nr=nav.querySelector('.nav-r');
-      if(btn.parentElement!==nav) nav.insertBefore(btn,nr||null);
+      if(btn.parentElement!==nav) nav.appendChild(btn);
       return btn;
     }
     document.body.appendChild(btn);

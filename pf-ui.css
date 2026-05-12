@@ -54,7 +54,7 @@ body[data-theme="light"] .neu{color:var(--amber)!important}
 .nav{flex-wrap:wrap;gap:3px}.nav a,.nt{white-space:nowrap}.nav .nav-r{margin-left:auto}
 .pf-theme-btn,.pf-export-btn{padding:4px 9px;border:1px solid var(--border);border-radius:6px;background:var(--s2,var(--surface2));color:var(--text);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;text-decoration:none;font-family:inherit}
 .pf-theme-btn{margin-left:6px;order:900}
-.nav>.pf-theme-btn{margin-left:auto}.nav>.pf-theme-btn+.nav-r{margin-left:0!important}
+.nav>.pf-theme-btn+.nav-r{margin-left:0!important}
 .pf-theme-btn:hover,.pf-export-btn:hover{border-color:var(--accent);color:var(--accent)}
 .pf-export-btn.busy{opacity:.7;pointer-events:none}.pf-export-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green)}.pf-export-btn.err{border-color:rgba(255,61,87,.45);color:var(--red)}
 .pf-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.pf-actions.right{margin-left:auto}

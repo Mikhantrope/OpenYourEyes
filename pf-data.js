@@ -21,7 +21,9 @@ const PF = {
   GID_PLAN:  '311695615',   // Лист Планы — план закупа по поставщикам
 
   csvUrl(gid) {
-    return `https://docs.google.com/spreadsheets/d/e/${this.PUB_ID}/pub?gid=${gid}&single=true&output=csv`;
+    // Cache-bust: округляем до 5-минутных окон, чтобы не спамить Google но видеть изменения быстрее
+    const cb = Math.floor(Date.now() / 300000);
+    return `https://docs.google.com/spreadsheets/d/e/${this.PUB_ID}/pub?gid=${gid}&single=true&output=csv&_cb=${cb}`;
   },
 
   NON_PRODUCT: ['услуг','аренд','дистриб','транспорт','обслуж','сервис','подписк'],
@@ -243,13 +245,18 @@ const PF = {
     const ki=(...ns)=>this.findCol(kH,...ns);
     const groupMap={};
     const groupMapNorm={};  // нормализованный ключ для нечёткого сопоставления
+    const subgroupMap={};     // подгруппы контрагентов (колонка E)
+    const subgroupMapNorm={};
     const normKey = s => s.toLowerCase().replace(/\s+/g,' ').replace(/[«»"'`]/g,'').trim();
+    const iSubGrp=ki('подгруппы','подгруппа','subgroup','sub');
     for (let i=1;i<kRows.length;i++) {
       const knt=String(kRows[i][ki('контрагент','kontragent')]||'').trim();
       const grp=String(kRows[i][ki('новаягруппа','новая','группа')]||'').trim();
+      const sub=iSubGrp>=0 ? String(kRows[i][iSubGrp]||'').trim() : '';
       if (knt) {
         groupMap[knt]=grp||'⚠️ Без группы';
         groupMapNorm[normKey(knt)]=grp||'⚠️ Без группы';
+        if(sub) { subgroupMap[knt]=sub; subgroupMapNorm[normKey(knt)]=sub; }
       }
     }
     // Функция поиска группы: 3 уровня
@@ -257,13 +264,17 @@ const PF = {
     // 2) нормализованное (lowercase, без кавычек, trim)
     // 3) fallback по первым 20 символам (нечёткое)
     const groupMapPrefix={};
+    const subgroupMapPrefix={};
     for(const [k,v] of Object.entries(groupMap)){
       const pfx = normKey(k).slice(0,20);
       if(!groupMapPrefix[pfx]) groupMapPrefix[pfx]=v;
     }
+    for(const [k,v] of Object.entries(subgroupMap)){
+      const pfx = normKey(k).slice(0,20);
+      if(!subgroupMapPrefix[pfx]) subgroupMapPrefix[pfx]=v;
+    }
     const findGroup = knt => {
-      // Торговые точки — всегда группа "Торговые точки"
-      if(knt.startsWith('ТТ ')) return 'Торговые точки';
+      // ТТ-контрагенты: сначала ищем в справочнике, если нет — дефолт
       // 1) Точное совпадение
       if(groupMap[knt]) return groupMap[knt];
       const nk = normKey(knt);
@@ -277,6 +288,17 @@ const PF = {
         if(k.length>5 && nk.length>5 && (k.includes(nk) || nk.includes(k))) return v;
       }
       return '⚠️ Без группы';
+    };
+    const findSubgroup = knt => {
+      if(subgroupMap[knt]) return subgroupMap[knt];
+      const nk = normKey(knt);
+      if(subgroupMapNorm[nk]) return subgroupMapNorm[nk];
+      const pfx = nk.slice(0,20);
+      if(subgroupMapPrefix[pfx]) return subgroupMapPrefix[pfx];
+      for(const [k,v] of Object.entries(subgroupMapNorm)){
+        if(k.length>5 && nk.length>5 && (k.includes(nk) || nk.includes(k))) return v;
+      }
+      return '';
     };
 
     // 3. ИсхРеал
@@ -315,6 +337,18 @@ const PF = {
         'Евразия':'ТТ Евразия','Акмол Женис':'ТТ Акмол Женис','Шапагат ТД':'ТТ Шапагат ТД'};
       if(knt.toLowerCase().includes('розничн') && TT_SKLADS[sklad]){
         knt = TT_SKLADS[sklad];
+      }
+
+      // Сменные контрагенты (ЧЛ + смена + локация) → маппим на ТТ
+      // "Атамбаева А ЧЛ 1 смена АРТЕМ" → "ТТ Артем"
+      const kntUp = knt.toUpperCase();
+      if(kntUp.includes('ЧЛ') && kntUp.includes('СМЕНА')){
+        if(kntUp.includes('АРТЕМ'))        knt='ТТ Артем';
+        else if(kntUp.includes('САУРАН'))  knt='ТТ Сауран';
+        else if(kntUp.includes('КОКТАЛ'))  knt='ТТ Коктал';
+        else if(kntUp.includes('ЕВРАЗИЯ')) knt='ТТ Евразия';
+        else if(kntUp.includes('ЖЕНИС')||kntUp.includes('АКМОЛ')) knt='ТТ Акмол Женис';
+        else if(kntUp.includes('ШАПАГАТ')) knt='ТТ Шапагат ТД';
       }
 
       // Пропускаем: пустые, строку "Итого", нетоварные
@@ -361,6 +395,7 @@ const PF = {
           return false;
         })(),
         group:    findGroup(knt),
+        subgroup: findSubgroup(knt),
         skuGroup: skuGroup[sku]||'Прочее',
         weight:w,
         qtyN,qtyR,qtyReal,sumReal,sumRealS,
@@ -377,7 +412,7 @@ const PF = {
     }
 
     const months=[...monthMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-    return {rawRows,groupMap,skuWeight,skuGroup,months};
+    return {rawRows,groupMap,subgroupMap,skuWeight,skuGroup,months};
   },
 
   // ── ЗАГРУЗКА ПРИХОДА ─────────────────────────────────────────
