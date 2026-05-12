@@ -21,9 +21,7 @@ const PF = {
   GID_PLAN:  '311695615',   // Лист Планы — план закупа по поставщикам
 
   csvUrl(gid) {
-    // Cache-bust: округляем до 5-минутных окон, чтобы не спамить Google но видеть изменения быстрее
-    const cb = Math.floor(Date.now() / 300000);
-    return `https://docs.google.com/spreadsheets/d/e/${this.PUB_ID}/pub?gid=${gid}&single=true&output=csv&_cb=${cb}`;
+    return `https://docs.google.com/spreadsheets/d/e/${this.PUB_ID}/pub?gid=${gid}&single=true&output=csv`;
   },
 
   NON_PRODUCT: ['услуг','аренд','дистриб','транспорт','обслуж','сервис','подписк'],

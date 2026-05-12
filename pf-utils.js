@@ -139,17 +139,9 @@
     let btn=document.getElementById('pfThemeBtn');
     if(!btn){
       btn=document.createElement('button');
-      btn.id='pfThemeBtn'; btn.className='pf-theme-btn'; btn.type='button'; btn.onclick=PFU.toggleTheme;
+      btn.id='pfThemeBtn'; btn.className='pf-theme-btn pf-theme-fixed'; btn.type='button'; btn.onclick=PFU.toggleTheme;
+      document.body.appendChild(btn);
     }
-    const page=PFU.getPage();
-    const hdr=document.querySelector('.hdr-r');
-    if(hdr){ hdr.appendChild(btn); return btn; }
-    const nav=document.querySelector('.nav');
-    if(nav){
-      if(btn.parentElement!==nav) nav.appendChild(btn);
-      return btn;
-    }
-    document.body.appendChild(btn);
     return btn;
   };
 
