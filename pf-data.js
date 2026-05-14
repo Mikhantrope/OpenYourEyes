@@ -19,8 +19,8 @@ const PF = {
   GID_SKU:   '286897778',
   GID_PRIHOD:'1270219264',
   GID_PLAN:  '311695615',   // Лист Планы — план закупа по поставщикам
-  GID_PRIHOD2:'739937881',  // Приход (Янв–Апр 2026, обновлённый)
-  GID_RASHOD:'753197950',   // Расходы (Янв–Апр 2026)
+  GID_PRIHOD2:'739937881',  // Приход для ДиР / веса по поставщикам
+  GID_RASHOD:'753197950',   // Расходы для ДиР
   GID_ZP_DET:'1431078713',  // ЗП Детально
   GID_ZP_OBH:'2144268074',  // ЗП Общее
 
@@ -114,7 +114,7 @@ const PF = {
     }
     const mar            = rev  ? prof/rev*100  : 0;
     const retPct         = rev  ? ret/rev*100   : 0;
-    const avg            = qty  ? rev/qty       : 0;
+    const avg            = qtyRealSum ? revSaleOnly/qtyRealSum : 0;  // ср.цена только по строкам продаж
     const retKgPct       = kg   ? retKg/kg*100 : 0;
     const priceZakup     = qtyRealSum ? sebRealSum/qtyRealSum            : 0;  // без НДС, только из строк продаж
     const priceZakupNds  = qtyRealSum ? sebWithNdsRealSum/qtyRealSum     : 0;  // с НДС, только для режима отображения цен
@@ -247,18 +247,13 @@ const PF = {
     const ki=(...ns)=>this.findCol(kH,...ns);
     const groupMap={};
     const groupMapNorm={};  // нормализованный ключ для нечёткого сопоставления
-    const subgroupMap={};     // подгруппы контрагентов (колонка E)
-    const subgroupMapNorm={};
     const normKey = s => s.toLowerCase().replace(/\s+/g,' ').replace(/[«»"'`]/g,'').trim();
-    const iSubGrp=ki('подгруппы','подгруппа','subgroup','sub');
     for (let i=1;i<kRows.length;i++) {
       const knt=String(kRows[i][ki('контрагент','kontragent')]||'').trim();
       const grp=String(kRows[i][ki('новаягруппа','новая','группа')]||'').trim();
-      const sub=iSubGrp>=0 ? String(kRows[i][iSubGrp]||'').trim() : '';
       if (knt) {
         groupMap[knt]=grp||'⚠️ Без группы';
         groupMapNorm[normKey(knt)]=grp||'⚠️ Без группы';
-        if(sub) { subgroupMap[knt]=sub; subgroupMapNorm[normKey(knt)]=sub; }
       }
     }
     // Функция поиска группы: 3 уровня
@@ -266,17 +261,13 @@ const PF = {
     // 2) нормализованное (lowercase, без кавычек, trim)
     // 3) fallback по первым 20 символам (нечёткое)
     const groupMapPrefix={};
-    const subgroupMapPrefix={};
     for(const [k,v] of Object.entries(groupMap)){
       const pfx = normKey(k).slice(0,20);
       if(!groupMapPrefix[pfx]) groupMapPrefix[pfx]=v;
     }
-    for(const [k,v] of Object.entries(subgroupMap)){
-      const pfx = normKey(k).slice(0,20);
-      if(!subgroupMapPrefix[pfx]) subgroupMapPrefix[pfx]=v;
-    }
     const findGroup = knt => {
-      // ТТ-контрагенты: сначала ищем в справочнике, если нет — дефолт
+      // Торговые точки — всегда группа "Торговые точки"
+      if(knt.startsWith('ТТ ')) return 'Торговые точки';
       // 1) Точное совпадение
       if(groupMap[knt]) return groupMap[knt];
       const nk = normKey(knt);
@@ -290,17 +281,6 @@ const PF = {
         if(k.length>5 && nk.length>5 && (k.includes(nk) || nk.includes(k))) return v;
       }
       return '⚠️ Без группы';
-    };
-    const findSubgroup = knt => {
-      if(subgroupMap[knt]) return subgroupMap[knt];
-      const nk = normKey(knt);
-      if(subgroupMapNorm[nk]) return subgroupMapNorm[nk];
-      const pfx = nk.slice(0,20);
-      if(subgroupMapPrefix[pfx]) return subgroupMapPrefix[pfx];
-      for(const [k,v] of Object.entries(subgroupMapNorm)){
-        if(k.length>5 && nk.length>5 && (k.includes(nk) || nk.includes(k))) return v;
-      }
-      return '';
     };
 
     // 3. ИсхРеал
@@ -339,18 +319,6 @@ const PF = {
         'Евразия':'ТТ Евразия','Акмол Женис':'ТТ Акмол Женис','Шапагат ТД':'ТТ Шапагат ТД'};
       if(knt.toLowerCase().includes('розничн') && TT_SKLADS[sklad]){
         knt = TT_SKLADS[sklad];
-      }
-
-      // Сменные контрагенты (ЧЛ + смена + локация) → маппим на ТТ
-      // "Атамбаева А ЧЛ 1 смена АРТЕМ" → "ТТ Артем"
-      const kntUp = knt.toUpperCase();
-      if(kntUp.includes('ЧЛ') && kntUp.includes('СМЕНА')){
-        if(kntUp.includes('АРТЕМ'))        knt='ТТ Артем';
-        else if(kntUp.includes('САУРАН'))  knt='ТТ Сауран';
-        else if(kntUp.includes('КОКТАЛ'))  knt='ТТ Коктал';
-        else if(kntUp.includes('ЕВРАЗИЯ')) knt='ТТ Евразия';
-        else if(kntUp.includes('ЖЕНИС')||kntUp.includes('АКМОЛ')) knt='ТТ Акмол Женис';
-        else if(kntUp.includes('ШАПАГАТ')) knt='ТТ Шапагат ТД';
       }
 
       // Пропускаем: пустые, строку "Итого", нетоварные
@@ -397,7 +365,6 @@ const PF = {
           return false;
         })(),
         group:    findGroup(knt),
-        subgroup: findSubgroup(knt),
         skuGroup: skuGroup[sku]||'Прочее',
         weight:w,
         qtyN,qtyR,qtyReal,sumReal,sumRealS,
@@ -414,7 +381,7 @@ const PF = {
     }
 
     const months=[...monthMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-    return {rawRows,groupMap,subgroupMap,skuWeight,skuGroup,months};
+    return {rawRows,groupMap,skuWeight,skuGroup,months};
   },
 
   // ── ЗАГРУЗКА ПРИХОДА ─────────────────────────────────────────
@@ -455,15 +422,27 @@ const PF = {
     return {pRows,months};
   },
 
-  // ── ЗАГРУЗКА ДАННЫХ ДЛЯ ДиР ──────────────────────────────────
-  // Загружает расходы, ЗП, приход (вес по AO/BM) для формирования P&L
+  // ── ЗАГРУЗКА ДАННЫХ ДЛЯ ДиР / P&L ────────────────────────
+  // Расходы + ЗП + вес прихода по поставщикам + сырые планы.
   async loadDirData(onProgress) {
     const p=onProgress||(()=>{});
+    const monthKeyFromText = raw => {
+      const s=String(raw||'').trim();
+      const dt=this.toDate(s);
+      if(dt && !isNaN(dt)) return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      const mm=s.match(/([А-Яа-яЁёA-Za-z]+)\s+(\d{4})/);
+      if(mm){
+        const mi=this.MO.findIndex(m=>m.toLowerCase()===mm[1].toLowerCase());
+        if(mi>=0) return `${mm[2]}-${String(mi+1).padStart(2,'0')}`;
+      }
+      return '';
+    };
+    const fetchCsvRows = async gid => this.parseCSV(await (await fetch(this.csvUrl(gid))).text());
 
     // 1. Расходы
     p(10,'Загрузка расходов...');
-    const rRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_RASHOD))).text());
-    const rH=rRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+    const rRows=await fetchCsvRows(this.GID_RASHOD);
+    const rH=(rRows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
     const ri=(...ns)=>this.findCol(rH,...ns);
     const iRA=ri('аналитика','analitika','наименование');
     const iRVid=ri('вид');
@@ -476,32 +455,31 @@ const PF = {
 
     const rashod=[];
     for(let i=1;i<rRows.length;i++){
-      const r=rRows[i];
-      const analitika=String(r[iRA]||'').trim();
+      const r=rRows[i]||[];
+      const analitika=String(r[iRA>=0?iRA:'']||'').trim();
       const vid=String(r[iRVid>=0?iRVid:'']||'').trim();
-      const period=String(r[iRPeriod]||'').trim();
+      const period=String(r[iRPeriod>=0?iRPeriod:'']||'').trim();
+      const kat=String(r[iRKat>=0?iRKat:'']||'').trim();
+      const name=String(r[iRName>=0?iRName:'']||'').trim();
       const schet=String(r[iRSchet>=0?iRSchet:'']||'').trim();
-      const sum=this.toNum(r[iRSum]);
+      const vidNal=String(r[iRVidNal>=0?iRVidNal:'']||'').trim();
+      const sum=this.toNum(r[iRSum>=0?iRSum:'']);
       if(!analitika || !sum) continue;
-      // Определяем месяц из периода (01.04.2026 → 2026-04)
-      const dt=this.toDate(period);
-      const mk=dt?`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`:'';
-      // Тип по счёту: 7010=себестоимость, 7110=реализация, 7210=административные
+      const mk=monthKeyFromText(period);
       let tip='прочие';
       if(schet.includes('7010')) tip='себестоимость';
       else if(schet.includes('7110')) tip='реализация';
       else if(schet.includes('7210')) tip='административные';
-      const vidNal=String(r[iRVidNal>=0?iRVidNal:'']||'').trim();
       const isAmort=vidNal.toLowerCase().includes('амортиз') || analitika.toLowerCase().includes('амортиз');
-      rashod.push({analitika,vid,mk,schet,tip,vidNal,sum,isAmort});
+      rashod.push({analitika,vid,period,mk,kat,name,schet,tip,vidNal,sum,isAmort});
     }
 
     // 2. ЗП Общее
-    p(30,'Загрузка ЗП...');
+    p(32,'Загрузка ЗП общего листа...');
     let zpObh=[];
     try{
-      const zRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_ZP_OBH))).text());
-      const zH=zRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+      const zRows=await fetchCsvRows(this.GID_ZP_OBH);
+      const zH=(zRows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
       const zi=(...ns)=>this.findCol(zH,...ns);
       const iZPodrazd=zi('подразделениеорганизации','подразделение','department');
       const iZDolj=zi('должность','position');
@@ -510,47 +488,48 @@ const PF = {
       const iZSotr=zi('сотрудник','employee');
       const iZSum=zi('начислено','sum','сумма');
       for(let i=1;i<zRows.length;i++){
-        const r=zRows[i];
+        const r=zRows[i]||[];
         const podrazd=String(r[iZPodrazd>=0?iZPodrazd:'']||'').trim();
         const dolj=String(r[iZDolj>=0?iZDolj:'']||'').trim();
         const periodRaw=String(r[iZPeriod>=0?iZPeriod:'']||'').trim();
         const nach=String(r[iZNach>=0?iZNach:'']||'').trim();
         const sotr=String(r[iZSotr>=0?iZSotr:'']||'').trim();
-        const sum=this.toNum(r[iZSum]);
+        const sum=this.toNum(r[iZSum>=0?iZSum:'']);
         if(!sum) continue;
-        // Месяц из "Апрель 2026" → 2026-04
-        let mk='';
-        const mMatch=periodRaw.match(/(\w+)\s+(\d{4})/);
-        if(mMatch){
-          const mi=this.MO.findIndex(m=>m.toLowerCase()===mMatch[1].toLowerCase());
-          if(mi>=0) mk=`${mMatch[2]}-${String(mi+1).padStart(2,'0')}`;
-        }
-        zpObh.push({podrazd,dolj,nach,sotr,mk,sum});
+        const mk=monthKeyFromText(periodRaw);
+        zpObh.push({podrazd,dolj,nach,sotr,periodRaw,mk,sum});
       }
     }catch(e){ console.warn('ЗП Общее не загружено:',e); }
 
-    // 3. Приход (вес по поставщикам AO/BM)
-    p(50,'Загрузка прихода (вес)...');
+    // 3. ЗП Детально — сохраняем очищенный raw-слой для детализации
+    p(44,'Загрузка ЗП детально...');
+    let zpDet=[];
+    try{
+      const dRows=await fetchCsvRows(this.GID_ZP_DET);
+      const dH=(dRows[0]||[]).map(h=>String(h||'').trim());
+      zpDet=dRows.slice(1).filter(r=>r.some(v=>String(v||'').trim())).map(r=>({row:r,header:dH}));
+    }catch(e){ console.warn('ЗП Детально не загружено:',e); }
+
+    // 4. Приход — вес по поставщикам AO/BM
+    p(58,'Загрузка прихода для ДиР...');
     const pData=await this.loadPrikhod2();
 
-    // 4. Планы
-    p(70,'Загрузка планов...');
-    let plans={};
+    // 5. Планы — текущий лист планов оставляем доступным сырым массивом
+    p(78,'Загрузка листа планов...');
+    let plans={raw:[],header:[]};
     try{
-      const plRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_PLAN))).text());
-      const plH=plRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
-      // Планы: нужно проверить структуру
-      plans={raw:plRows, header:plH};
+      const plRows=await fetchCsvRows(this.GID_PLAN);
+      plans={raw:plRows,header:(plRows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''))};
     }catch(e){ console.warn('Планы не загружены:',e); }
 
-    p(90,'Готово');
-    return {rashod, zpObh, prikhod:pData, plans};
+    p(95,'ДиР-данные готовы');
+    return {rashod,zpObh,zpDet,prikhod:pData,plans};
   },
 
-  // Загрузка прихода из нового листа (GID_PRIHOD2)
+  // Приход из отдельного листа ДиР: агрегация веса/суммы по AO, BM и прочим.
   async loadPrikhod2() {
     const rows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_PRIHOD2))).text());
-    const H=rows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+    const H=(rows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
     const fi=(...ns)=>this.findCol(H,...ns);
     const iSku=fi('номенклатура','sku');
     const iSup=fi('контрагент','поставщик','ссылка.контрагент');
@@ -558,24 +537,21 @@ const PF = {
     const iQty=fi('количество','qty');
     const iSum=fi('сумма','sum');
     const iNDS=fi('нд','nds','сумманд','суммандс');
-
-    // Агрегация веса по поставщику и месяцу
-    const bySupMonth={}; // {mk: {sup: {kg, sum, sumNoNds}}}
+    const bySupMonth={};
     for(let i=1;i<rows.length;i++){
-      const r=rows[i];
-      const sku=String(r[iSku]||'').trim();
+      const r=rows[i]||[];
+      const sku=String(r[iSku>=0?iSku:'']||'').trim();
       if(!sku) continue;
-      const sup=String(r[iSup]||'').trim();
-      const dt=this.toDate(r[iDate]);
+      const sup=String(r[iSup>=0?iSup:'']||'').trim();
+      const dt=this.toDate(r[iDate>=0?iDate:'']);
       if(!dt) continue;
       const mk=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
-      const qty=this.toNum(r[iQty]);
-      const sum=this.toNum(r[iSum]);
-      const nds=this.toNum(r[iNDS]);
+      const qty=this.toNum(r[iQty>=0?iQty:'']);
+      const sum=this.toNum(r[iSum>=0?iSum:'']);
+      const nds=this.toNum(r[iNDS>=0?iNDS:'']);
       if(!bySupMonth[mk]) bySupMonth[mk]={};
-      // Определяем поставщика: AO или BM
-      const supKey=sup.toLowerCase().includes('burabay')?'BM':
-                   sup.toLowerCase().includes('астана')||sup.toLowerCase().includes('astana')?'AO':'OTHER';
+      const s=sup.toLowerCase();
+      const supKey=s.includes('burabay')?'BM':(s.includes('астана')||s.includes('astana')?'AO':'OTHER');
       if(!bySupMonth[mk][supKey]) bySupMonth[mk][supKey]={kg:0,sum:0,sumNoNds:0};
       bySupMonth[mk][supKey].kg+=qty;
       bySupMonth[mk][supKey].sum+=sum;
@@ -583,4 +559,5 @@ const PF = {
     }
     return bySupMonth;
   },
+
 };
