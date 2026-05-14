@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PF — ДиР 2 КВ. 2026</title>
+<link rel="icon" href="data:,">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="pf-ui.css?v=20260508">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;800&display=swap');
+:root{--bg:#07090f;--s1:#0d1219;--s2:#131a23;--border:#1e2d40;--border2:#253347;--accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;--text:#dde8f5;--muted:#5a7a96;--dim:#2d4055;--mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;--head:'Bebas Neue',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13px;}
+#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}.ll{font-family:var(--head);font-size:52px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}.pb{width:280px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .4s;width:0%}.lserr{display:none;color:var(--red);font-size:12px;max-width:560px;text-align:center;line-height:1.6;background:rgba(255,61,87,.08);border:1px solid rgba(255,61,87,.3);border-radius:10px;padding:12px 14px;}
+.nav{display:flex;align-items:center;padding:7px 16px;background:var(--s1);border-bottom:1px solid var(--border);gap:3px;position:sticky;top:0;z-index:200;flex-wrap:wrap}.nl{font-family:var(--head);font-size:22px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px;letter-spacing:1.5px}.nav a{padding:4px 8px;border-radius:5px;text-decoration:none;color:var(--muted);font-size:11px;font-weight:700}.nav a:hover,.nav a.active{color:var(--text)}.nav a.active{background:var(--s2)}.nav-r{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);}
+.hero{padding:22px 18px 14px;background:linear-gradient(135deg,rgba(0,200,255,.05),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.hero-title{font-family:var(--head);font-size:34px;letter-spacing:1px}.hero-sub{font-size:11px;color:var(--muted);line-height:1.55;margin-top:3px}.source-badge{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:5px 10px;border-radius:999px;background:rgba(0,230,118,.09);border:1px solid rgba(0,230,118,.32);color:var(--green);font-size:11px;font-weight:800;}
+.kpi-band{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}.kpi{background:var(--s1);padding:13px 15px;border-top:2px solid transparent}.kpi.bl{border-top-color:var(--accent)}.kpi.gr{border-top-color:var(--green)}.kpi.am{border-top-color:var(--amber)}.kpi.pu{border-top-color:var(--purple)}.kpi-l{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}.kpi-v{font-family:var(--mono);font-size:18px;font-weight:800;line-height:1}.kpi-s{font-size:10px;color:var(--dim);margin-top:4px;font-family:var(--mono)}
+.main{max-width:1520px;margin:0 auto;padding:18px 16px 32px}.sh{font-family:var(--head);font-size:22px;letter-spacing:1px;margin:22px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}.sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}.sd{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.55}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.mc,.card,.table-card{background:var(--s1);border:1px solid var(--border);border-radius:10px}.mc{padding:13px;border-top:3px solid var(--accent)}.mc-name{font-family:var(--head);font-size:20px;letter-spacing:1px}.mc-v{font-family:var(--mono);font-size:16px;font-weight:800;margin-top:5px}.mc-r{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px}.card{padding:14px}.card canvas{max-height:210px}.ct{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}.table-card{overflow:hidden;margin-bottom:14px}.table-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(0,200,255,.04),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.table-title{font-size:14px;font-weight:800}.table-sub{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}.copy-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.copy-btn:hover{border-color:var(--accent);color:var(--accent)}.copy-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green)}.copy-btn.err{border-color:rgba(255,61,87,.45);color:var(--red)}.table-wrap{overflow:auto;max-width:100%}.tbl{width:max-content;min-width:100%;border-collapse:collapse}.tbl th{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);border-right:1px solid rgba(30,45,64,.55);white-space:nowrap;background:var(--s2)}.tbl th.month-h{font-size:11px;color:var(--accent);text-align:center;background:#152033}.tbl th:first-child,.tbl td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:var(--s1)}.tbl th:first-child{z-index:3;background:var(--s2)}.tbl td{padding:5px 8px;text-align:right;font-family:var(--mono);font-size:10px;border-bottom:1px solid rgba(30,45,64,.5);border-right:1px solid rgba(30,45,64,.24);white-space:nowrap}.tbl td:first-child{font-family:var(--body);font-size:11px;font-weight:700}.tbl tr:hover td{background:rgba(255,255,255,.025)}.tbl tr.tot td{font-weight:800;border-top:2px solid rgba(0,230,118,.45);background:rgba(0,230,118,.08)!important}.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--amber)}.note{font-size:11px;color:var(--muted);line-height:1.6;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.16);padding:10px 12px;border-radius:10px;margin-bottom:14px}.dir-channel-tabs{display:flex;gap:5px;flex-wrap:wrap;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:0 0 12px}.dir-channel-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.dir-channel-btn:hover{border-color:var(--accent);color:var(--accent)}.dir-channel-btn.active{background:rgba(0,200,255,.14);border-color:var(--accent);color:var(--accent)}.dir-channel-panel{display:none}.dir-channel-panel.active{display:block}@media(max-width:900px){.kpi-band,.g3,.g2{grid-template-columns:1fr}.nav-r{width:100%;margin-left:0}.hero-title{font-size:28px}}
+</style>
+</head>
+<body>
+<div id="ls"><div class="ll">PF</div><div style="font-size:12px;color:var(--muted)">Загрузка ДиР 2 квартала из того же источника, что и Таблица...</div><div class="pb"><div class="pf" id="prog"></div></div><div style="font-size:10px;color:var(--dim)" id="lstep">Инициализация...</div><div class="lserr" id="lerr"></div></div>
+<div class="nav"><span class="nl">PF</span><a href="index.html">📊 Таблица</a><a href="dashboard.html">📈 Дашборд</a><a href="prikhod.html">📦 Приход</a><a href="compare.html">📅 Сравнение</a><a href="pnl.html">💰 P&L</a><a href="analytics.html">🔬 Аналитика</a><a href="quality.html">🧪 Качество</a><a href="dir.html" class="active">📑 ДиР</a><div class="nav-r" id="navInfo">ДиР · Q2 · LIVE</div></div>
+<div class="hero"><div class="hero-title">ДиР 2 КВ. 2026</div><div class="hero-sub">Раздел построен по форме Excel, но цифры считаются из того же живого источника, что и главная таблица: <b>PF.loadSales → ИсхРеал + справочники + цены прихода</b>. Для сверки в главной таблице выбери Апрель + Май + Июнь.</div><div class="source-badge">✅ Один источник с Таблицей / Дашбордом</div></div>
+<div class="kpi-band"><div class="kpi bl"><div class="kpi-l">Реализация 2 КВ.</div><div class="kpi-v" style="color:var(--accent)" id="kRevQ">—</div><div class="kpi-s">апрель + май + июнь</div></div><div class="kpi am"><div class="kpi-l">Себестоимость</div><div class="kpi-v" style="color:var(--amber)" id="kSebQ">—</div><div class="kpi-s">как в таблице</div></div><div class="kpi" id="kProfQ"><div class="kpi-l">Валовая прибыль</div><div class="kpi-v" id="kProfV">—</div><div class="kpi-s" id="kMarQ">маржа</div></div><div class="kpi gr"><div class="kpi-l">Реализация кг</div><div class="kpi-v" style="color:var(--green)" id="kQtyQ">—</div><div class="kpi-s">с возвратами</div></div><div class="kpi pu"><div class="kpi-l">Возвраты кг</div><div class="kpi-v" style="color:var(--purple)" id="kRetQ">—</div><div class="kpi-s" id="kRetPctQ">% от кг</div></div></div>
+<div class="main">
+  <div class="note">Важно: Excel-файл больше не является источником цифр для этого раздела. Он используется только как ориентир по структуре: реализация по каналам/категориям и блок “на кг”. Этот файл сейчас настроен на <b>2 квартал: Апрель + Май + Июнь</b>; итог должен совпадать с главной таблицей при таком же фильтре.</div>
+  <div class="sh">01 · Реализация 2 КВ. 2026 — по каналам продаж</div>
+  <div class="sd">Таблицы в формате Excel: месяцы расположены горизонтально, строки — группы SKU. Возле каждой таблицы есть копирование в Excel-ready TSV.</div>
+  <div id="salesTables"></div>
+  <div class="sh">02 · На кг. — факт из того же источника</div>
+  <div class="sd">Этот блок использует живой факт по кг из того же источника, что и Таблица/Дашборд. Расходы на реализацию за 2 квартал пока стоят 0, пока ты не дашь план/факт расходов за апрель–июнь.</div>
+  <div class="g3" id="kgCards"></div>
+  <div class="g2"><div class="card"><div class="ct">Реализация кг по месяцам</div><canvas id="cKg"></canvas></div><div class="card"><div class="ct">Себестоимость и расходы на реализацию на кг</div><canvas id="cCostKg"></canvas></div></div>
+  <div id="kgTables"></div>
+</div>
+<script src="pf-prikhod.js?v=20260429-safe2"></script>
+<script src="pf-data.js?v=20260429-safe2"></script>
+<script src="pf-utils.js?v=20260508"></script>
+<script>
+(function(){
+'use strict';
+const Q_MONTHS=['2026-04','2026-05','2026-06'];
+const MONTH_LABEL={'2026-04':'Апрель','2026-05':'Май','2026-06':'Июнь'};
+const MONTH_SHORT={'2026-04':'Апр','2026-05':'Май','2026-06':'Июн'};
+const DIR_EXPENSES={
+  '2026-04':{plan:0,fact:0,planKg:0},
+  '2026-05':{plan:0,fact:0,planKg:0},
+  '2026-06':{plan:0,fact:0,planKg:0}
+};
+const CC=['rgba(0,200,255,.65)','rgba(0,230,118,.65)','rgba(255,170,0,.65)','rgba(176,77,255,.65)'];
+const fmtFull=v=>Math.round(Number(v)||0).toLocaleString('ru-RU');
+const fmt1=v=>(Math.round((Number(v)||0)*10)/10).toLocaleString('ru-RU',{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmtMoney=v=>fmtFull(v)+' ₸';
+const fmtKg=v=>fmt1(v)+' кг';
+const copyNum=v=>String(Math.round((Number(v)||0)*100)/100).replace('.',',');
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+function prog(p,s){document.getElementById('prog').style.width=p+'%'; if(s) document.getElementById('lstep').textContent=s;}
+function groupBy(arr,fn){const m={}; for(const x of arr){const k=fn(x)||'—'; (m[k]=m[k]||[]).push(x);} return m;}
+function agg(rows){rows=rows||[]; const m=PF.agg(rows); m.saleKg=rows.reduce((sum,r)=>sum+((r.qtyReal||0)*(r.weight||1)),0); return m}
+function td(v, text, cls=''){return `<td class="${cls}" data-copy="${copyNum(v)}">${text}</td>`}
+function metricCells(m){
+  const priceKg=m.kg?m.rev/m.kg:0;
+  const retPct=m.kg?m.retKg/m.kg*100:0;
+  return [
+    td(m.rev,fmtMoney(m.rev)),
+    td(m.seb,fmtMoney(m.seb)),
+    td(m.kg,fmtKg(m.kg)),
+    td(priceKg,fmt1(priceKg)+' ₸'),
+    td(m.saleKg ?? (m.kg+m.retKg),fmtKg(m.saleKg ?? (m.kg+m.retKg))),
+    td(m.retKg,fmtKg(m.retKg),m.retKg?'neg':''),
+    td(retPct,fmt1(retPct)+'%',retPct?'neg':'')
+  ].join('');
+}
+function expenseFactPerKg(mk,m){const e=DIR_EXPENSES[mk]||{}; return m&&m.kg ? (e.fact||0)/m.kg : 0;}
+function expensePlanPerKg(mk){const e=DIR_EXPENSES[mk]||{}; return e.planKg ? (e.plan||0)/e.planKg : 0;}
+function expenseTotal(kind){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.[kind]||0),0);}
+function expenseTotalPlanKg(){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.planKg||0),0);}
+function buildSalesTable(id,title,rows){
+  const cats=Object.keys(groupBy(rows,r=>r.skuGroup||'Прочее')).sort((a,b)=>agg(rows.filter(r=>r.skuGroup===b)).rev-agg(rows.filter(r=>r.skuGroup===a)).rev);
+  const total=agg(rows);
+  let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Реализация по каналам</div><div class="table-title">${esc(title)}</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}">`;
+  html+=`<thead><tr><th rowspan="2">SKU / Категория</th>${Q_MONTHS.map(m=>`<th class="month-h" colspan="7">${MONTH_LABEL[m]}</th>`).join('')}<th class="month-h" colspan="7">Итого 2 КВ.</th></tr>`;
+  html+=`<tr>${[...Q_MONTHS,'TOTAL'].map(()=>'<th>Реализация, ₸</th><th>Себестоимость, ₸</th><th>Реализация, кг<br>(с возвратами)</th><th>Цена за 1 кг, ₸</th><th>Реализация, кг<br>(без возвратов)</th><th>Возврат, кг</th><th>% возврата</th>').join('')}</tr></thead><tbody>`;
+  for(const cat of cats){
+    const rs=rows.filter(r=>(r.skuGroup||'Прочее')===cat);
+    html+=`<tr><td data-copy="${esc(cat)}">${esc(cat)}</td>`;
+    for(const mk of Q_MONTHS) html+=metricCells(agg(rs.filter(r=>r.mk===mk)));
+    html+=metricCells(agg(rs))+`</tr>`;
+  }
+  html+=`<tr class="tot"><td data-copy="Итого">Итого</td>`;
+  for(const mk of Q_MONTHS) html+=metricCells(agg(rows.filter(r=>r.mk===mk)));
+  html+=metricCells(total)+`</tr>`;
+  html+='</tbody></table></div></div>';
+  return html;
+}
+function buildKgFactTable(rows, byMonth){
+  const id='tblKgFact';
+  let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Факт на кг + расходы реализации</div><div class="table-title">Месячная сверка по кг, себестоимости и расходам на реализацию</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}"><thead><tr><th>Показатель</th>${Q_MONTHS.map(m=>`<th>${MONTH_LABEL[m]}</th>`).join('')}<th>Итого 2 КВ.</th></tr></thead><tbody>`;
+  const total=agg(rows);
+  const expPlanTotal=expenseTotal('plan');
+  const expFactTotal=expenseTotal('fact');
+  const expPlanKgTotal=expenseTotalPlanKg();
+  const expPlanPerKgTotal=expPlanKgTotal?expPlanTotal/expPlanKgTotal:0;
+  const expFactPerKgTotal=total.kg?expFactTotal/total.kg:0;
+  const expDiffPerKgTotal=expFactPerKgTotal-expPlanPerKgTotal;
+  const rowsDef=[
+    ['Реализация, кг', byMonth.map(x=>x.kg), total.kg, v=>fmtKg(v)],
+    ['Реализация кг без возвратов', byMonth.map(x=>x.saleKg ?? (x.kg+x.retKg)), total.saleKg ?? (total.kg+total.retKg), v=>fmtKg(v)],
+    ['Возврат, кг', byMonth.map(x=>x.retKg), total.retKg, v=>fmtKg(v), 'neg'],
+    ['% возврата от кг', byMonth.map(x=>x.kg?x.retKg/x.kg*100:0), total.kg?total.retKg/total.kg*100:0, v=>fmt1(v)+'%', 'neg'],
+    ['Себестоимость / кг', byMonth.map(x=>x.kg?x.seb/x.kg:0), total.kg?total.seb/total.kg:0, v=>fmt1(v)+' ₸'],
+    ['Расходы на реализацию — План, ₸', Q_MONTHS.map(mk=>DIR_EXPENSES[mk]?.plan||0), expPlanTotal, v=>fmtMoney(v)],
+    ['Расходы на реализацию — Факт, ₸', Q_MONTHS.map(mk=>DIR_EXPENSES[mk]?.fact||0), expFactTotal, v=>fmtMoney(v)],
+    ['Расходы на реализацию — План, ₸/кг', Q_MONTHS.map(mk=>expensePlanPerKg(mk)), expPlanPerKgTotal, v=>fmt1(v)+' ₸'],
+    ['Расходы на реализацию — Факт, ₸/кг', Q_MONTHS.map((mk,i)=>expenseFactPerKg(mk,byMonth[i])), expFactPerKgTotal, v=>fmt1(v)+' ₸'],
+    ['Отклонение расходов, Факт-План, ₸/кг', Q_MONTHS.map((mk,i)=>expenseFactPerKg(mk,byMonth[i])-expensePlanPerKg(mk)), expDiffPerKgTotal, v=>(v>0?'+':'')+fmt1(v)+' ₸', expDiffPerKgTotal>0?'neg':'pos'],
+    ['Себестоимость сумма', byMonth.map(x=>x.seb), total.seb, v=>fmtMoney(v)],
+    ['Реализация сумма', byMonth.map(x=>x.rev), total.rev, v=>fmtMoney(v)],
+    ['Валовая прибыль', byMonth.map(x=>x.prof), total.prof, v=>fmtMoney(v), total.prof>=0?'pos':'neg']
+  ];
+  for(const r of rowsDef){html+=`<tr><td data-copy="${esc(r[0])}">${esc(r[0])}</td>`; r[1].forEach(v=>html+=td(v,r[3](v),r[4]||'')); html+=td(r[2],r[3](r[2]),r[4]||'')+'</tr>';}
+  html+='</tbody></table></div></div>';
+  return html;
+}
+
+function buildDirChannelTabs(items){
+  return `<div class="dir-channel-tabs">${items.map(x=>`<button type="button" class="dir-channel-btn" data-channel="${esc(x.id)}">${esc(x.title)}</button>`).join('')}</div>`;
+}
+function buildDirChannelPanel(item){
+  return `<div class="dir-channel-panel" data-channel="${esc(item.id)}">${buildSalesTable(item.id,item.title,item.rows)}</div>`;
+}
+window.setDirChannel=function(id){
+  const panels=[...document.querySelectorAll('#salesTables .dir-channel-panel')];
+  if(!panels.length) return;
+  if(!panels.some(p=>p.dataset.channel===id)) id=panels[0].dataset.channel;
+  panels.forEach(p=>p.classList.toggle('active',p.dataset.channel===id));
+  document.querySelectorAll('#salesTables .dir-channel-btn').forEach(b=>b.classList.toggle('active',b.dataset.channel===id));
+  try{localStorage.setItem('pf.dir.channel',id);}catch(e){}
+};
+function initDirChannels(){
+  document.querySelectorAll('#salesTables .dir-channel-btn').forEach(btn=>btn.addEventListener('click',()=>window.setDirChannel(btn.dataset.channel)));
+  let saved='';
+  try{saved=localStorage.getItem('pf.dir.channel')||'';}catch(e){}
+  window.setDirChannel(saved||'tblSalesAll');
+}
+window.copyDirTable=async function(id,btn){
+  const table=document.getElementById(id); if(!table) return;
+  const rows=[...table.rows].map(tr=>[...tr.cells].map(cell=>cell.dataset.copy ?? cell.innerText.replace(/\s+/g,' ').trim()).join('\t')).join('\n');
+  if(window.PFU && PFU.copyText) return PFU.copyText(rows,btn);
+  try{await navigator.clipboard.writeText(rows); const old=btn.textContent; btn.textContent='✅ Скопировано'; btn.classList.add('ok'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('ok')},1600);}catch(e){const old=btn.textContent; btn.textContent='❌ Ошибка'; btn.classList.add('err'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('err')},1800);}
+};
+function makeChart(id,type,data,options={}){ if(!window.Chart) return null; return new Chart(document.getElementById(id),{type,data,options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:8,font:{size:10}}}},...options}}); }
+async function init(){
+  try{
+    prog(5,'Загрузка продаж...');
+    const {rawRows}=await PF.loadSales((p,s)=>prog(Math.min(80,Math.round(p*.8)),s));
+    prog(84,'Фильтр 2 квартала...');
+    const rows=rawRows.filter(r=>Q_MONTHS.includes(r.mk));
+    const total=agg(rows); const byMonth=Q_MONTHS.map(m=>agg(rows.filter(r=>r.mk===m)));
+    document.getElementById('kRevQ').textContent=fmtMoney(total.rev);
+    document.getElementById('kSebQ').textContent=fmtMoney(total.seb);
+    const pe=document.getElementById('kProfV'); pe.textContent=fmtMoney(total.prof); pe.className='kpi-v '+(total.prof>=0?'pos':'neg'); document.getElementById('kProfQ').style.borderTopColor=total.prof>=0?'var(--green)':'var(--red)';
+    document.getElementById('kMarQ').textContent='маржа '+(total.mar>=0?'+':'')+fmt1(total.mar)+'%';
+    document.getElementById('kQtyQ').textContent=fmtKg(total.kg);
+    document.getElementById('kRetQ').textContent=fmtKg(total.retKg);
+    document.getElementById('kRetPctQ').textContent=(total.kg?fmt1(total.retKg/total.kg*100):'0,0')+'% от кг';
+    document.getElementById('navInfo').textContent='Q2 live · '+new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const byGroup=groupBy(rows,r=>r.group||'Без группы');
+    const groups=Object.keys(byGroup).sort((a,b)=>agg(byGroup[b]).rev-agg(byGroup[a]).rev);
+    const dirChannelItems=[{id:'tblSalesAll',title:'Общее',rows}];
+    groups.forEach((g,i)=>dirChannelItems.push({id:'tblSalesGroup'+i,title:g,rows:byGroup[g]}));
+    const tables=buildDirChannelTabs(dirChannelItems)+dirChannelItems.map(buildDirChannelPanel).join('');
+    document.getElementById('salesTables').innerHTML=tables;
+    initDirChannels();
+    document.getElementById('kgCards').innerHTML=Q_MONTHS.map((mk,i)=>{const m=byMonth[i]; const expKg=expenseFactPerKg(mk,m); return `<div class="mc"><div class="mc-name">${MONTH_LABEL[mk]}</div><div class="mc-v" style="color:var(--green)">${fmtKg(m.kg)}</div><div class="mc-r"><span>Реализация</span><span>${fmtMoney(m.rev)}</span></div><div class="mc-r"><span>Себест./кг</span><span>${m.kg?fmt1(m.seb/m.kg):'0,0'} ₸</span></div><div class="mc-r"><span>Расх. реал./кг</span><span>${fmt1(expKg)} ₸</span></div><div class="mc-r"><span>Возврат</span><span class="neg">${fmtKg(m.retKg)}</span></div></div>`}).join('');
+    document.getElementById('kgTables').innerHTML=buildKgFactTable(rows,byMonth);
+    makeChart('cKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Реализация кг',data:byMonth.map(x=>Math.round(x.kg)),backgroundColor:CC[1],borderRadius:4},{label:'Возврат кг',data:byMonth.map(x=>Math.round(Math.abs(x.retKg))),backgroundColor:CC[3],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>fmtFull(v)}}}});
+    makeChart('cCostKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Себестоимость / кг',data:byMonth.map(x=>x.kg?+(x.seb/x.kg).toFixed(1):0),backgroundColor:CC[2],borderRadius:4},{label:'Расходы реал. / кг факт',data:Q_MONTHS.map((mk,i)=>+expenseFactPerKg(mk,byMonth[i]).toFixed(1)),backgroundColor:CC[0],borderRadius:4},{label:'Расходы реал. / кг план',data:Q_MONTHS.map(mk=>+expensePlanPerKg(mk).toFixed(1)),backgroundColor:CC[3],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>v+' ₸'}}}});
+    prog(100,'Готово'); setTimeout(()=>document.getElementById('ls').style.display='none',250);
+  }catch(err){console.error(err); document.getElementById('lstep').textContent='Ошибка загрузки'; const le=document.getElementById('lerr'); le.style.display='block'; le.textContent=err.message||String(err); document.getElementById('prog').style.background='var(--red)';}
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
+</body>
+</html>
