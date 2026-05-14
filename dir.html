@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PF — ДиР 2026</title>
+<title>PF — ДиР Янв–Апр. 2026</title>
 <link rel="icon" href="data:,">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="stylesheet" href="pf-ui.css?v=20260508">
@@ -15,17 +15,17 @@
 .nav{display:flex;align-items:center;padding:7px 16px;background:var(--s1);border-bottom:1px solid var(--border);gap:3px;position:sticky;top:0;z-index:200;flex-wrap:wrap}.nl{font-family:var(--head);font-size:22px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px;letter-spacing:1.5px}.nav a{padding:4px 8px;border-radius:5px;text-decoration:none;color:var(--muted);font-size:11px;font-weight:700}.nav a:hover,.nav a.active{color:var(--text)}.nav a.active{background:var(--s2)}.nav-r{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);}
 .hero{padding:22px 18px 14px;background:linear-gradient(135deg,rgba(0,200,255,.05),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.hero-title{font-family:var(--head);font-size:34px;letter-spacing:1px}.hero-sub{font-size:11px;color:var(--muted);line-height:1.55;margin-top:3px}.source-badge{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:5px 10px;border-radius:999px;background:rgba(0,230,118,.09);border:1px solid rgba(0,230,118,.32);color:var(--green);font-size:11px;font-weight:800;}
 .kpi-band{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}.kpi{background:var(--s1);padding:13px 15px;border-top:2px solid transparent}.kpi.bl{border-top-color:var(--accent)}.kpi.gr{border-top-color:var(--green)}.kpi.am{border-top-color:var(--amber)}.kpi.pu{border-top-color:var(--purple)}.kpi-l{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}.kpi-v{font-family:var(--mono);font-size:18px;font-weight:800;line-height:1}.kpi-s{font-size:10px;color:var(--dim);margin-top:4px;font-family:var(--mono)}
-.main{max-width:1520px;margin:0 auto;padding:18px 16px 32px}.sh{font-family:var(--head);font-size:22px;letter-spacing:1px;margin:22px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}.sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}.sd{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.55}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.mc,.card,.table-card{background:var(--s1);border:1px solid var(--border);border-radius:10px}.mc{padding:13px;border-top:3px solid var(--accent)}.mc-name{font-family:var(--head);font-size:20px;letter-spacing:1px}.mc-v{font-family:var(--mono);font-size:16px;font-weight:800;margin-top:5px}.mc-r{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px}.card{padding:14px}.card canvas{max-height:210px}.ct{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}.table-card{overflow:hidden;margin-bottom:14px}.table-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(0,200,255,.04),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.table-title{font-size:14px;font-weight:800}.table-sub{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}.copy-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.copy-btn:hover{border-color:var(--accent);color:var(--accent)}.copy-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green)}.copy-btn.err{border-color:rgba(255,61,87,.45);color:var(--red)}.table-wrap{overflow:auto;max-width:100%}.tbl{width:max-content;min-width:100%;border-collapse:collapse}.tbl th{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);border-right:1px solid rgba(30,45,64,.55);white-space:nowrap;background:var(--s2)}.tbl th.month-h{font-size:11px;color:var(--accent);text-align:center;background:#152033}.tbl th:first-child,.tbl td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:var(--s1)}.tbl th:first-child{z-index:3;background:var(--s2)}.tbl td{padding:5px 8px;text-align:right;font-family:var(--mono);font-size:10px;border-bottom:1px solid rgba(30,45,64,.5);border-right:1px solid rgba(30,45,64,.24);white-space:nowrap}.tbl td:first-child{font-family:var(--body);font-size:11px;font-weight:700}.tbl tr:hover td{background:rgba(255,255,255,.025)}.tbl tr.tot td{font-weight:800;border-top:2px solid rgba(0,230,118,.45);background:rgba(0,230,118,.08)!important}.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--amber)}.note{font-size:11px;color:var(--muted);line-height:1.6;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.16);padding:10px 12px;border-radius:10px;margin-bottom:14px}.dir-channel-tabs{display:flex;gap:5px;flex-wrap:wrap;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:0 0 12px}.dir-channel-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.dir-channel-btn:hover{border-color:var(--accent);color:var(--accent)}.dir-channel-btn.active{background:rgba(0,200,255,.14);border-color:var(--accent);color:var(--accent)}.dir-channel-panel{display:none}.dir-channel-panel.active{display:block}.quarter-switch{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 16px;background:var(--s1);border-bottom:1px solid var(--border)}.quarter-switch-lbl{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.8px;margin-right:2px}.quarter-btn{padding:5px 11px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.quarter-btn:hover{border-color:var(--accent);color:var(--accent)}.quarter-btn.active{background:rgba(0,200,255,.14);border-color:var(--accent);color:var(--accent)}@media(max-width:900px){.kpi-band,.g3,.g2{grid-template-columns:1fr}.nav-r{width:100%;margin-left:0}.hero-title{font-size:28px}}
+.main{max-width:1520px;margin:0 auto;padding:18px 16px 32px}.sh{font-family:var(--head);font-size:22px;letter-spacing:1px;margin:22px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}.sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}.sd{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.55}.g3{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.mc,.card,.table-card{background:var(--s1);border:1px solid var(--border);border-radius:10px}.mc{padding:13px;border-top:3px solid var(--accent)}.mc-name{font-family:var(--head);font-size:20px;letter-spacing:1px}.mc-v{font-family:var(--mono);font-size:16px;font-weight:800;margin-top:5px}.mc-r{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px}.card{padding:14px}.card canvas{max-height:210px}.ct{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}.table-card{overflow:hidden;margin-bottom:14px}.table-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(0,200,255,.04),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.table-title{font-size:14px;font-weight:800}.table-sub{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}.copy-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.copy-btn:hover{border-color:var(--accent);color:var(--accent)}.copy-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green)}.copy-btn.err{border-color:rgba(255,61,87,.45);color:var(--red)}.table-wrap{overflow:auto;max-width:100%}.tbl{width:max-content;min-width:100%;border-collapse:collapse}.tbl th{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);border-right:1px solid rgba(30,45,64,.55);white-space:nowrap;background:var(--s2)}.tbl th.month-h{font-size:11px;color:var(--accent);text-align:center;background:#152033}.tbl th:first-child,.tbl td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:var(--s1)}.tbl th:first-child{z-index:3;background:var(--s2)}.tbl td{padding:5px 8px;text-align:right;font-family:var(--mono);font-size:10px;border-bottom:1px solid rgba(30,45,64,.5);border-right:1px solid rgba(30,45,64,.24);white-space:nowrap}.tbl td:first-child{font-family:var(--body);font-size:11px;font-weight:700}.tbl tr:hover td{background:rgba(255,255,255,.025)}.tbl tr.tot td{font-weight:800;border-top:2px solid rgba(0,230,118,.45);background:rgba(0,230,118,.08)!important}.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--amber)}.note{font-size:11px;color:var(--muted);line-height:1.6;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.16);padding:10px 12px;border-radius:10px;margin-bottom:14px}.dir-channel-tabs{display:flex;gap:5px;flex-wrap:wrap;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:0 0 12px}.dir-channel-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.dir-channel-btn:hover{border-color:var(--accent);color:var(--accent)}.dir-channel-btn.active{background:rgba(0,200,255,.14);border-color:var(--accent);color:var(--accent)}.dir-channel-panel{display:none}.dir-channel-panel.active{display:block}@media(max-width:900px){.kpi-band,.g3,.g2{grid-template-columns:1fr}.nav-r{width:100%;margin-left:0}.hero-title{font-size:28px}}
 </style>
 </head>
 <body>
 <div id="ls"><div class="ll">PF</div><div style="font-size:12px;color:var(--muted)">Загрузка ДиР из того же источника, что и Таблица...</div><div class="pb"><div class="pf" id="prog"></div></div><div style="font-size:10px;color:var(--dim)" id="lstep">Инициализация...</div><div class="lserr" id="lerr"></div></div>
-<div class="nav"><span class="nl">PF</span><a href="index.html">📊 Таблица</a><a href="dashboard.html">📈 Дашборд</a><a href="prikhod.html">📦 Приход</a><a href="compare.html">📅 Сравнение</a><a href="pnl.html">💰 P&L</a><a href="analytics.html">🔬 Аналитика</a><a href="quality.html">🧪 Качество</a><a href="dir.html" class="active">📑 ДиР</a><div class="nav-r" id="navInfo">ДиР · LIVE</div></div>
-<div class="hero"><div class="hero-title" id="heroQuarterTitle">ДиР 2026</div><div class="hero-sub" id="heroQuarterSub">Раздел построен по форме Excel, но цифры считаются из того же живого источника, что и главная таблица: <b>PF.loadSales → ИсхРеал + справочники + цены прихода</b>.</div><div class="source-badge">✅ Один источник с Таблицей / Дашбордом</div></div><div class="quarter-switch"><span class="quarter-switch-lbl">Квартал:</span><button type="button" class="quarter-btn" data-quarter="Q1">1 КВ.</button><button type="button" class="quarter-btn" data-quarter="Q2">2 КВ.</button></div>
-<div class="kpi-band"><div class="kpi bl"><div class="kpi-l" id="kRevLabel">Реализация</div><div class="kpi-v" style="color:var(--accent)" id="kRevQ">—</div><div class="kpi-s" id="kPeriodSub">—</div></div><div class="kpi am"><div class="kpi-l">Себестоимость</div><div class="kpi-v" style="color:var(--amber)" id="kSebQ">—</div><div class="kpi-s">как в таблице</div></div><div class="kpi" id="kProfQ"><div class="kpi-l">Валовая прибыль</div><div class="kpi-v" id="kProfV">—</div><div class="kpi-s" id="kMarQ">маржа</div></div><div class="kpi gr"><div class="kpi-l">Реализация кг</div><div class="kpi-v" style="color:var(--green)" id="kQtyQ">—</div><div class="kpi-s">с возвратами</div></div><div class="kpi pu"><div class="kpi-l">Возвраты кг</div><div class="kpi-v" style="color:var(--purple)" id="kRetQ">—</div><div class="kpi-s" id="kRetPctQ">% от кг</div></div></div>
+<div class="nav"><span class="nl">PF</span><a href="index.html">📊 Таблица</a><a href="dashboard.html">📈 Дашборд</a><a href="prikhod.html">📦 Приход</a><a href="compare.html">📅 Сравнение</a><a href="pnl.html">💰 P&L</a><a href="analytics.html">🔬 Аналитика</a><a href="quality.html">🧪 Качество</a><a href="dir.html" class="active">📑 ДиР</a><div class="nav-r" id="navInfo">ДиР · Q1 · LIVE</div></div>
+<div class="hero"><div class="hero-title">ДиР Янв–Апр. 2026</div><div class="hero-sub">Раздел построен по форме Excel, но цифры считаются из того же живого источника, что и главная таблица: <b>PF.loadSales → ИсхРеал + справочники + цены прихода</b>. Для сверки в главной таблице выбери Январь + Февраль + Март + Апрель.</div><div class="source-badge">✅ Один источник с Таблицей / Дашбордом</div></div>
+<div class="kpi-band"><div class="kpi bl"><div class="kpi-l">Реализация Янв–Апр.</div><div class="kpi-v" style="color:var(--accent)" id="kRevQ">—</div><div class="kpi-s">январь + февраль + март + апрель</div></div><div class="kpi am"><div class="kpi-l">Себестоимость</div><div class="kpi-v" style="color:var(--amber)" id="kSebQ">—</div><div class="kpi-s">как в таблице</div></div><div class="kpi" id="kProfQ"><div class="kpi-l">Валовая прибыль</div><div class="kpi-v" id="kProfV">—</div><div class="kpi-s" id="kMarQ">маржа</div></div><div class="kpi gr"><div class="kpi-l">Реализация кг</div><div class="kpi-v" style="color:var(--green)" id="kQtyQ">—</div><div class="kpi-s">с возвратами</div></div><div class="kpi pu"><div class="kpi-l">Возвраты кг</div><div class="kpi-v" style="color:var(--purple)" id="kRetQ">—</div><div class="kpi-s" id="kRetPctQ">% от кг</div></div></div>
 <div class="main">
-  <div class="note" id="quarterNote">Важно: Excel-файл больше не является источником цифр для этого раздела. Он используется только как ориентир по структуре: реализация по каналам/категориям и блок “на кг”.</div>
-  <div class="sh" id="salesTitle">01 · Реализация — по каналам продаж</div>
+  <div class="note">Важно: Excel-файл больше не является источником цифр для этого раздела. Он используется только как ориентир по структуре: реализация по каналам/категориям и блок “на кг”. Поэтому итог ДиР должен совпадать с главной таблицей при фильтре <b>Январь + Февраль + Март + Апрель</b>.</div>
+  <div class="sh">01 · Реализация Янв–Апр. 2026 — по каналам продаж</div>
   <div class="sd">Таблицы в формате Excel: месяцы расположены горизонтально, строки — группы SKU. Возле каждой таблицы есть копирование в Excel-ready TSV.</div>
   <div id="salesTables"></div>
   <div class="sh">02 · На кг. — факт из того же источника</div>
@@ -40,15 +40,9 @@
 <script>
 (function(){
 'use strict';
-const QUARTERS={
-  Q1:{code:'Q1',label:'1 КВ.',title:'1 КВ. 2026',total:'Итого 1 КВ.',months:['2026-01','2026-02','2026-03'],periodText:'январь + февраль + март',periodTextTitle:'Январь + Февраль + Март'},
-  Q2:{code:'Q2',label:'2 КВ.',title:'2 КВ. 2026',total:'Итого 2 КВ.',months:['2026-04','2026-05','2026-06'],periodText:'апрель + май + июнь',periodTextTitle:'Апрель + Май + Июнь'}
-};
-let currentQuarterKey='Q2';
-let Q_MONTHS=[...QUARTERS[currentQuarterKey].months];
-let ALL_ROWS=[];
-const MONTH_LABEL={'2026-01':'Январь','2026-02':'Февраль','2026-03':'Март','2026-04':'Апрель','2026-05':'Май','2026-06':'Июнь'};
-const MONTH_SHORT={'2026-01':'Янв','2026-02':'Фев','2026-03':'Мар','2026-04':'Апр','2026-05':'Май','2026-06':'Июн'};
+const Q_MONTHS=['2026-01','2026-02','2026-03','2026-04'];
+const MONTH_LABEL={'2026-01':'Январь','2026-02':'Февраль','2026-03':'Март','2026-04':'Апрель'};
+const MONTH_SHORT={'2026-01':'Янв','2026-02':'Фев','2026-03':'Мар','2026-04':'Апр'};
 const DIR_EXPENSES={
   '2026-01':{plan:29727006,fact:20280248,planKg:565017.0},
   '2026-02':{plan:45670081,fact:42056740,planKg:492024.8},
@@ -78,26 +72,6 @@ function metricCells(m){
     td(retPct,fmt1(retPct)+'%',retPct?'neg':'')
   ].join('');
 }
-function quarterCfg(){return QUARTERS[currentQuarterKey]||QUARTERS.Q2;}
-function updateQuarterUi(){
-  const cfg=quarterCfg();
-  Q_MONTHS=[...cfg.months];
-  document.title='PF — ДиР '+cfg.title;
-  const hero=document.getElementById('heroQuarterTitle'); if(hero) hero.textContent='ДиР '+cfg.title;
-  const sub=document.getElementById('heroQuarterSub'); if(sub) sub.innerHTML='Раздел построен по форме Excel, но цифры считаются из того же живого источника, что и главная таблица: <b>PF.loadSales → ИсхРеал + справочники + цены прихода</b>. Для сверки в главной таблице выбери '+cfg.periodTextTitle+'.';
-  const kLbl=document.getElementById('kRevLabel'); if(kLbl) kLbl.textContent='Реализация '+cfg.label;
-  const kSub=document.getElementById('kPeriodSub'); if(kSub) kSub.textContent=cfg.periodText;
-  const note=document.getElementById('quarterNote'); if(note) note.innerHTML='Важно: Excel-файл больше не является источником цифр для этого раздела. Он используется только как ориентир по структуре: реализация по каналам/категориям и блок “на кг”. Поэтому итог ДиР должен совпадать с главной таблицей при фильтре <b>'+cfg.periodTextTitle+'</b>.';
-  const title=document.getElementById('salesTitle'); if(title) title.textContent='01 · Реализация '+cfg.title+' — по каналам продаж';
-  document.querySelectorAll('.quarter-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.quarter===currentQuarterKey));
-}
-function setQuarter(key){
-  if(!QUARTERS[key]) key='Q2';
-  currentQuarterKey=key;
-  try{localStorage.setItem('pf.dir.quarter',key);}catch(e){}
-  updateQuarterUi();
-  renderQuarter();
-}
 function expenseFactPerKg(mk,m){const e=DIR_EXPENSES[mk]||{}; return m&&m.kg ? (e.fact||0)/m.kg : 0;}
 function expensePlanPerKg(mk){const e=DIR_EXPENSES[mk]||{}; return e.planKg ? (e.plan||0)/e.planKg : 0;}
 function expenseTotal(kind){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.[kind]||0),0);}
@@ -106,7 +80,7 @@ function buildSalesTable(id,title,rows){
   const cats=Object.keys(groupBy(rows,r=>r.skuGroup||'Прочее')).sort((a,b)=>agg(rows.filter(r=>r.skuGroup===b)).rev-agg(rows.filter(r=>r.skuGroup===a)).rev);
   const total=agg(rows);
   let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Реализация по каналам</div><div class="table-title">${esc(title)}</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}">`;
-  html+=`<thead><tr><th rowspan="2">SKU / Категория</th>${Q_MONTHS.map(m=>`<th class="month-h" colspan="7">${MONTH_LABEL[m]}</th>`).join('')}<th class="month-h" colspan="7">${quarterCfg().total}</th></tr>`;
+  html+=`<thead><tr><th rowspan="2">SKU / Категория</th>${Q_MONTHS.map(m=>`<th class="month-h" colspan="7">${MONTH_LABEL[m]}</th>`).join('')}<th class="month-h" colspan="7">Итого Янв–Апр.</th></tr>`;
   html+=`<tr>${[...Q_MONTHS,'TOTAL'].map(()=>'<th>Реализация, ₸</th><th>Себестоимость, ₸</th><th>Реализация, кг<br>(с возвратами)</th><th>Цена за 1 кг, ₸</th><th>Реализация, кг<br>(без возвратов)</th><th>Возврат, кг</th><th>% возврата</th>').join('')}</tr></thead><tbody>`;
   for(const cat of cats){
     const rs=rows.filter(r=>(r.skuGroup||'Прочее')===cat);
@@ -122,7 +96,7 @@ function buildSalesTable(id,title,rows){
 }
 function buildKgFactTable(rows, byMonth){
   const id='tblKgFact';
-  let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Факт на кг + расходы реализации</div><div class="table-title">Месячная сверка по кг, себестоимости и расходам на реализацию</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}"><thead><tr><th>Показатель</th>${Q_MONTHS.map(m=>`<th>${MONTH_LABEL[m]}</th>`).join('')}<th>${quarterCfg().total}</th></tr></thead><tbody>`;
+  let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Факт на кг + расходы реализации</div><div class="table-title">Месячная сверка по кг, себестоимости и расходам на реализацию</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}"><thead><tr><th>Показатель</th>${Q_MONTHS.map(m=>`<th>${MONTH_LABEL[m]}</th>`).join('')}<th>Итого Янв–Апр.</th></tr></thead><tbody>`;
   const total=agg(rows);
   const expPlanTotal=expenseTotal('plan');
   const expFactTotal=expenseTotal('fact');
@@ -176,11 +150,13 @@ window.copyDirTable=async function(id,btn){
   if(window.PFU && PFU.copyText) return PFU.copyText(rows,btn);
   try{await navigator.clipboard.writeText(rows); const old=btn.textContent; btn.textContent='✅ Скопировано'; btn.classList.add('ok'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('ok')},1600);}catch(e){const old=btn.textContent; btn.textContent='❌ Ошибка'; btn.classList.add('err'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('err')},1800);}
 };
-function makeChart(id,type,data,options={}){ if(!window.Chart) return null; const old=Chart.getChart(id); if(old) old.destroy(); return new Chart(document.getElementById(id),{type,data,options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:8,font:{size:10}}}},...options}}); }
-function renderQuarter(){
-  const cfg=quarterCfg();
-  prog(84,'Фильтр '+cfg.title.toLowerCase()+'...');
-  const rows=ALL_ROWS.filter(r=>Q_MONTHS.includes(r.mk));
+function makeChart(id,type,data,options={}){ if(!window.Chart) return null; return new Chart(document.getElementById(id),{type,data,options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:8,font:{size:10}}}},...options}}); }
+async function init(){
+  try{
+    prog(5,'Загрузка продаж...');
+    const {rawRows}=await PF.loadSales((p,s)=>prog(Math.min(80,Math.round(p*.8)),s));
+    prog(84,'Фильтр Январь–Апрель...');
+    const rows=rawRows.filter(r=>Q_MONTHS.includes(r.mk));
     const total=agg(rows); const byMonth=Q_MONTHS.map(m=>agg(rows.filter(r=>r.mk===m)));
     document.getElementById('kRevQ').textContent=fmtMoney(total.rev);
     document.getElementById('kSebQ').textContent=fmtMoney(total.seb);
@@ -189,7 +165,7 @@ function renderQuarter(){
     document.getElementById('kQtyQ').textContent=fmtKg(total.kg);
     document.getElementById('kRetQ').textContent=fmtKg(total.retKg);
     document.getElementById('kRetPctQ').textContent=(total.kg?fmt1(total.retKg/total.kg*100):'0,0')+'% от кг';
-    document.getElementById('navInfo').textContent=currentQuarterKey+' live · '+new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    document.getElementById('navInfo').textContent='Янв–Апр live · '+new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     const byGroup=groupBy(rows,r=>r.group||'Без группы');
     const groups=Object.keys(byGroup).sort((a,b)=>agg(byGroup[b]).rev-agg(byGroup[a]).rev);
     const dirChannelItems=[{id:'tblSalesAll',title:'Общее',rows}];
@@ -202,19 +178,6 @@ function renderQuarter(){
     makeChart('cKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Реализация кг',data:byMonth.map(x=>Math.round(x.kg)),backgroundColor:CC[1],borderRadius:4},{label:'Возврат кг',data:byMonth.map(x=>Math.round(Math.abs(x.retKg))),backgroundColor:CC[3],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>fmtFull(v)}}}});
     makeChart('cCostKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Себестоимость / кг',data:byMonth.map(x=>x.kg?+(x.seb/x.kg).toFixed(1):0),backgroundColor:CC[2],borderRadius:4},{label:'Расходы реал. / кг факт',data:Q_MONTHS.map((mk,i)=>+expenseFactPerKg(mk,byMonth[i]).toFixed(1)),backgroundColor:CC[0],borderRadius:4},{label:'Расходы реал. / кг план',data:Q_MONTHS.map(mk=>+expensePlanPerKg(mk).toFixed(1)),backgroundColor:CC[3],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>v+' ₸'}}}});
     prog(100,'Готово'); setTimeout(()=>document.getElementById('ls').style.display='none',250);
-}
-async function init(){
-  try{
-    prog(5,'Загрузка продаж...');
-    const {rawRows}=await PF.loadSales((p,s)=>prog(Math.min(80,Math.round(p*.8)),s));
-    ALL_ROWS=rawRows||[];
-    try{
-      const saved=localStorage.getItem('pf.dir.quarter');
-      currentQuarterKey=QUARTERS[saved]?saved:'Q2';
-    }catch(e){currentQuarterKey='Q2';}
-    document.querySelectorAll('.quarter-btn').forEach(btn=>btn.addEventListener('click',()=>setQuarter(btn.dataset.quarter)));
-    updateQuarterUi();
-    renderQuarter();
   }catch(err){console.error(err); document.getElementById('lstep').textContent='Ошибка загрузки'; const le=document.getElementById('lerr'); le.style.display='block'; le.textContent=err.message||String(err); document.getElementById('prog').style.background='var(--red)';}
 }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
