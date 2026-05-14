@@ -113,7 +113,7 @@ const PF = {
       }
     }
     const mar            = rev  ? prof/rev*100  : 0;
-    const retPct         = rev  ? ret/rev*100   : 0;
+    const retPct         = sumRealSTotal  ? ret/sumRealSTotal*100   : 0;
     const avg            = qtyRealSum ? revSaleOnly/qtyRealSum : 0;  // ср.цена только по строкам продаж
     const retKgPct       = kg   ? retKg/kg*100 : 0;
     const priceZakup     = qtyRealSum ? sebRealSum/qtyRealSum            : 0;  // без НДС, только из строк продаж
