@@ -332,26 +332,25 @@ const PF = {
       const day=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
       if (!monthMap.has(mk)) monthMap.set(mk,this.MO[dt.getMonth()]+' '+dt.getFullYear());
 
-      const qtyReal  =this.toNum(r[iQtyReal]);
-      const sumReal  =this.toNum(r[iSumReal]);
+      const qtyReal  =this.toNum(r[iQtyReal]) || this.toNum(r[iQtyN]);  // fallback: если нет отдельной колонки реализации, бери "с возвратами"
+      const sumReal  =this.toNum(r[iSumReal]) || (iSumRealS>=0 ? this.toNum(r[iSumRealS]) : 0);  // fallback: бери "с возвратами"
       const sumRealS =iSumRealS>=0 ? this.toNum(r[iSumRealS]) : (sumReal + sumR);  // J+K или колонка L
       const qtyN     =this.toNum(r[iQtyN]);
       const qtyR     =Math.abs(this.toNum(r[iQtyR]));
       const sumBezNds=this.toNum(r[iSumBezNds]);
       const sumR     =this.toNum(r[iSumR]);
-      const seb      =this.toNum(r[iSeb]);
-      const prof     =this.toNum(r[iProf]);
       const w        =skuWeight[sku]||1;
 
       // Себестоимость из прихода: цена ближайшего прихода ДО даты продажи
+      // Колонка "Стоимость (без НДС)" из исходника НЕ используется — она неточная.
       // Основная себестоимость считается БЕЗ НДС, чтобы корректно сравнивать с выручкой без НДС.
       const prikhodCost = this.getPrikhodCostPrices(sku, day);
       // Себест. ₸ = цена прихода × qtyN (финансовая себест., как и выручка — с возвратами)
-      const sebNew      = prikhodCost ? prikhodCost.priceNoNds  * qtyN    : seb;
-      const sebWithNds  = prikhodCost ? prikhodCost.priceWithNds * qtyN   : seb;
+      const sebNew      = prikhodCost ? prikhodCost.priceNoNds  * qtyN    : 0;
+      const sebWithNds  = prikhodCost ? prikhodCost.priceWithNds * qtyN   : 0;
       // Для цены закупа — только строки продаж (qtyReal), не смешиваем с возвратами
-      const sebSale         = prikhodCost ? prikhodCost.priceNoNds  * qtyReal : seb;
-      const sebSaleWithNds  = prikhodCost ? prikhodCost.priceWithNds * qtyReal : seb;
+      const sebSale         = prikhodCost ? prikhodCost.priceNoNds  * qtyReal : 0;
+      const sebSaleWithNds  = prikhodCost ? prikhodCost.priceWithNds * qtyReal : 0;
       const profNew = sumBezNds - sebNew;
 
       rawRows.push({
