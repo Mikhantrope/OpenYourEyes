@@ -90,7 +90,7 @@ function buildSalesTable(id,title,rows){
   copyBtns+=`<button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Всё</button>`;
   let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Реализация по каналам</div><div class="table-title">${esc(title)}</div></div><div style="display:flex;gap:4px;flex-wrap:wrap">${copyBtns}</div></div><div class="table-wrap"><table class="tbl" id="${id}">`;
   html+=`<thead><tr><th rowspan="2">SKU / Категория</th>${Q_MONTHS.map(m=>`<th class="month-h" colspan="7">${MONTH_LABEL[m]}</th>`).join('')}<th class="month-h" colspan="7">${cfg().totalLabel}</th></tr>`;
-  html+=`<tr>${[...Q_MONTHS,'TOTAL'].map(()=>'<th>Реализация, ₸</th><th>Себестоимость, ₸</th><th>Реализация, кг<br>(с возвратами)</th><th>Цена за 1 кг, ₸</th><th>Реализация, кг<br>(без возвратов)</th><th>Возврат, кг</th><th>% возврата</th>').join('')}</tr></thead><tbody>`;
+  html+=`<tr>${[...Q_MONTHS,'TOTAL'].map(()=>'<th>Выручка ₸</th><th>Себест. ₸</th><th>Выручка кг<br>(с возвратами)</th><th>Цена за 1 кг, ₸</th><th>Выручка кг<br>(без возвратов)</th><th>Возврат, кг</th><th>Возврат %</th>').join('')}</tr></thead><tbody>`;
   for(const cat of cats){
     const rs=rows.filter(r=>(r.skuGroup||'Прочее')===cat);
     html+=`<tr><td data-copy="${esc(cat)}">${esc(cat)}</td>`;

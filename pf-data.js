@@ -266,8 +266,6 @@ const PF = {
       if(!groupMapPrefix[pfx]) groupMapPrefix[pfx]=v;
     }
     const findGroup = knt => {
-      // Торговые точки — всегда группа "Торговые точки"
-      if(knt.startsWith('ТТ ')) return 'Торговые точки';
       // 1) Точное совпадение
       if(groupMap[knt]) return groupMap[knt];
       const nk = normKey(knt);
