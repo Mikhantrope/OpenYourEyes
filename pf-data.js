@@ -19,6 +19,10 @@ const PF = {
   GID_SKU:   '286897778',
   GID_PRIHOD:'1270219264',
   GID_PLAN:  '311695615',   // Лист Планы — план закупа по поставщикам
+  GID_PRIHOD2:'739937881',  // Приход (Янв–Апр 2026, обновлённый)
+  GID_RASHOD:'753197950',   // Расходы (Янв–Апр 2026)
+  GID_ZP_DET:'1431078713',  // ЗП Детально
+  GID_ZP_OBH:'2144268074',  // ЗП Общее
 
   csvUrl(gid) {
     return `https://docs.google.com/spreadsheets/d/e/${this.PUB_ID}/pub?gid=${gid}&single=true&output=csv`;
@@ -449,5 +453,134 @@ const PF = {
     }
     const months=[...monthMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
     return {pRows,months};
+  },
+
+  // ── ЗАГРУЗКА ДАННЫХ ДЛЯ ДиР ──────────────────────────────────
+  // Загружает расходы, ЗП, приход (вес по AO/BM) для формирования P&L
+  async loadDirData(onProgress) {
+    const p=onProgress||(()=>{});
+
+    // 1. Расходы
+    p(10,'Загрузка расходов...');
+    const rRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_RASHOD))).text());
+    const rH=rRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+    const ri=(...ns)=>this.findCol(rH,...ns);
+    const iRA=ri('аналитика','analitika','наименование');
+    const iRVid=ri('вид');
+    const iRPeriod=ri('период.началомесяца','период','period');
+    const iRKat=ri('категориязатрат','категория');
+    const iRVidNal=ri('видрасходоввналоговомучете','видрасходов');
+    const iRName=ri('наименование','name');
+    const iRSchet=ri('счет','account');
+    const iRSum=ri('сумма','sum');
+
+    const rashod=[];
+    for(let i=1;i<rRows.length;i++){
+      const r=rRows[i];
+      const analitika=String(r[iRA]||'').trim();
+      const vid=String(r[iRVid>=0?iRVid:'']||'').trim();
+      const period=String(r[iRPeriod]||'').trim();
+      const schet=String(r[iRSchet>=0?iRSchet:'']||'').trim();
+      const sum=this.toNum(r[iRSum]);
+      if(!analitika || !sum) continue;
+      // Определяем месяц из периода (01.04.2026 → 2026-04)
+      const dt=this.toDate(period);
+      const mk=dt?`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`:'';
+      // Тип по счёту: 7010=себестоимость, 7110=реализация, 7210=административные
+      let tip='прочие';
+      if(schet.includes('7010')) tip='себестоимость';
+      else if(schet.includes('7110')) tip='реализация';
+      else if(schet.includes('7210')) tip='административные';
+      const vidNal=String(r[iRVidNal>=0?iRVidNal:'']||'').trim();
+      const isAmort=vidNal.toLowerCase().includes('амортиз') || analitika.toLowerCase().includes('амортиз');
+      rashod.push({analitika,vid,mk,schet,tip,vidNal,sum,isAmort});
+    }
+
+    // 2. ЗП Общее
+    p(30,'Загрузка ЗП...');
+    let zpObh=[];
+    try{
+      const zRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_ZP_OBH))).text());
+      const zH=zRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+      const zi=(...ns)=>this.findCol(zH,...ns);
+      const iZPodrazd=zi('подразделениеорганизации','подразделение','department');
+      const iZDolj=zi('должность','position');
+      const iZPeriod=zi('месяцрегистрацииначислений','месяц','period');
+      const iZNach=zi('начисление','accrual');
+      const iZSotr=zi('сотрудник','employee');
+      const iZSum=zi('начислено','sum','сумма');
+      for(let i=1;i<zRows.length;i++){
+        const r=zRows[i];
+        const podrazd=String(r[iZPodrazd>=0?iZPodrazd:'']||'').trim();
+        const dolj=String(r[iZDolj>=0?iZDolj:'']||'').trim();
+        const periodRaw=String(r[iZPeriod>=0?iZPeriod:'']||'').trim();
+        const nach=String(r[iZNach>=0?iZNach:'']||'').trim();
+        const sotr=String(r[iZSotr>=0?iZSotr:'']||'').trim();
+        const sum=this.toNum(r[iZSum]);
+        if(!sum) continue;
+        // Месяц из "Апрель 2026" → 2026-04
+        let mk='';
+        const mMatch=periodRaw.match(/(\w+)\s+(\d{4})/);
+        if(mMatch){
+          const mi=this.MO.findIndex(m=>m.toLowerCase()===mMatch[1].toLowerCase());
+          if(mi>=0) mk=`${mMatch[2]}-${String(mi+1).padStart(2,'0')}`;
+        }
+        zpObh.push({podrazd,dolj,nach,sotr,mk,sum});
+      }
+    }catch(e){ console.warn('ЗП Общее не загружено:',e); }
+
+    // 3. Приход (вес по поставщикам AO/BM)
+    p(50,'Загрузка прихода (вес)...');
+    const pData=await this.loadPrikhod2();
+
+    // 4. Планы
+    p(70,'Загрузка планов...');
+    let plans={};
+    try{
+      const plRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_PLAN))).text());
+      const plH=plRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+      // Планы: нужно проверить структуру
+      plans={raw:plRows, header:plH};
+    }catch(e){ console.warn('Планы не загружены:',e); }
+
+    p(90,'Готово');
+    return {rashod, zpObh, prikhod:pData, plans};
+  },
+
+  // Загрузка прихода из нового листа (GID_PRIHOD2)
+  async loadPrikhod2() {
+    const rows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_PRIHOD2))).text());
+    const H=rows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+    const fi=(...ns)=>this.findCol(H,...ns);
+    const iSku=fi('номенклатура','sku');
+    const iSup=fi('контрагент','поставщик','ссылка.контрагент');
+    const iDate=fi('дата','date','ссылка.дата');
+    const iQty=fi('количество','qty');
+    const iSum=fi('сумма','sum');
+    const iNDS=fi('нд','nds','сумманд','суммандс');
+
+    // Агрегация веса по поставщику и месяцу
+    const bySupMonth={}; // {mk: {sup: {kg, sum, sumNoNds}}}
+    for(let i=1;i<rows.length;i++){
+      const r=rows[i];
+      const sku=String(r[iSku]||'').trim();
+      if(!sku) continue;
+      const sup=String(r[iSup]||'').trim();
+      const dt=this.toDate(r[iDate]);
+      if(!dt) continue;
+      const mk=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      const qty=this.toNum(r[iQty]);
+      const sum=this.toNum(r[iSum]);
+      const nds=this.toNum(r[iNDS]);
+      if(!bySupMonth[mk]) bySupMonth[mk]={};
+      // Определяем поставщика: AO или BM
+      const supKey=sup.toLowerCase().includes('burabay')?'BM':
+                   sup.toLowerCase().includes('астана')||sup.toLowerCase().includes('astana')?'AO':'OTHER';
+      if(!bySupMonth[mk][supKey]) bySupMonth[mk][supKey]={kg:0,sum:0,sumNoNds:0};
+      bySupMonth[mk][supKey].kg+=qty;
+      bySupMonth[mk][supKey].sum+=sum;
+      bySupMonth[mk][supKey].sumNoNds+=sum-nds;
+    }
+    return bySupMonth;
   },
 };
