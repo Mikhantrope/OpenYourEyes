@@ -1,274 +1,123 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PF — ДиР</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PF — ДиР 2 КВ. 2026</title>
 <link rel="icon" href="data:,">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<link rel="stylesheet" href="pf-ui.css?v=20260514">
+<link rel="stylesheet" href="pf-ui.css?v=20260508">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;800&display=swap');
-:root{--mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;--head:'Bebas Neue',sans-serif;}
+:root{--bg:#07090f;--s1:#0d1219;--s2:#131a23;--border:#1e2d40;--border2:#253347;--accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;--text:#dde8f5;--muted:#5a7a96;--dim:#2d4055;--mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;--head:'Bebas Neue',sans-serif;}
 *{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13px;}
-#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}.ll{font-family:var(--head);font-size:52px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}.pb{width:280px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .4s;width:0%}
-.nav{display:flex;align-items:center;padding:7px 16px;background:var(--s1);border-bottom:1px solid var(--border);gap:3px;position:sticky;top:0;z-index:200;flex-wrap:wrap}.nl{font-family:var(--head);font-size:22px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px}.nav a{padding:4px 8px;border-radius:5px;text-decoration:none;color:var(--muted);font-size:11px;font-weight:700}.nav a:hover,.nav a.active{color:var(--text)}.nav a.active{background:var(--s2)}.nav-r{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted)}
-.hero{padding:22px 18px 14px;background:linear-gradient(135deg,rgba(0,200,255,.05),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.hero-title{font-family:var(--head);font-size:34px;letter-spacing:1px}.hero-sub{font-size:11px;color:var(--muted);line-height:1.55;margin-top:3px}
+#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}.ll{font-family:var(--head);font-size:52px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}.pb{width:280px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .4s;width:0%}.lserr{display:none;color:var(--red);font-size:12px;max-width:560px;text-align:center;line-height:1.6;background:rgba(255,61,87,.08);border:1px solid rgba(255,61,87,.3);border-radius:10px;padding:12px 14px;}
+.nav{display:flex;align-items:center;padding:7px 16px;background:var(--s1);border-bottom:1px solid var(--border);gap:3px;position:sticky;top:0;z-index:200;flex-wrap:wrap}.nl{font-family:var(--head);font-size:22px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px;letter-spacing:1.5px}.nav a{padding:4px 8px;border-radius:5px;text-decoration:none;color:var(--muted);font-size:11px;font-weight:700}.nav a:hover,.nav a.active{color:var(--text)}.nav a.active{background:var(--s2)}.nav-r{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);}
+.hero{padding:22px 18px 14px;background:linear-gradient(135deg,rgba(0,200,255,.05),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.hero-title{font-family:var(--head);font-size:34px;letter-spacing:1px}.hero-sub{font-size:11px;color:var(--muted);line-height:1.55;margin-top:3px}.source-badge{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:5px 10px;border-radius:999px;background:rgba(0,230,118,.09);border:1px solid rgba(0,230,118,.32);color:var(--green);font-size:11px;font-weight:800;}.quarter-bar{display:flex;align-items:center;gap:6px;padding:10px 18px;background:var(--s1);border-bottom:1px solid var(--border)}.quarter-label{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-right:2px}.quarter-btn{padding:5px 11px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--muted);font-size:11px;font-weight:800;cursor:pointer}.quarter-btn:hover{border-color:var(--accent);color:var(--accent)}.quarter-btn.active{background:rgba(0,200,255,.14);border-color:var(--accent);color:var(--accent)}
 .kpi-band{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}.kpi{background:var(--s1);padding:13px 15px;border-top:2px solid transparent}.kpi.bl{border-top-color:var(--accent)}.kpi.gr{border-top-color:var(--green)}.kpi.am{border-top-color:var(--amber)}.kpi.pu{border-top-color:var(--purple)}.kpi-l{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}.kpi-v{font-family:var(--mono);font-size:18px;font-weight:800;line-height:1}.kpi-s{font-size:10px;color:var(--dim);margin-top:4px;font-family:var(--mono)}
-.main{max-width:1520px;margin:0 auto;padding:18px 16px 32px}
-.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;background:var(--s1);border:1px solid var(--border);border-radius:10px}.pill-group{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px}.pill{padding:4px 12px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--body)}.pill.active{background:var(--accent);color:#fff}.pill:hover:not(.active){color:var(--text)}.export-btns{margin-left:auto;display:flex;gap:6px}
-.sh{font-family:var(--head);font-size:22px;letter-spacing:1px;margin:22px 0 8px;display:flex;align-items:center;gap:8px}.sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}.sd{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.55}
-.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
-.mc,.card,.table-card{background:var(--s1);border:1px solid var(--border);border-radius:10px}.mc{padding:13px;border-top:3px solid var(--accent)}.mc-name{font-family:var(--head);font-size:20px;letter-spacing:1px}.mc-v{font-family:var(--mono);font-size:16px;font-weight:800;margin-top:5px}.mc-r{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px}
-.card{padding:14px}.card canvas{max-height:210px}.ct{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
-.table-card{overflow:hidden;margin-bottom:14px}.table-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(0,200,255,.04),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.table-title{font-size:14px;font-weight:800}.table-sub{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
-.copy-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.copy-btn:hover{border-color:var(--accent);color:var(--accent)}.copy-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green)}
-.table-wrap{overflow:auto}.tbl{width:max-content;min-width:100%;border-collapse:collapse}.tbl th{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);border-right:1px solid rgba(30,45,64,.55);white-space:nowrap;background:var(--s2)}.tbl th.month-h{font-size:11px;color:var(--accent);text-align:center}.tbl th:first-child,.tbl td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:var(--s1)}.tbl th:first-child{z-index:3;background:var(--s2)}.tbl td{padding:5px 8px;text-align:right;font-family:var(--mono);font-size:10px;border-bottom:1px solid rgba(30,45,64,.5);border-right:1px solid rgba(30,45,64,.24);white-space:nowrap}.tbl td:first-child{font-family:var(--body);font-size:11px;font-weight:700}.tbl tr:hover td{background:rgba(255,255,255,.025)}.tbl tr.tot td{font-weight:800;border-top:2px solid rgba(0,230,118,.45);background:rgba(0,230,118,.08)!important}
-.pnl-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px}.pnl-hdr{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}.pnl-hdr h2{font-size:14px;font-weight:700}
-table.pnl{width:100%;border-collapse:collapse}table.pnl th{background:var(--s2);color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;padding:7px 12px;border-bottom:2px solid var(--border);text-align:right;white-space:nowrap}table.pnl th:first-child{text-align:center;width:40px}table.pnl th:nth-child(2){text-align:left}
-table.pnl td{padding:6px 12px;border-bottom:1px solid rgba(30,45,64,.25);font-size:11px;text-align:right;font-family:var(--mono)}table.pnl td:first-child{text-align:center;color:var(--muted);font-size:10px}table.pnl td:nth-child(2){text-align:left;font-family:var(--body);font-weight:500}
-table.pnl tr.section td{background:rgba(0,200,255,.04);font-weight:700;color:var(--accent);font-family:var(--body)}table.pnl tr.subtotal td{background:rgba(0,230,118,.04);font-weight:700;border-top:1px solid rgba(0,230,118,.15)}table.pnl tr.total td{background:rgba(0,230,118,.08);font-weight:800;border-top:2px solid rgba(0,230,118,.35)}
-.pos{color:var(--green)!important}.neg{color:var(--red)!important}
-.src{display:inline-block;font-size:8px;padding:1px 5px;border-radius:3px;font-weight:600}.src-1c{background:rgba(0,230,118,.1);color:var(--green)}.src-calc{background:rgba(0,200,255,.1);color:var(--accent)}.src-sh{background:rgba(255,170,0,.1);color:var(--amber)}
-.dir-channel-tabs{display:flex;gap:5px;flex-wrap:wrap;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:0 0 12px}.dir-channel-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--muted);font-size:11px;font-weight:800;cursor:pointer}.dir-channel-btn:hover{border-color:var(--accent);color:var(--accent)}.dir-channel-btn.active{background:rgba(0,200,255,.14);border-color:var(--accent);color:var(--accent)}.dir-channel-panel{display:none}.dir-channel-panel.active{display:block}
-@media(max-width:900px){.kpi-band,.g3,.g2{grid-template-columns:1fr}.nav-r{width:100%;margin-left:0}.hero-title{font-size:28px}}
+.main{max-width:1520px;margin:0 auto;padding:18px 16px 32px}.sh{font-family:var(--head);font-size:22px;letter-spacing:1px;margin:22px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}.sh::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}.sd{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.55}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.mc,.card,.table-card{background:var(--s1);border:1px solid var(--border);border-radius:10px}.mc{padding:13px;border-top:3px solid var(--accent)}.mc-name{font-family:var(--head);font-size:20px;letter-spacing:1px}.mc-v{font-family:var(--mono);font-size:16px;font-weight:800;margin-top:5px}.mc-r{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px}.card{padding:14px}.card canvas{max-height:210px}.ct{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}.table-card{overflow:hidden;margin-bottom:14px}.table-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:linear-gradient(135deg,rgba(0,200,255,.04),rgba(0,230,118,.02));border-bottom:1px solid var(--border)}.table-title{font-size:14px;font-weight:800}.table-sub{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}.copy-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.copy-btn:hover{border-color:var(--accent);color:var(--accent)}.copy-btn.ok{border-color:rgba(0,230,118,.45);color:var(--green)}.copy-btn.err{border-color:rgba(255,61,87,.45);color:var(--red)}.table-wrap{overflow:auto;max-width:100%}.tbl{width:max-content;min-width:100%;border-collapse:collapse}.tbl th{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);border-right:1px solid rgba(30,45,64,.55);white-space:nowrap;background:var(--s2)}.tbl th.month-h{font-size:11px;color:var(--accent);text-align:center;background:#152033}.tbl th:first-child,.tbl td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:var(--s1)}.tbl th:first-child{z-index:3;background:var(--s2)}.tbl td{padding:5px 8px;text-align:right;font-family:var(--mono);font-size:10px;border-bottom:1px solid rgba(30,45,64,.5);border-right:1px solid rgba(30,45,64,.24);white-space:nowrap}.tbl td:first-child{font-family:var(--body);font-size:11px;font-weight:700}.tbl tr:hover td{background:rgba(255,255,255,.025)}.tbl tr.tot td{font-weight:800;border-top:2px solid rgba(0,230,118,.45);background:rgba(0,230,118,.08)!important}.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--amber)}.note{font-size:11px;color:var(--muted);line-height:1.6;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.16);padding:10px 12px;border-radius:10px;margin-bottom:14px}.dir-channel-tabs{display:flex;gap:5px;flex-wrap:wrap;background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:0 0 12px}.dir-channel-btn{padding:5px 10px;border:1px solid var(--border);border-radius:7px;background:var(--s2);color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.dir-channel-btn:hover{border-color:var(--accent);color:var(--accent)}.dir-channel-btn.active{background:rgba(0,200,255,.14);border-color:var(--accent);color:var(--accent)}.dir-channel-panel{display:none}.dir-channel-panel.active{display:block}@media(max-width:900px){.kpi-band,.g3,.g2{grid-template-columns:1fr}.nav-r{width:100%;margin-left:0}.hero-title{font-size:28px}}
 </style>
 </head>
 <body>
-<div id="ls"><div class="ll">PF</div><div style="font-size:12px;color:var(--muted)">Загрузка ДиР...</div><div class="pb"><div class="pf" id="prog"></div></div><div style="font-size:10px;color:var(--dim)" id="lstep">Инициализация...</div></div>
-<div class="nav"><span class="nl">PF</span><a href="index.html">📊 Таблица</a><a href="dashboard.html">📈 Дашборд</a><a href="prikhod.html">📦 Приход</a><a href="compare.html">📅 Сравнение</a><a href="analytics.html">🔬 Аналитика</a><a href="quality.html">🧪 Качество</a><a href="dir.html" class="active">📑 ДиР</a><div class="nav-r" id="navInfo">Загрузка...</div></div>
-<div class="hero"><div class="hero-title" id="heroTitle">ДиР</div><div class="hero-sub">Отчёт по исполнению плана доходов и расходов «Premium Food Astana». Реализация и себестоимость — авто из 1С. Расходы — из Sheets.</div></div>
-<div class="kpi-band">
-  <div class="kpi bl"><div class="kpi-l">Выручка</div><div class="kpi-v" style="color:var(--accent)" id="kRev">—</div><div class="kpi-s" id="kRevS"></div></div>
-  <div class="kpi am"><div class="kpi-l">Себестоимость</div><div class="kpi-v" style="color:var(--amber)" id="kSeb">—</div><div class="kpi-s" id="kSebS"></div></div>
-  <div class="kpi" id="kProfW"><div class="kpi-l">Валовая прибыль</div><div class="kpi-v" id="kProf">—</div><div class="kpi-s" id="kProfS"></div></div>
-  <div class="kpi gr"><div class="kpi-l">EBITDA</div><div class="kpi-v" id="kEbitda">—</div><div class="kpi-s" id="kEbitdaS"></div></div>
-  <div class="kpi pu"><div class="kpi-l">Чистая прибыль</div><div class="kpi-v" id="kNet">—</div><div class="kpi-s" id="kNetS"></div></div>
-</div>
+<div id="ls"><div class="ll">PF</div><div style="font-size:12px;color:var(--muted)">Загрузка ДиР из того же источника, что и Таблица...</div><div class="pb"><div class="pf" id="prog"></div></div><div style="font-size:10px;color:var(--dim)" id="lstep">Инициализация...</div><div class="lserr" id="lerr"></div></div>
+<div class="nav"><span class="nl">PF</span><a href="index.html">📊 Таблица</a><a href="dashboard.html">📈 Дашборд</a><a href="prikhod.html">📦 Приход</a><a href="compare.html">📅 Сравнение</a><a href="pnl.html">💰 P&L</a><a href="analytics.html">🔬 Аналитика</a><a href="quality.html">🧪 Качество</a><a href="dir.html" class="active">📑 ДиР</a><div class="nav-r" id="navInfo">ДиР · Q1 · LIVE</div></div>
+<div class="hero"><div class="hero-title" id="heroTitle">ДиР 2 КВ. 2026</div><div class="hero-sub" id="heroSub">Раздел построен по форме Excel, но цифры считаются из того же живого источника, что и главная таблица: <b>PF.loadSales → ИсхРеал + справочники + цены прихода</b>. Для сверки в главной таблице выбери Апрель + Май + Июнь.</div><div class="source-badge">✅ Один источник с Таблицей / Дашбордом</div></div>
+<div class="quarter-bar"><span class="quarter-label">Квартал:</span><button type="button" class="quarter-btn" id="qBtn1">1 КВ.</button><button type="button" class="quarter-btn active" id="qBtn2">2 КВ.</button></div>
+<div class="kpi-band"><div class="kpi bl"><div class="kpi-l" id="kRevLabel">Реализация 2 КВ.</div><div class="kpi-v" style="color:var(--accent)" id="kRevQ">—</div><div class="kpi-s" id="kRevSub">апрель + май + июнь</div></div><div class="kpi am"><div class="kpi-l">Себестоимость</div><div class="kpi-v" style="color:var(--amber)" id="kSebQ">—</div><div class="kpi-s">как в таблице</div></div><div class="kpi" id="kProfQ"><div class="kpi-l">Валовая прибыль</div><div class="kpi-v" id="kProfV">—</div><div class="kpi-s" id="kMarQ">маржа</div></div><div class="kpi gr"><div class="kpi-l">Реализация кг</div><div class="kpi-v" style="color:var(--green)" id="kQtyQ">—</div><div class="kpi-s">с возвратами</div></div><div class="kpi pu"><div class="kpi-l">Возвраты кг</div><div class="kpi-v" style="color:var(--purple)" id="kRetQ">—</div><div class="kpi-s" id="kRetPctQ">% от кг</div></div></div>
 <div class="main">
-  <div class="toolbar"><div class="pill-group" id="monthPills"></div><div class="export-btns"><button class="copy-btn" onclick="copyPnl()">📋 Копировать P&L</button><button class="copy-btn" id="btnXlsx" onclick="downloadXlsx()">📥 Скачать Excel</button></div></div>
-  <div class="sh">01 · План доходов и расходов</div>
-  <div class="sd">Формат как в Excel ДиР: план / факт / отклонение. Реализация и себестоимость — авто из 1С. Дистрибьюторские = ставка × кг прихода. Расходы — из Sheets.</div>
-  <div class="pnl-card"><div class="pnl-hdr"><h2 id="pnlTitle">P&L</h2><div style="font-size:11px;color:var(--muted)" id="pnlSub">—</div></div><div style="overflow-x:auto"><table class="pnl" id="pnlTable"></table></div></div>
-  <div class="sh">02 · Реализация по каналам продаж</div>
-  <div class="sd">Реализация, себестоимость, кг, возвраты — по каналам контрагентов и SKU-группам.</div>
+  <div class="note" id="mainNote">Важно: Excel-файл больше не является источником цифр для этого раздела. Он используется только как ориентир по структуре: реализация по каналам/категориям и блок “на кг”. Поэтому итог ДиР должен совпадать с главной таблицей при фильтре <b>Апрель + Май + Июнь</b>.</div>
+  <div class="sh" id="salesSectionTitle">01 · Реализация 2 КВ. 2026 — по каналам продаж</div>
+  <div class="sd">Таблицы в формате Excel: месяцы расположены горизонтально, строки — группы SKU. Возле каждой таблицы есть копирование в Excel-ready TSV.</div>
   <div id="salesTables"></div>
-  <div class="sh">03 · На кг — факт + расходы на реализацию</div>
-  <div class="sd">Карточки и сводная таблица по кг, себестоимости и расходам на реализацию.</div>
+  <div class="sh">02 · На кг. — факт из того же источника</div>
+  <div class="sd">Этот блок использует живой факт по кг из того же источника, что и Таблица/Дашборд. Расходы на реализацию добавлены отдельными суммами: план/факт из твоих вводных, а ₸/кг считается от соответствующего объёма.</div>
   <div class="g3" id="kgCards"></div>
   <div class="g2"><div class="card"><div class="ct">Реализация кг по месяцам</div><canvas id="cKg"></canvas></div><div class="card"><div class="ct">Себестоимость и расходы на реализацию на кг</div><canvas id="cCostKg"></canvas></div></div>
   <div id="kgTables"></div>
 </div>
-<script src="pf-prikhod.js?v=20260514"></script>
-<script src="pf-data.js?v=20260514"></script>
-<script src="pf-utils.js?v=20260514"></script>
+<script src="pf-prikhod.js?v=20260429-safe2"></script>
+<script src="pf-data.js?v=20260429-safe2"></script>
+<script src="pf-utils.js?v=20260508"></script>
 <script>
 (function(){
 'use strict';
-const MO_L={'2026-01':'Январь','2026-02':'Февраль','2026-03':'Март','2026-04':'Апрель','2026-05':'Май','2026-06':'Июнь','2026-07':'Июль','2026-08':'Август','2026-09':'Сентябрь','2026-10':'Октябрь','2026-11':'Ноябрь','2026-12':'Декабрь'};
-const MO_S={'2026-01':'Янв','2026-02':'Фев','2026-03':'Мар','2026-04':'Апр','2026-05':'Май','2026-06':'Июн'};
-const DIST_AO=61,DIST_BM=46;
-const SKU_ORD=['Молоко','Масло','Сметана','Кисломолочная','Творог','Национальный продукт','Прочее','Сыр','Сливки'];
-const CC=['rgba(0,200,255,.65)','rgba(0,230,118,.65)','rgba(255,170,0,.65)','rgba(176,77,255,.65)'];
-const fF=v=>Math.round(Number(v)||0).toLocaleString('ru-RU');
-const f1=v=>(Math.round((Number(v)||0)*10)/10).toLocaleString('ru-RU',{minimumFractionDigits:1,maximumFractionDigits:1});
-const fM=v=>fF(v)+' ₸';const fK=v=>f1(v)+' кг';
-const fT=v=>fF(v/1000);
-const fP=v=>v==null||!isFinite(v)?'—':(v*100).toFixed(1)+'%';
-const cls=v=>v==null?'':v>=0?'pos':'neg';
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-const cN=v=>String(Math.round((Number(v)||0)*100)/100).replace('.',',');
-const gBy=(arr,fn)=>{const m={};for(const x of arr){const k=fn(x)||'—';(m[k]=m[k]||[]).push(x);}return m;};
-const agg=rows=>{const m=PF.agg(rows||[]);m.saleKg=(rows||[]).reduce((s,r)=>s+((r.qtyReal||0)*(r.weight||1)),0);return m;};
-const td=(v,text,c='')=>`<td class="${c}" data-copy="${cN(v)}">${text}</td>`;
-const getQ=mk=>Math.ceil(parseInt(mk.split('-')[1])/3);
-function prog(p,s){document.getElementById('prog').style.width=p+'%';if(s)document.getElementById('lstep').textContent=s;}
-
-let rawRows=[],dirData=null,ALL_MK=[],curV='q1';
-function getMks(){if(curV.startsWith('q')){const q=parseInt(curV.slice(1));return ALL_MK.filter(mk=>getQ(mk)===q);}return [curV];}
-function getLbl(){if(curV.startsWith('q'))return parseInt(curV.slice(1))+' КВ. 2026';return MO_L[curV]||curV;}
-
-function calcMonth(mk){
-  const s=agg(rawRows.filter(r=>r.mk===mk));
-  const pr=dirData?.prikhod?.[mk]||{};
-  const aoKg=pr.AO?.kg||0,bmKg=pr.BM?.kg||0;
-  const distAO=aoKg*DIST_AO,distBM=bmKg*DIST_BM;
-  const rItems=(dirData?.rashod||[]).filter(r=>r.mk===mk);
-  let rashReal=0,rashAdmin=0,amort=0;
-  for(const r of rItems){if(r.isAmort)amort+=r.sum;else if(r.tip==='реализация')rashReal+=r.sum;else if(r.tip==='административные')rashAdmin+=r.sum;}
-  return{mk,...s,distAO,distBM,rashReal,rashAdmin,amort,aoKg,bmKg,prKg:aoKg+bmKg,
-    valovaya:s.rev-s.seb,ebitda:(s.rev-s.seb)-rashReal,ebit:(s.rev-s.seb)-rashReal-amort,dohod:s.rev+distAO+distBM,rashDetails:rItems};
-}
-
-/* ═══ P&L TABLE ═══ */
-function renderPnl(){
-  const mks=getMks(),lbl=getLbl();
-  document.getElementById('pnlTitle').textContent='ДиР — '+lbl;
-  document.getElementById('pnlSub').textContent=new Date().toLocaleString('ru-RU');
-  document.getElementById('heroTitle').textContent='ДиР '+lbl;
-  const D=mks.map(calcMonth),showT=mks.length>1;
-  const sum=k=>D.reduce((s,d)=>s+(d[k]||0),0);
-  // KPI
-  document.getElementById('kRev').textContent=fM(sum('rev'));document.getElementById('kRevS').textContent='без НДС';
-  document.getElementById('kSeb').textContent=fM(sum('seb'));document.getElementById('kSebS').textContent='закуп';
-  const pv=document.getElementById('kProf');pv.textContent=fM(sum('valovaya'));pv.className='kpi-v '+cls(sum('valovaya'));
-  document.getElementById('kProfS').textContent='маржа '+fP(sum('rev')?sum('valovaya')/sum('rev'):0);
-  document.getElementById('kProfW').style.borderTopColor=sum('valovaya')>=0?'var(--green)':'var(--red)';
-  const ev=document.getElementById('kEbitda');ev.textContent=fM(sum('ebitda'));ev.className='kpi-v '+cls(sum('ebitda'));
-  document.getElementById('kEbitdaS').textContent='маржа '+fP(sum('rev')?sum('ebitda')/sum('rev'):0);
-  const nv=document.getElementById('kNet');nv.textContent=fM(sum('ebit'));nv.className='kpi-v '+cls(sum('ebit'));
-  document.getElementById('kNetS').textContent='EBIT';
-  // Table
-  const subH='<th>План</th><th>Факт</th><th>Откл.тыс₸</th><th>%</th>';
-  let h=`<thead><tr><th>#</th><th>Статья</th>${mks.map(mk=>`<th colspan="4">${MO_L[mk]||mk}</th>`).join('')}${showT?`<th colspan="4">${lbl}</th>`:''}${'<th>Ист.</th>'}</tr><tr><th></th><th></th>${mks.map(()=>subH).join('')}${showT?subH:''}<th></th></tr></thead><tbody>`;
-  function row(num,name,fArr,pArr,css,src){
-    let r=`<tr class="${css||''}"><td>${num||''}</td><td>${esc(name)}</td>`;
-    for(let i=0;i<mks.length;i++){const p=pArr?pArr[i]:null,f=fArr[i]||0,o=p!=null?f-p:null,pc=p&&p!==0?(f-p)/Math.abs(p):null;
-      r+=`<td style="color:var(--dim)">${p!=null?fT(p):'—'}</td><td class="${cls(f)}">${fT(f)}</td><td class="${o!=null?cls(o):''}">${o!=null?fT(o):'—'}</td><td class="${pc!=null?cls(pc):''}">${fP(pc)}</td>`;}
-    if(showT){const tF=fArr.reduce((s,v)=>s+(v||0),0),tP=pArr?pArr.reduce((s,v)=>s+(v||0),0):null,tO=tP!=null?tF-tP:null,tPc=tP&&tP!==0?(tF-tP)/Math.abs(tP):null;
-      r+=`<td style="color:var(--dim)">${tP!=null?fT(tP):'—'}</td><td class="${cls(tF)}">${fT(tF)}</td><td class="${tO!=null?cls(tO):''}">${tO!=null?fT(tO):'—'}</td><td class="${tPc!=null?cls(tPc):''}">${fP(tPc)}</td>`;}
-    const b=src==='1c'?'<span class="src src-1c">1С</span>':src==='calc'?'<span class="src src-calc">Расч</span>':'<span class="src src-sh">Sheets</span>';
-    return r+`<td style="text-align:center">${b}</td></tr>`;}
-  function sR(l){const sp=4*mks.length+(showT?4:0)+1;return `<tr class="section"><td></td><td colspan="${sp}">${esc(l)}</td></tr>`;}
-  const fa=k=>D.map(d=>d[k]||0),ng=a=>a.map(v=>-v);
-  h+=sR('I. ДОХОДЫ');
-  h+=row('1.1','Реализация молочной продукции',fa('rev'),null,'','1c');
-  h+=row('1.3','Дистрибьюторские услуги AO',fa('distAO'),null,'','calc');
-  h+=row('1.4','Дистрибьюторские услуги BM',fa('distBM'),null,'','calc');
-  h+=row('','ИТОГО ДОХОДЫ',fa('dohod'),null,'subtotal','calc');
-  h+=sR('II. СЕБЕСТОИМОСТЬ');
-  h+=row('2.1','Закуп молочной продукции',ng(fa('seb')),null,'','1c');
-  h+=sR('III. ВАЛОВАЯ ПРИБЫЛЬ');
-  h+=row('','Выручка − Себестоимость',fa('valovaya'),null,'subtotal','calc');
-  h+=sR('IV. РАСХОДЫ ПО РЕАЛИЗАЦИИ');
-  h+=row('2.9','Расходы по реализации (7110)',ng(fa('rashReal')),null,'','sh');
-  h+=row('','Административные расходы (7210)',ng(fa('rashAdmin')),null,'','sh');
-  h+=sR('V. EBITDA');
-  h+=row('','EBITDA (без учёта амортизации)',fa('ebitda'),null,'subtotal','calc');
-  h+=sR('VI. АМОРТИЗАЦИЯ');
-  h+=row('5.1','Амортизация',ng(fa('amort')),null,'','sh');
-  h+=sR('VII. EBIT');
-  h+=row('','EBIT (с учётом амортизации)',fa('ebit'),null,'subtotal','calc');
-  h+=sR('VIII. ЧИСТАЯ ПРИБЫЛЬ');
-  h+=row('','КПН',D.map(()=>0),null,'','');
-  h+=row('','ЧИСТАЯ ПРИБЫЛЬ',fa('ebit'),null,'total','calc');
-  h+='</tbody>';
-  document.getElementById('pnlTable').innerHTML=h;
-  document.getElementById('navInfo').textContent=lbl+' · '+new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-  return D;
-}
-
-/* ═══ SALES TABLES ═══ */
-function mCells(m){const pk=m.kg?m.rev/m.kg:0,rp=m.kg?m.retKg/m.kg*100:0;return[td(m.rev,fM(m.rev)),td(m.seb,fM(m.seb)),td(m.kg,fK(m.kg)),td(pk,f1(pk)+' ₸'),td(m.saleKg??(m.kg+(m.retKg||0)),fK(m.saleKg??(m.kg+(m.retKg||0)))),td(m.retKg,fK(m.retKg),m.retKg?'neg':''),td(rp,f1(rp)+'%',rp?'neg':'')].join('');}
-function buildST(id,title,rows){
-  const mks=getMks(),allC=Object.keys(gBy(rows,r=>r.skuGroup||'Прочее')),
-    cats=[...SKU_ORD,...allC.filter(c=>!SKU_ORD.includes(c)).sort((a,b)=>agg(rows.filter(r=>r.skuGroup===b)).rev-agg(rows.filter(r=>r.skuGroup===a)).rev)],
-    sT=mks.length>1;
-  // Per-month copy buttons
-  let copyBtns=mks.map((mk,i)=>`<button class="copy-btn" onclick="copyMonth('${id}',${i},${mks.length},this)">📋 ${MO_L[mk]||mk}</button>`).join('');
-  if(sT) copyBtns+=`<button class="copy-btn" onclick="copyMonth('${id}',${mks.length},${mks.length},this)">📋 Итого</button>`;
-  copyBtns+=`<button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Всё</button>`;
-  let h=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Реализация по каналам</div><div class="table-title">${esc(title)}</div></div><div style="display:flex;gap:4px;flex-wrap:wrap">${copyBtns}</div></div><div class="table-wrap"><table class="tbl" id="${id}"><thead><tr><th rowspan="2">SKU</th>${mks.map(m=>`<th class="month-h" colspan="7">${MO_L[m]||m}</th>`).join('')}${sT?'<th class="month-h" colspan="7">Итого</th>':''}</tr><tr>${[...mks,...(sT?['T']:[])].map(()=>'<th>Реал.₸</th><th>Себ.₸</th><th>Кг</th><th>₸/кг</th><th>Б/возвр</th><th>Возвр</th><th>%</th>').join('')}</tr></thead><tbody>`;
-  for(const cat of cats){const rs=rows.filter(r=>(r.skuGroup||'Прочее')===cat);h+=`<tr><td>${esc(cat)}</td>`;for(const mk of mks)h+=mCells(agg(rs.filter(r=>r.mk===mk)));if(sT)h+=mCells(agg(rs.filter(r=>mks.includes(r.mk))));h+='</tr>';}
-  h+=`<tr class="tot"><td>Итого</td>`;for(const mk of mks)h+=mCells(agg(rows.filter(r=>r.mk===mk)));if(sT)h+=mCells(agg(rows.filter(r=>mks.includes(r.mk))));
-  return h+'</tr></tbody></table></div></div>';}
-
-function renderSales(){
-  const mks=getMks(),rows=rawRows.filter(r=>mks.includes(r.mk)),byG=gBy(rows,r=>r.group||'Без группы'),
-    groups=Object.keys(byG).sort((a,b)=>agg(byG[b]).rev-agg(byG[a]).rev),
-    items=[{id:'tA',title:'Общее',rows},...groups.map((g,i)=>({id:'tG'+i,title:g,rows:byG[g]}))];
-  document.getElementById('salesTables').innerHTML=
-    `<div class="dir-channel-tabs">${items.map(x=>`<button class="dir-channel-btn" data-channel="${x.id}">${esc(x.title)}</button>`).join('')}</div>`+
-    items.map(x=>`<div class="dir-channel-panel" data-channel="${x.id}">${buildST(x.id,x.title,x.rows)}</div>`).join('');
-  // Init tabs
-  document.querySelectorAll('#salesTables .dir-channel-btn').forEach(b=>b.addEventListener('click',()=>{
-    document.querySelectorAll('#salesTables .dir-channel-panel').forEach(p=>p.classList.toggle('active',p.dataset.channel===b.dataset.channel));
-    document.querySelectorAll('#salesTables .dir-channel-btn').forEach(x=>x.classList.toggle('active',x.dataset.channel===b.dataset.channel));
-  }));
-  const first=document.querySelector('#salesTables .dir-channel-btn');if(first)first.click();
-}
-
-/* ═══ KG SECTION ═══ */
-function renderKg(D){
-  const mks=getMks(),rows=rawRows.filter(r=>mks.includes(r.mk)),byM=mks.map(m=>agg(rows.filter(r=>r.mk===m))),tot=agg(rows);
-  document.getElementById('kgCards').innerHTML=mks.map((mk,i)=>{const m=byM[i],d=D[i]||{},expKg=m.kg?d.rashReal/m.kg:0,retPct=m.kg?Math.abs(m.retKg)/m.kg*100:0;
-    return `<div class="mc"><div class="mc-name">${MO_L[mk]||mk}</div><div class="mc-v" style="color:var(--green)">${fK(m.kg)}</div><div class="mc-r"><span>Реализация</span><span>${fM(m.rev)}</span></div><div class="mc-r"><span>Без возвратов</span><span>${fK(m.saleKg??(m.kg+(m.retKg||0)))}</span></div><div class="mc-r"><span>Себест./кг</span><span>${m.kg?f1(m.seb/m.kg):'0'} ₸</span></div><div class="mc-r"><span>Расх.реал./кг</span><span>${f1(expKg)} ₸</span></div><div class="mc-r"><span>Возврат</span><span class="neg">${fK(Math.abs(m.retKg))}</span></div><div class="mc-r"><span>% возврата</span><span class="neg">${f1(retPct)}%</span></div></div>`;}).join('');
-  // Kg fact table
-  const id='tblKg';
-  let h=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Факт на кг</div><div class="table-title">Месячная сверка</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать</button></div><div class="table-wrap"><table class="tbl" id="${id}"><thead><tr><th>Показатель</th>${mks.map(m=>`<th>${MO_L[m]||m}</th>`).join('')}${mks.length>1?'<th>Итого</th>':''}</tr></thead><tbody>`;
-  const defs=[['Реализация, кг',byM.map(x=>x.kg),tot.kg,fK],['Без возвратов',byM.map(x=>x.saleKg??(x.kg+(x.retKg||0))),tot.saleKg??(tot.kg+(tot.retKg||0)),fK],['Возврат, кг',byM.map(x=>x.retKg),tot.retKg,fK,'neg'],['% возврата',byM.map(x=>x.kg?x.retKg/x.kg*100:0),tot.kg?tot.retKg/tot.kg*100:0,v=>f1(v)+'%','neg'],['Себест./кг',byM.map(x=>x.kg?x.seb/x.kg:0),tot.kg?tot.seb/tot.kg:0,v=>f1(v)+' ₸'],['Валовая прибыль',byM.map(x=>x.prof),tot.prof,fM,tot.prof>=0?'pos':'neg']];
-  for(const r of defs){h+=`<tr><td>${esc(r[0])}</td>`;r[1].forEach(v=>h+=td(v,r[3](v),r[4]||''));if(mks.length>1)h+=td(r[2],r[3](r[2]),r[4]||'');h+='</tr>';}
-  h+='</tbody></table></div></div>';
-  document.getElementById('kgTables').innerHTML=h;
-  // Charts
-  if(window.Chart){
-    [document.getElementById('cKg'),document.getElementById('cCostKg')].forEach(c=>{const o=Chart.getChart(c);if(o)o.destroy();});
-    new Chart(document.getElementById('cKg'),{type:'bar',data:{labels:mks.map(m=>MO_S[m]||m),datasets:[{label:'Реализация кг',data:byM.map(x=>Math.round(x.kg)),backgroundColor:CC[1],borderRadius:4},{label:'Возврат кг',data:byM.map(x=>Math.round(Math.abs(x.retKg))),backgroundColor:CC[3],borderRadius:4}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},scales:{y:{ticks:{callback:v=>fF(v)}}}}});
-    new Chart(document.getElementById('cCostKg'),{type:'bar',data:{labels:mks.map(m=>MO_S[m]||m),datasets:[{label:'Себест./кг',data:byM.map(x=>x.kg?+(x.seb/x.kg).toFixed(1):0),backgroundColor:CC[2],borderRadius:4},{label:'Расх.реал./кг',data:mks.map((mk,i)=>{const d=D[i]||{};return byM[i].kg?+(d.rashReal/byM[i].kg).toFixed(1):0;}),backgroundColor:CC[0],borderRadius:4}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},scales:{y:{ticks:{callback:v=>v+' ₸'}}}}});
-  }
-}
-
-/* ═══ COPY / EXPORT ═══ */
-window.copyDirTable=async function(id,btn){const t=document.getElementById(id);if(!t)return;const r=[...t.rows].map(tr=>[...tr.cells].map(c=>c.dataset.copy??c.innerText.replace(/\s+/g,' ').trim()).join('\t')).join('\n');if(window.PFU)return PFU.copyText(r,btn);};
-window.copyMonth=async function(id,monthIdx,totalMonths,btn){
-  const t=document.getElementById(id);if(!t)return;
-  const colsPerMonth=7;const hasTotal=t.rows[0]&&[...t.rows[0].cells].some(c=>c.colSpan>1&&c.innerText.includes('Итого'));
-  const startCol=1+monthIdx*colsPerMonth; // +1 for SKU col
-  const lines=[];
-  for(let ri=0;ri<t.rows.length;ri++){
-    const tr=t.rows[ri];
-    // Skip first header row (month names with colspan)
-    if(ri===0) continue;
-    // For second header row (column names) — extract only the 7 for this month
-    if(ri===1){
-      const hdrs=['SKU'];
-      const cells=[...tr.cells];
-      // cells are flat (no colspan in row 2), grab the right 7
-      for(let c=0;c<colsPerMonth&&(monthIdx*colsPerMonth+c)<cells.length;c++){
-        hdrs.push(cells[monthIdx*colsPerMonth+c].innerText.replace(/\s+/g,' ').trim());
-      }
-      lines.push(hdrs.join('\t'));
-      continue;
-    }
-    // Data rows: col 0 = SKU name, then 7 cols per month
-    const cells=[...tr.cells];
-    const vals=[cells[0].dataset.copy??cells[0].innerText.replace(/\s+/g,' ').trim()];
-    for(let c=0;c<colsPerMonth;c++){
-      const ci=startCol+c;
-      if(ci<cells.length) vals.push(cells[ci].dataset.copy??cells[ci].innerText.replace(/\s+/g,' ').trim());
-      else vals.push('');
-    }
-    lines.push(vals.join('\t'));
-  }
-  if(window.PFU) return PFU.copyText(lines.join('\n'),btn);
+const QUARTERS={
+  q1:{title:'ДиР 1 КВ. 2026', totalLabel:'Итого 1 КВ.', nav:'Q1 live', kpiLabel:'Реализация 1 КВ.', kpiSub:'январь + февраль + март', filterText:'Январь + Февраль + Март', salesTitle:'01 · Реализация 1 КВ. 2026 — по каналам продаж', progress:'Фильтр 1 квартала...', months:['2026-01','2026-02','2026-03']},
+  q2:{title:'ДиР 2 КВ. 2026', totalLabel:'Итого 2 КВ.', nav:'Q2 live', kpiLabel:'Реализация 2 КВ.', kpiSub:'апрель + май + июнь', filterText:'Апрель + Май + Июнь', salesTitle:'01 · Реализация 2 КВ. 2026 — по каналам продаж', progress:'Фильтр 2 квартала...', months:['2026-04','2026-05','2026-06']}
 };
-window.copyPnl=function(){const t=document.getElementById('pnlTable');if(!t)return;const l=['ДиР — '+getLbl(),'Дата: '+new Date().toLocaleString('ru-RU'),''];for(const tr of t.rows)l.push([...tr.cells].map(c=>{const s=c.colSpan||1,v=c.innerText.replace(/\s+/g,' ').trim();return s>1?Array(s).fill(v).join('\t'):v;}).join('\t'));if(window.PFU)PFU.copyText(l.join('\n'),document.querySelector('.export-btns .copy-btn'));};
-window.downloadXlsx=function(){const btn=document.getElementById('btnXlsx'),old=btn.textContent;btn.textContent='⏳...';
-  try{const wb=XLSX.utils.book_new();
-    const ws=XLSX.utils.table_to_sheet(document.getElementById('pnlTable'));ws['!cols']=[{wch:5},{wch:40},...Array(30).fill({wch:14})];XLSX.utils.book_append_sheet(wb,ws,'ДиР');
-    const ap=document.querySelector('#salesTables .dir-channel-panel.active table');if(ap){const w2=XLSX.utils.table_to_sheet(ap);w2['!cols']=[{wch:22},...Array(40).fill({wch:14})];XLSX.utils.book_append_sheet(wb,w2,'Реализация');}
-    const kt=document.getElementById('tblKg');if(kt){const w3=XLSX.utils.table_to_sheet(kt);w3['!cols']=[{wch:30},...Array(10).fill({wch:16})];XLSX.utils.book_append_sheet(wb,w3,'НаКг');}
-    XLSX.writeFile(wb,`ДиР_${getLbl().replace(/\s/g,'_')}_${new Date().toISOString().slice(0,10)}.xlsx`);
-    btn.textContent='✅';setTimeout(()=>{btn.textContent=old;},2000);
-  }catch(e){console.error(e);btn.textContent='❌';setTimeout(()=>{btn.textContent=old;},2000);}};
-
-/* ═══ INIT ═══ */
-async function init(){
-  try{
-    prog(5,'Загрузка продаж...');
-    const sr=await PF.loadSales((p,s)=>prog(Math.round(p*0.4),s));rawRows=sr.rawRows;
-    prog(45,'Загрузка расходов...');
-    dirData=await PF.loadDirData((p,s)=>prog(45+Math.round(p*0.45),s));
-    ALL_MK=[...new Set(rawRows.map(r=>r.mk))].sort();
-    const qs=[...new Set(ALL_MK.map(getQ))].sort();
-    const pills=document.getElementById('monthPills');
-    pills.innerHTML=qs.map((q,i)=>`<button class="pill${i===0?' active':''}" data-v="q${q}">${q} КВ.</button>`).join('')+ALL_MK.map(mk=>`<button class="pill" data-v="${mk}">${MO_L[mk]||mk}</button>`).join('');
-    curV='q'+qs[0];
-    pills.addEventListener('click',e=>{const b=e.target.closest('.pill');if(!b)return;pills.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));b.classList.add('active');curV=b.dataset.v;const D=renderPnl();renderSales();renderKg(D);});
-    prog(100,'Готово');
-    setTimeout(()=>{document.getElementById('ls').style.display='none';const D=renderPnl();renderSales();renderKg(D);},300);
-  }catch(err){console.error(err);document.getElementById('lstep').textContent='❌ '+err.message;}
+let activeQuarter='q2';
+let Q_MONTHS=[...QUARTERS.q2.months];
+let allRows=[];
+let chartKg=null, chartCostKg=null;
+const MONTH_LABEL={'2026-01':'Январь','2026-02':'Февраль','2026-03':'Март','2026-04':'Апрель','2026-05':'Май','2026-06':'Июнь'};
+const MONTH_SHORT={'2026-01':'Янв','2026-02':'Фев','2026-03':'Мар','2026-04':'Апр','2026-05':'Май','2026-06':'Июн'};
+const DIR_EXPENSES={
+  '2026-01':{plan:29727006,fact:20280248,planKg:565017.0},
+  '2026-02':{plan:45670081,fact:42056740,planKg:492024.8},
+  '2026-03':{plan:36722706,fact:36722706,planKg:552237.9},
+  '2026-04':{plan:0,fact:0,planKg:0},
+  '2026-05':{plan:0,fact:0,planKg:0},
+  '2026-06':{plan:0,fact:0,planKg:0}
+};
+const CC=['rgba(0,200,255,.65)','rgba(0,230,118,.65)','rgba(255,170,0,.65)','rgba(176,77,255,.65)'];
+const fmtFull=v=>Math.round(Number(v)||0).toLocaleString('ru-RU');
+const fmt1=v=>(Math.round((Number(v)||0)*10)/10).toLocaleString('ru-RU',{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmtMoney=v=>fmtFull(v)+' ₸';
+const fmtKg=v=>fmt1(v)+' кг';
+const copyNum=v=>String(Math.round((Number(v)||0)*100)/100).replace('.',',');
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+function cfg(){return QUARTERS[activeQuarter]||QUARTERS.q2;}
+function prog(p,s){document.getElementById('prog').style.width=p+'%'; if(s) document.getElementById('lstep').textContent=s;}
+function groupBy(arr,fn){const m={}; for(const x of arr){const k=fn(x)||'—'; (m[k]=m[k]||[]).push(x);} return m;}
+function agg(rows){rows=rows||[]; const m=PF.agg(rows); m.saleKg=rows.reduce((sum,r)=>sum+((r.qtyReal||0)*(r.weight||1)),0); return m;}
+function td(v, text, cls=''){return `<td class="${cls}" data-copy="${copyNum(v)}">${text}</td>`;}
+function metricCells(m){
+  const priceKg=m.kg?m.rev/m.kg:0;
+  const retPct=m.kg?m.retKg/m.kg*100:0;
+  return [td(m.rev,fmtMoney(m.rev)),td(m.seb,fmtMoney(m.seb)),td(m.kg,fmtKg(m.kg)),td(priceKg,fmt1(priceKg)+' ₸'),td(m.saleKg ?? (m.kg+m.retKg),fmtKg(m.saleKg ?? (m.kg+m.retKg))),td(m.retKg,fmtKg(m.retKg),m.retKg?'neg':''),td(retPct,fmt1(retPct)+'%',retPct?'neg':'')].join('');
 }
+function expenseFactPerKg(mk,m){const e=DIR_EXPENSES[mk]||{}; return m&&m.kg ? (e.fact||0)/m.kg : 0;}
+function expensePlanPerKg(mk){const e=DIR_EXPENSES[mk]||{}; return e.planKg ? (e.plan||0)/e.planKg : 0;}
+function expenseTotal(kind){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.[kind]||0),0);}
+function expenseTotalPlanKg(){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.planKg||0),0);}
+function buildSalesTable(id,title,rows){
+  const cats=Object.keys(groupBy(rows,r=>r.skuGroup||'Прочее')).sort((a,b)=>agg(rows.filter(r=>r.skuGroup===b)).rev-agg(rows.filter(r=>r.skuGroup===a)).rev);
+  const total=agg(rows);
+  let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Реализация по каналам</div><div class="table-title">${esc(title)}</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}">`;
+  html+=`<thead><tr><th rowspan="2">SKU / Категория</th>${Q_MONTHS.map(m=>`<th class="month-h" colspan="7">${MONTH_LABEL[m]}</th>`).join('')}<th class="month-h" colspan="7">${cfg().totalLabel}</th></tr>`;
+  html+=`<tr>${[...Q_MONTHS,'TOTAL'].map(()=>'<th>Реализация, ₸</th><th>Себестоимость, ₸</th><th>Реализация, кг<br>(с возвратами)</th><th>Цена за 1 кг, ₸</th><th>Реализация, кг<br>(без возвратов)</th><th>Возврат, кг</th><th>% возврата</th>').join('')}</tr></thead><tbody>`;
+  for(const cat of cats){
+    const rs=rows.filter(r=>(r.skuGroup||'Прочее')===cat);
+    html+=`<tr><td data-copy="${esc(cat)}">${esc(cat)}</td>`;
+    for(const mk of Q_MONTHS) html+=metricCells(agg(rs.filter(r=>r.mk===mk)));
+    html+=metricCells(agg(rs))+`</tr>`;
+  }
+  html+=`<tr class="tot"><td data-copy="Итого">Итого</td>`;
+  for(const mk of Q_MONTHS) html+=metricCells(agg(rows.filter(r=>r.mk===mk)));
+  html+=metricCells(total)+`</tr>`;
+  return html+'</tbody></table></div></div>';
+}
+function buildKgFactTable(rows,byMonth){
+  const id='tblKgFact';
+  let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Факт на кг + расходы реализации</div><div class="table-title">Месячная сверка по кг, себестоимости и расходам на реализацию</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}"><thead><tr><th>Показатель</th>${Q_MONTHS.map(m=>`<th>${MONTH_LABEL[m]}</th>`).join('')}<th>${cfg().totalLabel}</th></tr></thead><tbody>`;
+  const total=agg(rows), expPlanTotal=expenseTotal('plan'), expFactTotal=expenseTotal('fact'), expPlanKgTotal=expenseTotalPlanKg(), expPlanPerKgTotal=expPlanKgTotal?expPlanTotal/expPlanKgTotal:0, expFactPerKgTotal=total.kg?expFactTotal/total.kg:0, expDiffPerKgTotal=expFactPerKgTotal-expPlanPerKgTotal;
+  const rowsDef=[['Реализация, кг',byMonth.map(x=>x.kg),total.kg,v=>fmtKg(v)],['Реализация кг без возвратов',byMonth.map(x=>x.saleKg ?? (x.kg+x.retKg)),total.saleKg ?? (total.kg+total.retKg),v=>fmtKg(v)],['Возврат, кг',byMonth.map(x=>x.retKg),total.retKg,v=>fmtKg(v),'neg'],['% возврата от кг',byMonth.map(x=>x.kg?x.retKg/x.kg*100:0),total.kg?total.retKg/total.kg*100:0,v=>fmt1(v)+'%','neg'],['Себестоимость / кг',byMonth.map(x=>x.kg?x.seb/x.kg:0),total.kg?total.seb/total.kg:0,v=>fmt1(v)+' ₸'],['Расходы на реализацию — План, ₸',Q_MONTHS.map(mk=>DIR_EXPENSES[mk]?.plan||0),expPlanTotal,v=>fmtMoney(v)],['Расходы на реализацию — Факт, ₸',Q_MONTHS.map(mk=>DIR_EXPENSES[mk]?.fact||0),expFactTotal,v=>fmtMoney(v)],['Расходы на реализацию — План, ₸/кг',Q_MONTHS.map(mk=>expensePlanPerKg(mk)),expPlanPerKgTotal,v=>fmt1(v)+' ₸'],['Расходы на реализацию — Факт, ₸/кг',Q_MONTHS.map((mk,i)=>expenseFactPerKg(mk,byMonth[i])),expFactPerKgTotal,v=>fmt1(v)+' ₸'],['Отклонение расходов, Факт-План, ₸/кг',Q_MONTHS.map((mk,i)=>expenseFactPerKg(mk,byMonth[i])-expensePlanPerKg(mk)),expDiffPerKgTotal,v=>(v>0?'+':'')+fmt1(v)+' ₸',expDiffPerKgTotal>0?'neg':'pos'],['Себестоимость сумма',byMonth.map(x=>x.seb),total.seb,v=>fmtMoney(v)],['Реализация сумма',byMonth.map(x=>x.rev),total.rev,v=>fmtMoney(v)],['Валовая прибыль',byMonth.map(x=>x.prof),total.prof,v=>fmtMoney(v),total.prof>=0?'pos':'neg']];
+  for(const r of rowsDef){html+=`<tr><td data-copy="${esc(r[0])}">${esc(r[0])}</td>`; r[1].forEach(v=>html+=td(v,r[3](v),r[4]||'')); html+=td(r[2],r[3](r[2]),r[4]||'')+'</tr>';}
+  return html+'</tbody></table></div></div>';
+}
+function buildDirChannelTabs(items){return `<div class="dir-channel-tabs">${items.map(x=>`<button type="button" class="dir-channel-btn" data-channel="${esc(x.id)}">${esc(x.title)}</button>`).join('')}</div>`;}
+function buildDirChannelPanel(item){return `<div class="dir-channel-panel" data-channel="${esc(item.id)}">${buildSalesTable(item.id,item.title,item.rows)}</div>`;}
+window.setDirChannel=function(id){const panels=[...document.querySelectorAll('#salesTables .dir-channel-panel')]; if(!panels.length) return; if(!panels.some(p=>p.dataset.channel===id)) id=panels[0].dataset.channel; panels.forEach(p=>p.classList.toggle('active',p.dataset.channel===id)); document.querySelectorAll('#salesTables .dir-channel-btn').forEach(b=>b.classList.toggle('active',b.dataset.channel===id)); try{localStorage.setItem('pf.dir.channel',id);}catch(e){}};
+function initDirChannels(){document.querySelectorAll('#salesTables .dir-channel-btn').forEach(btn=>btn.addEventListener('click',()=>window.setDirChannel(btn.dataset.channel))); let saved=''; try{saved=localStorage.getItem('pf.dir.channel')||'';}catch(e){} window.setDirChannel(saved||'tblSalesAll');}
+function cellCopyValue(cell){return cell.dataset.copy ?? cell.innerText.replace(/\s+/g,' ').trim();}
+function tableToGrid(table){const grid=[]; [...table.rows].forEach((tr,r)=>{grid[r]=grid[r]||[]; let c=0; [...tr.cells].forEach(cell=>{while(grid[r][c]!==undefined)c++; const rs=Number(cell.rowSpan)||1, cs=Number(cell.colSpan)||1; grid[r][c]=cellCopyValue(cell); for(let rr=r;rr<r+rs;rr++){grid[rr]=grid[rr]||[]; for(let cc=c;cc<c+cs;cc++) if(rr!==r||cc!==c) grid[rr][cc]='';} c+=cs;});}); const max=Math.max(0,...grid.map(r=>r.length)); return grid.map(r=>Array.from({length:max},(_,i)=>r[i]??''));}
+function htmlClipboardTable(table){const clone=table.cloneNode(true); clone.querySelectorAll('td,th').forEach(cell=>{cell.textContent=cellCopyValue(cell); cell.style.border='1px solid #c9d3e0'; cell.style.padding='4px 7px'; cell.style.whiteSpace='nowrap'; if(cell.tagName==='TH'){cell.style.fontWeight='700';cell.style.textAlign='center';cell.style.background='#eaf2ff';}}); clone.style.borderCollapse='collapse'; clone.style.fontFamily='Calibri, Arial, sans-serif'; clone.style.fontSize='11pt'; return `<html><body>${clone.outerHTML}</body></html>`;}
+window.copyDirTable=async function(id,btn){const table=document.getElementById(id); if(!table) return; const grid=tableToGrid(table), plain=grid.map(r=>r.join('\t')).join('\n'), old=btn?.textContent||''; try{if(btn)btn.textContent='Копирую...'; if(navigator.clipboard?.write&&window.ClipboardItem){const html=htmlClipboardTable(table); await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([plain],{type:'text/plain'})})]);} else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(plain);} else {const ta=document.createElement('textarea'); ta.value=plain; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();} if(btn){btn.textContent='✅ Скопировано'; btn.classList.add('ok'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('ok');},1600);}}catch(e){console.error(e); if(btn){btn.textContent='❌ Ошибка'; btn.classList.add('err'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('err');},1800);}}};
+function makeChart(id,type,data,options={}){if(!window.Chart)return null; return new Chart(document.getElementById(id),{type,data,options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:8,font:{size:10}}}},...options}});}
+function updateQuarterText(){const c=cfg(); document.title='PF — '+c.title; document.getElementById('heroTitle').textContent=c.title; document.getElementById('heroSub').innerHTML=`Раздел построен по форме Excel, но цифры считаются из того же живого источника, что и главная таблица: <b>PF.loadSales → ИсхРеал + справочники + цены прихода</b>. Для сверки в главной таблице выбери ${c.filterText}.`; document.getElementById('kRevLabel').textContent=c.kpiLabel; document.getElementById('kRevSub').textContent=c.kpiSub; document.getElementById('mainNote').innerHTML=`Важно: Excel-файл больше не является источником цифр для этого раздела. Он используется только как ориентир по структуре: реализация по каналам/категориям и блок “на кг”. Поэтому итог ДиР должен совпадать с главной таблицей при фильтре <b>${c.filterText}</b>.`; document.getElementById('salesSectionTitle').textContent=c.salesTitle; document.getElementById('qBtn1').classList.toggle('active',activeQuarter==='q1'); document.getElementById('qBtn2').classList.toggle('active',activeQuarter==='q2');}
+function renderQuarter(){if(!allRows.length)return; const c=cfg(); prog(84,c.progress); updateQuarterText(); const rows=allRows.filter(r=>Q_MONTHS.includes(r.mk)); const total=agg(rows), byMonth=Q_MONTHS.map(m=>agg(rows.filter(r=>r.mk===m))); document.getElementById('kRevQ').textContent=fmtMoney(total.rev); document.getElementById('kSebQ').textContent=fmtMoney(total.seb); const pe=document.getElementById('kProfV'); pe.textContent=fmtMoney(total.prof); pe.className='kpi-v '+(total.prof>=0?'pos':'neg'); document.getElementById('kProfQ').style.borderTopColor=total.prof>=0?'var(--green)':'var(--red)'; document.getElementById('kMarQ').textContent='маржа '+(total.mar>=0?'+':'')+fmt1(total.mar)+'%'; document.getElementById('kQtyQ').textContent=fmtKg(total.kg); document.getElementById('kRetQ').textContent=fmtKg(total.retKg); document.getElementById('kRetPctQ').textContent=(total.kg?fmt1(total.retKg/total.kg*100):'0,0')+'% от кг'; document.getElementById('navInfo').textContent=c.nav+' · '+new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); const byGroup=groupBy(rows,r=>r.group||'Без группы'); const groups=Object.keys(byGroup).sort((a,b)=>agg(byGroup[b]).rev-agg(byGroup[a]).rev); const dirChannelItems=[{id:'tblSalesAll',title:'Общее',rows}]; groups.forEach((g,i)=>dirChannelItems.push({id:'tblSalesGroup'+i,title:g,rows:byGroup[g]})); document.getElementById('salesTables').innerHTML=buildDirChannelTabs(dirChannelItems)+dirChannelItems.map(buildDirChannelPanel).join(''); initDirChannels(); document.getElementById('kgCards').innerHTML=Q_MONTHS.map((mk,i)=>{const m=byMonth[i], expKg=expenseFactPerKg(mk,m); return `<div class="mc"><div class="mc-name">${MONTH_LABEL[mk]}</div><div class="mc-v" style="color:var(--green)">${fmtKg(m.kg)}</div><div class="mc-r"><span>Реализация</span><span>${fmtMoney(m.rev)}</span></div><div class="mc-r"><span>Себест./кг</span><span>${m.kg?fmt1(m.seb/m.kg):'0,0'} ₸</span></div><div class="mc-r"><span>Расх. реал./кг</span><span>${fmt1(expKg)} ₸</span></div><div class="mc-r"><span>Возврат</span><span class="neg">${fmtKg(m.retKg)}</span></div></div>`;}).join(''); document.getElementById('kgTables').innerHTML=buildKgFactTable(rows,byMonth); if(chartKg)chartKg.destroy(); if(chartCostKg)chartCostKg.destroy(); chartKg=makeChart('cKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Реализация кг',data:byMonth.map(x=>Math.round(x.kg)),backgroundColor:CC[1],borderRadius:4},{label:'Возврат кг',data:byMonth.map(x=>Math.round(Math.abs(x.retKg))),backgroundColor:CC[3],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>fmtFull(v)}}}}); chartCostKg=makeChart('cCostKg','bar',{labels:Q_MONTHS.map(m=>MONTH_SHORT[m]),datasets:[{label:'Себестоимость / кг',data:byMonth.map(x=>x.kg?+(x.seb/x.kg).toFixed(1):0),backgroundColor:CC[2],borderRadius:4},{label:'Расходы реал. / кг факт',data:Q_MONTHS.map((mk,i)=>+expenseFactPerKg(mk,byMonth[i]).toFixed(1)),backgroundColor:CC[0],borderRadius:4},{label:'Расходы реал. / кг план',data:Q_MONTHS.map(mk=>+expensePlanPerKg(mk).toFixed(1)),backgroundColor:CC[3],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>v+' ₸'}}}}); if(window.PFU?.updateChartTheme)PFU.updateChartTheme();}
+window.switchDirQuarter=function(key){if(!QUARTERS[key])return; activeQuarter=key; Q_MONTHS=[...cfg().months]; try{localStorage.setItem('pf.dir.quarter',key);}catch(e){} renderQuarter();};
+async function init(){document.getElementById('qBtn1').addEventListener('click',()=>window.switchDirQuarter('q1')); document.getElementById('qBtn2').addEventListener('click',()=>window.switchDirQuarter('q2')); try{prog(5,'Загрузка продаж...'); const {rawRows}=await PF.loadSales((p,s)=>prog(Math.min(80,Math.round(p*.8)),s)); allRows=rawRows; let saved='q2'; try{saved=localStorage.getItem('pf.dir.quarter')||'q2';}catch(e){} window.switchDirQuarter(QUARTERS[saved]?saved:'q2'); prog(100,'Готово'); setTimeout(()=>document.getElementById('ls').style.display='none',250);}catch(err){console.error(err); document.getElementById('lstep').textContent='Ошибка загрузки'; const le=document.getElementById('lerr'); le.style.display='block'; le.textContent=err.message||String(err); document.getElementById('prog').style.background='var(--red)';}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
