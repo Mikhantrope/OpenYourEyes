@@ -346,23 +346,23 @@ tr.dt-dimmed{opacity:.25;}
 
 /* Export screenshot */
 
-.export-shot{position:fixed;left:0;top:0;transform:translateX(-150vw);z-index:-1;background:var(--bg);color:var(--text);padding:14px;font-family:'Segoe UI',system-ui,sans-serif;max-width:none;}
+.export-shot{position:fixed;left:0;top:0;transform:translateX(-150vw);z-index:-1;background:#0d1117;color:#e6edf3;padding:14px;font-family:'Segoe UI',system-ui,sans-serif;max-width:none;}
 
 .export-shot-title{font-size:14px;font-weight:800;margin-bottom:8px;color:#e6edf3;}
 
 .export-shot-sub{font-size:10px;color:#8b949e;margin-bottom:10px;}
 
-.export-shot table{border-collapse:collapse!important;table-layout:auto!important;width:auto!important;min-width:auto!important;background:var(--s1)!important;}
+.export-shot table{border-collapse:collapse!important;table-layout:auto!important;width:auto!important;min-width:auto!important;background:#0d1117!important;}
 
 .export-shot th,.export-shot td{position:static!important;left:auto!important;top:auto!important;z-index:auto!important;padding:5px 8px!important;border:1px solid #30363d!important;white-space:nowrap!important;font-size:11px!important;}
 
-.export-shot th{background:var(--s2)!important;color:var(--muted)!important;font-weight:800!important;text-align:right!important;}
+.export-shot th{background:#21262d!important;color:#8b949e!important;font-weight:800!important;text-align:right!important;}
 
 .export-shot th:first-child,.export-shot td:first-child{text-align:left!important;min-width:210px!important;max-width:360px!important;overflow:hidden!important;text-overflow:ellipsis!important;}
 
-.export-shot td{background:var(--s1)!important;color:var(--text)!important;}
+.export-shot td{background:#161b22!important;color:#e6edf3!important;}
 
-.export-shot tr.tot td,.export-shot tr.dt-tot td{background:rgba(0,230,118,.08)!important;color:var(--text)!important;font-weight:800!important;}
+.export-shot tr.tot td,.export-shot tr.dt-tot td{background:#0f2018!important;color:#e6edf3!important;font-weight:800!important;}
 
 .export-shot .pos{color:#3fb950!important}
 
@@ -370,7 +370,6 @@ tr.dt-dimmed{opacity:.25;}
 
 .export-shot .pos{color:#3fb950!important}.export-shot .neg{color:#f85149!important}.export-shot .neu{color:#d29922!important}
 </style>
-<link rel="stylesheet" href="pf-ui.css?v=20260510">
 </head>
 <body>
 
@@ -401,7 +400,6 @@ tr.dt-dimmed{opacity:.25;}
       <a class="nt" href="pnl.html">💰 P&L</a>
       <a class="nt" href="analytics.html">🔬 Аналитика</a>
       <a class="nt" href="quality.html">🧪 Качество</a>
-      <a class="nt" href="dir.html">📑 ДиР</a>
     </div>
     <div class="view-mode">
       <button class="vm-btn active" id="vmMonth" onclick="setViewMode('month')">📅 По месяцам</button>
@@ -516,9 +514,8 @@ tr.dt-dimmed{opacity:.25;}
       <input type="checkbox" id="hintToggle" checked onchange="toggleHintMode(this.checked)">
       <span style="font-size:10px;color:var(--muted)">❓ Подсказки</span>
     </label>
-    <button class="copy-btn" onclick="copyTableText(event)" title="Скопировать текущую таблицу как табличный текст: цифры без ₸, кг, %, млн/тыс">📋 Цифры</button>
-    <button class="copy-btn" onclick="copyTableImage(event)" title="Скопировать текущую таблицу как PNG-картинку">📸 Картинка</button>
     <span style="font-size:10px;color:var(--dim)" id="luTime"></span>
+    
   </div>
 </div>
 
@@ -604,7 +601,6 @@ tr.dt-dimmed{opacity:.25;}
 
 <script src="pf-prikhod.js?v=20260429-safe2"></script>
 <script src="pf-data.js?v=20260429-safe2"></script>
-<script src="pf-utils.js?v=20260510"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 // ── MONTH MODE COLUMNS (v2026-04-23 06:08) ──────────────────────────────────────
@@ -753,6 +749,7 @@ const DIM_STORAGE_KEY='pf.rowDims.v2';
 const DEFAULT_ROW_DIMS=['group','knt','sku'];
 const DIMENSIONS=[
   {id:'group',    label:'Группа контр.', full:'Группа контрагента'},
+  {id:'subgroup', label:'Подгруппа',     full:'Подгруппа контрагента'},
   {id:'knt',      label:'Контрагент',    full:'Контрагент'},
   {id:'skuGroup', label:'Группа SKU',    full:'Группа SKU'},
   {id:'sku',      label:'SKU',           full:'Номенклатура / SKU'},
@@ -1870,60 +1867,9 @@ let hintMode = true;
 
 
 // ── GPT EXPORT FUNCTIONS ──────────────────────────
-
-function cleanCopyLabel(text){
-  return String(text||'')
-    .replace(/[▾▸]/g,'')
-    .replace(/📊/g,'')
-    .replace(/\?/g,'')
-    .replace(/\s+/g,' ')
-    .trim();
-}
-
-function normalizeCopyNumber(text){
-  const original=cleanCopyLabel(text);
-  if(!original || original==='—') return '';
-  let s=original.replace(/\u00a0/g,' ').replace(/−/g,'-').trim();
-  let mult=1;
-  if(/млрд/i.test(s)) mult=1000000000;
-  else if(/млн/i.test(s)) mult=1000000;
-  else if(/тыс/i.test(s)) mult=1000;
-  s=s.replace(/млрд|млн|тыс|₸|кг|шт|%/gi,'')
-     .replace(/\s+/g,'')
-     .replace(/^\+/,'');
-  // Оставляем только число: минус, точка/запятая и цифры.
-  s=s.replace(/[^0-9,\.\-]/g,'');
-  if(!s || s==='-' || s==='.' || s===',') return original;
-  // В наших форматах точка/запятая используется как десятичный разделитель.
-  if(s.includes(',') && !s.includes('.')) s=s.replace(',', '.');
-  // Если случайно пришли тысячи через точки, а десятичной части нет — убираем точки.
-  const dotCount=(s.match(/\./g)||[]).length;
-  if(dotCount>1) s=s.replace(/\./g,'');
-  const n=Number(s)*mult;
-  if(!Number.isFinite(n)) return original;
-  const rounded=Math.abs(n)>=1000 ? Math.round(n) : Math.round(n*100)/100;
-  return String(rounded).replace('.',',');
-}
-
-function tableToNumericTsv(table){
-  const rows=[...table.querySelectorAll('tr')];
-  return rows.map(tr=>{
-    const cells=[...tr.children].filter(c=>c.matches('th,td'));
-    if(!cells.length) return '';
-    return cells.map((cell,idx)=>{
-      const txt=cleanCopyLabel(cell.innerText||cell.textContent||'');
-      if(idx===0 || cell.tagName==='TH') return txt;
-      return normalizeCopyNumber(txt);
-    }).join('\t');
-  }).filter(Boolean).join('\n');
-}
 function copyTableText(ev){
-  const btn=ev?.currentTarget;
-  if(btn){btn.dataset.oldText=btn.dataset.oldText||btn.textContent;btn.classList.add('busy');btn.textContent='Копирую...';}
-  const table=getExportTableEl();
-  if(!table){setCopyBtn(btn,'❌ Таблица не найдена','err',2200);return;}
-  const text=tableToNumericTsv(table);
-  copyPlainText(text).then(()=>setCopyBtn(btn,'✅ Цифры скопированы','ok')).catch(()=>setCopyBtn(btn,'❌ Не скопировалось','err',2400));
+  const btn=ev?.currentTarget; if(btn){btn.dataset.oldText=btn.dataset.oldText||btn.textContent;btn.classList.add('busy');btn.textContent='Копирую...';}
+  copyPlainText(makeWhatsAppReport()).then(()=>setCopyBtn(btn,'✅ Текст скопирован','ok')).catch(()=>setCopyBtn(btn,'❌ Не скопировалось','err',2400));
 }
 
 async function copyTableImage(ev){
@@ -1938,7 +1884,7 @@ async function copyTableImage(ev){
     clone.removeAttribute('id');
     wrap.appendChild(clone);
     document.body.appendChild(wrap);
-    const canvas=await html2canvas(wrap,{backgroundColor:getComputedStyle(document.body).getPropertyValue('--bg').trim()||'#0d1117',scale:2,useCORS:true,logging:false,windowWidth:Math.max(wrap.scrollWidth,1200),windowHeight:Math.max(wrap.scrollHeight,700)});
+    const canvas=await html2canvas(wrap,{backgroundColor:'#0d1117',scale:2,useCORS:true,logging:false,windowWidth:Math.max(wrap.scrollWidth,1200),windowHeight:Math.max(wrap.scrollHeight,700)});
     document.body.removeChild(wrap);
     const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
     if(!blob) throw new Error('PNG не создан');
@@ -1953,7 +1899,7 @@ async function copyTableImage(ev){
     try{
       const src=getExportTableEl();
       if(src&&typeof html2canvas!=='undefined'){
-        const canvas=await html2canvas(src,{backgroundColor:getComputedStyle(document.body).getPropertyValue('--bg').trim()||'#0d1117',scale:2,useCORS:true,logging:false});
+        const canvas=await html2canvas(src,{backgroundColor:'#0d1117',scale:2,useCORS:true,logging:false});
         const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
         downloadBlob(blob); setCopyBtn(btn,'⬇️ PNG скачан','ok',2200); return;
       }

@@ -247,13 +247,18 @@ const PF = {
     const ki=(...ns)=>this.findCol(kH,...ns);
     const groupMap={};
     const groupMapNorm={};  // нормализованный ключ для нечёткого сопоставления
+    const subgroupMap={};     // подгруппы контрагентов (колонка E)
+    const subgroupMapNorm={};
     const normKey = s => s.toLowerCase().replace(/\s+/g,' ').replace(/[«»"'`]/g,'').trim();
+    const iSubGrp=ki('подгруппы','подгруппа','subgroup','sub');
     for (let i=1;i<kRows.length;i++) {
       const knt=String(kRows[i][ki('контрагент','kontragent')]||'').trim();
       const grp=String(kRows[i][ki('новаягруппа','новая','группа')]||'').trim();
+      const sub=iSubGrp>=0 ? String(kRows[i][iSubGrp]||'').trim() : '';
       if (knt) {
         groupMap[knt]=grp||'⚠️ Без группы';
         groupMapNorm[normKey(knt)]=grp||'⚠️ Без группы';
+        if(sub) { subgroupMap[knt]=sub; subgroupMapNorm[normKey(knt)]=sub; }
       }
     }
     // Функция поиска группы: 3 уровня
@@ -261,9 +266,14 @@ const PF = {
     // 2) нормализованное (lowercase, без кавычек, trim)
     // 3) fallback по первым 20 символам (нечёткое)
     const groupMapPrefix={};
+    const subgroupMapPrefix={};
     for(const [k,v] of Object.entries(groupMap)){
       const pfx = normKey(k).slice(0,20);
       if(!groupMapPrefix[pfx]) groupMapPrefix[pfx]=v;
+    }
+    for(const [k,v] of Object.entries(subgroupMap)){
+      const pfx = normKey(k).slice(0,20);
+      if(!subgroupMapPrefix[pfx]) subgroupMapPrefix[pfx]=v;
     }
     const findGroup = knt => {
       // 1) Точное совпадение
@@ -279,6 +289,17 @@ const PF = {
         if(k.length>5 && nk.length>5 && (k.includes(nk) || nk.includes(k))) return v;
       }
       return '⚠️ Без группы';
+    };
+    const findSubgroup = knt => {
+      if(subgroupMap[knt]) return subgroupMap[knt];
+      const nk = normKey(knt);
+      if(subgroupMapNorm[nk]) return subgroupMapNorm[nk];
+      const pfx = nk.slice(0,20);
+      if(subgroupMapPrefix[pfx]) return subgroupMapPrefix[pfx];
+      for(const [k,v] of Object.entries(subgroupMapNorm)){
+        if(k.length>5 && nk.length>5 && (k.includes(nk) || nk.includes(k))) return v;
+      }
+      return '';
     };
 
     // 3. ИсхРеал
@@ -332,13 +353,16 @@ const PF = {
       const day=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
       if (!monthMap.has(mk)) monthMap.set(mk,this.MO[dt.getMonth()]+' '+dt.getFullYear());
 
-      const qtyReal  =this.toNum(r[iQtyReal]) || this.toNum(r[iQtyN]);  // fallback: если нет отдельной колонки реализации, бери "с возвратами"
-      const sumReal  =this.toNum(r[iSumReal]) || (iSumRealS>=0 ? this.toNum(r[iSumRealS]) : 0);  // fallback: бери "с возвратами"
-      const sumRealS =iSumRealS>=0 ? this.toNum(r[iSumRealS]) : (sumReal + sumR);  // J+K или колонка L
       const qtyN     =this.toNum(r[iQtyN]);
       const qtyR     =Math.abs(this.toNum(r[iQtyR]));
-      const sumBezNds=this.toNum(r[iSumBezNds]);
+      // qtyReal/sumReal: если отдельная колонка есть и заполнена — берём её, иначе берём "с возвратами"
+      const _rawQtyReal = iQtyReal>=0 ? r[iQtyReal] : undefined;
+      const _rawSumReal = iSumReal>=0 ? r[iSumReal] : undefined;
+      const qtyReal  = (_rawQtyReal != null && String(_rawQtyReal).trim() !== '') ? this.toNum(_rawQtyReal) : qtyN;
       const sumR     =this.toNum(r[iSumR]);
+      const sumRealS =iSumRealS>=0 ? this.toNum(r[iSumRealS]) : (this.toNum(_rawSumReal) + sumR);
+      const sumReal  = (_rawSumReal != null && String(_rawSumReal).trim() !== '') ? this.toNum(_rawSumReal) : sumRealS;
+      const sumBezNds=this.toNum(r[iSumBezNds]);
       const w        =skuWeight[sku]||1;
 
       // Себестоимость из прихода: цена ближайшего прихода ДО даты продажи
@@ -362,6 +386,7 @@ const PF = {
           return false;
         })(),
         group:    findGroup(knt),
+        subgroup: findSubgroup(knt),
         skuGroup: skuGroup[sku]||'Прочее',
         weight:w,
         qtyN,qtyR,qtyReal,sumReal,sumRealS,
@@ -378,7 +403,7 @@ const PF = {
     }
 
     const months=[...monthMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-    return {rawRows,groupMap,skuWeight,skuGroup,months};
+    return {rawRows,groupMap,subgroupMap,skuWeight,skuGroup,months};
   },
 
   // ── ЗАГРУЗКА ПРИХОДА ─────────────────────────────────────────
