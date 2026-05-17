@@ -15,6 +15,7 @@
 const PF = {
   PUB_ID:    '2PACX-1vTwyEj5Huy-avrqvCZj1rCqTBJObnOHNJ-GVdZic0J1_fwVafku2G0MpiZtGle8zOXzUUmEer26ylrO',
   GID_REAL:  '1186338740',
+  GID_REAL_AO: '1376311466',  // ИсхРеалАО — данные от Астана-Өнім
   GID_KONTR: '1039539700',
   GID_SKU:   '286897778',
   GID_PRIHOD:'1270219264',
@@ -403,7 +404,61 @@ const PF = {
     }
 
     const months=[...monthMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-    return {rawRows,groupMap,subgroupMap,skuWeight,skuGroup,months};
+
+    // 3b. ИсхРеалАО — данные от Астана-Өнім (тот же формат, мержим в rawRows)
+    try {
+      p(75,'Данные АО...');
+      const aoRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_REAL_AO))).text());
+      if(aoRows.length>1){
+        const aoH=aoRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+        const ai=(...ns)=>this.findCol(aoH,...ns);
+        const aiKnt=ai('контрагент'), aiSku=ai('номенклатура','sku','товар'), aiDate=ai('периоддень','период','дата');
+        const aiQtyN=ai('количествореализации(с','количествосвозвр'), aiQtyR=ai('количествовозвратов');
+        const aiQtyReal=aoH.findIndex(h=>h==='количествореализации');
+        const aiSumReal=aoH.findIndex(h=>h==='суммареализации');
+        const aiSumRealS=ai('суммареализации(с','суммасвозвр');
+        const aiSumR=ai('суммавозвратов'), aiSumBezNds=ai('суммабезналогов','безналогов');
+        const aiSklad=ai('склад');
+        for(let i=1;i<aoRows.length;i++){
+          const r=aoRows[i];
+          const knt=String(r[aiKnt]||'').trim();
+          const sku=String(r[aiSku]||'').trim();
+          if(!knt||!sku) continue;
+          if(knt.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
+          if(!this.isDairy(sku)) continue;
+          const dt=this.toDate(r[aiDate]); if(!dt) continue;
+          const mk=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+          const day=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+          if(!monthMap.has(mk)) monthMap.set(mk,this.MO[dt.getMonth()]+' '+dt.getFullYear());
+          const qtyN=this.toNum(r[aiQtyN]), qtyR=Math.abs(this.toNum(r[aiQtyR]));
+          const _rQR=aiQtyReal>=0?r[aiQtyReal]:undefined, _rSR=aiSumReal>=0?r[aiSumReal]:undefined;
+          const qtyReal=(_rQR!=null&&String(_rQR).trim()!=='')?this.toNum(_rQR):qtyN;
+          const sumR=this.toNum(r[aiSumR]);
+          const sumRealS=aiSumRealS>=0?this.toNum(r[aiSumRealS]):(this.toNum(_rSR)+sumR);
+          const sumReal=(_rSR!=null&&String(_rSR).trim()!=='')?this.toNum(_rSR):sumRealS;
+          const sumBezNds=this.toNum(r[aiSumBezNds]);
+          const w=skuWeight[sku]||1;
+          const prikhodCost=this.getPrikhodCostPrices(sku,day);
+          const sebNew=prikhodCost?prikhodCost.priceNoNds*qtyN:0;
+          const sebWithNds=prikhodCost?prikhodCost.priceWithNds*qtyN:0;
+          const sebSale=prikhodCost?prikhodCost.priceNoNds*qtyReal:0;
+          const sebSaleWithNds=prikhodCost?prikhodCost.priceWithNds*qtyReal:0;
+          const sklad=aiSklad>=0?String(r[aiSklad]||'').trim():'';
+          rawRows.push({
+            knt,sku,mk,day,ndsSuspect:false,
+            group:findGroup(knt),subgroup:findSubgroup(knt),
+            skuGroup:skuGroup[sku]||'Прочее',weight:w,
+            qtyN,qtyR,qtyReal,sumReal,sumRealS,sumBezNds,sumR,
+            seb:sebNew,sebWithNds,sebSale,sebSaleWithNds,
+            prof:sumBezNds-sebNew,kg:qtyN*w,retKg:qtyR*w,
+          });
+        }
+        p(85,'АО: '+aoRows.length+' строк');
+      }
+    }catch(e){ console.warn('ИсхРеалАО не загружен:',e); }
+
+    const months2=[...monthMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+    return {rawRows,groupMap,subgroupMap,skuWeight,skuGroup,months:months2};
   },
 
   // ── ЗАГРУЗКА ПРИХОДА ─────────────────────────────────────────
