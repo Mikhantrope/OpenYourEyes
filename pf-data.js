@@ -286,11 +286,20 @@ const PF = {
     p(52,'Данные реализации (май)...');
     const rRows2=this.parseCSV(await (await fetch(this.csvUrl(this.GID_REAL_MAY))).text());
 
-    // DEBUG — покажет алерт с диагностикой, потом уберём
-    alert(`ИсхРеал: ${rRows1.length} строк\nИсхРеалМай: ${rRows2.length} строк\n\nHeader1: ${rRows1[0]?.slice(0,4)}\nHeader2: ${rRows2[0]?.slice(0,4)}\n\nFirst data MAY: ${rRows2[1]?.slice(0,5)}`);
+    // Заголовки ИсхРеал и ИсхРеалМай могут быть в разном порядке.
+    // Ремаппим строки ИсхРеалМай → порядок колонок ИсхРеал.
+    const h1=rRows1[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+    const h2=rRows2[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+    // Для каждой колонки h1 находим соответствующий индекс в h2
+    const colMap=h1.map(name=>{
+      let idx=h2.findIndex(h=>h===name);
+      if(idx<0) idx=h2.findIndex(h=>h.includes(name)||name.includes(h));
+      return idx;
+    });
+    // Ремаппим каждую строку из rRows2 в порядок h1
+    const rRows2mapped=rRows2.slice(1).map(row=>colMap.map(ci=>ci>=0?row[ci]:''));
 
-    // Объединяем: заголовки одинаковые, берём header от первого, данные от обоих
-    const rRows=[rRows1[0], ...rRows1.slice(1), ...rRows2.slice(1)];
+    const rRows=[rRows1[0], ...rRows1.slice(1), ...rRows2mapped];
 
     const rH=rRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
     const ri=(...ns)=>this.findCol(rH,...ns);
