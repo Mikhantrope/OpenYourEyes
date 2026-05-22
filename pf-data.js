@@ -285,6 +285,10 @@ const PF = {
     const rRows1=this.parseCSV(await (await fetch(this.csvUrl(this.GID_REAL))).text());
     p(52,'Данные реализации (май)...');
     const rRows2=this.parseCSV(await (await fetch(this.csvUrl(this.GID_REAL_MAY))).text());
+
+    // DEBUG — покажет алерт с диагностикой, потом уберём
+    alert(`ИсхРеал: ${rRows1.length} строк\nИсхРеалМай: ${rRows2.length} строк\n\nHeader1: ${rRows1[0]?.slice(0,4)}\nHeader2: ${rRows2[0]?.slice(0,4)}\n\nFirst data MAY: ${rRows2[1]?.slice(0,5)}`);
+
     // Объединяем: заголовки одинаковые, берём header от первого, данные от обоих
     const rRows=[rRows1[0], ...rRows1.slice(1), ...rRows2.slice(1)];
 
