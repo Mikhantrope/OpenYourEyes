@@ -15,7 +15,7 @@
 const PF = {
   PUB_ID:    '2PACX-1vTwyEj5Huy-avrqvCZj1rCqTBJObnOHNJ-GVdZic0J1_fwVafku2G0MpiZtGle8zOXzUUmEer26ylrO',
   GID_REAL:  '1836485982',
-  GID_REAL_MAY: '395229706',  // ИсхРеалМай — новый формат с мая 2026
+  GID_REAL_MAY: '1919783760',  // ИсхРеалМай — новый формат с мая 2026
   GID_KONTR: '1039539700',
   GID_SKU:   '286897778',
   GID_PRIHOD:'1270219264',
