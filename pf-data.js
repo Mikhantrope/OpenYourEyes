@@ -14,12 +14,16 @@
 
 const PF = {
   PUB_ID:    '2PACX-1vTwyEj5Huy-avrqvCZj1rCqTBJObnOHNJ-GVdZic0J1_fwVafku2G0MpiZtGle8zOXzUUmEer26ylrO',
-  GID_REAL:  '1836485982',
-  GID_REAL_MAY: '1919783760',  // ИсхРеалМай — новый формат с мая 2026
+  GID_REAL:  '1186338740',
+  GID_REAL_AO: '1376311466',  // ИсхРеалАО — данные от Астана-Өнім
   GID_KONTR: '1039539700',
   GID_SKU:   '286897778',
   GID_PRIHOD:'1270219264',
   GID_PLAN:  '311695615',   // Лист Планы — план закупа по поставщикам
+  GID_PRIHOD2:'739937881',  // Приход для ДиР / веса по поставщикам
+  GID_RASHOD:'753197950',   // Расходы для ДиР
+  GID_ZP_DET:'1431078713',  // ЗП Детально
+  GID_ZP_OBH:'2144268074',  // ЗП Общее
 
   csvUrl(gid) {
     return `https://docs.google.com/spreadsheets/d/e/${this.PUB_ID}/pub?gid=${gid}&single=true&output=csv`;
@@ -110,7 +114,7 @@ const PF = {
       }
     }
     const mar            = rev  ? prof/rev*100  : 0;
-    const retPct         = rev  ? ret/rev*100   : 0;
+    const retPct         = sumRealSTotal  ? ret/sumRealSTotal*100   : 0;
     const avg            = qtyRealSum ? revSaleOnly/qtyRealSum : 0;  // ср.цена только по строкам продаж
     const retKgPct       = kg   ? retKg/kg*100 : 0;
     const priceZakup     = qtyRealSum ? sebRealSum/qtyRealSum            : 0;  // без НДС, только из строк продаж
@@ -244,13 +248,23 @@ const PF = {
     const ki=(...ns)=>this.findCol(kH,...ns);
     const groupMap={};
     const groupMapNorm={};  // нормализованный ключ для нечёткого сопоставления
+    const subgroupMap={};     // подгруппы контрагентов (колонка E)
+    const subgroupMapNorm={};
+    const displayMap={};      // Общее название для Дашборда
+    const displayMapNorm={};
     const normKey = s => s.toLowerCase().replace(/\s+/g,' ').replace(/[«»"'`]/g,'').trim();
+    const iSubGrp=ki('подгруппы','подгруппа','subgroup','sub');
+    const iDisplay=ki('общееназваниедлядашборда','общееназвание','дляdashboard','display');
     for (let i=1;i<kRows.length;i++) {
       const knt=String(kRows[i][ki('контрагент','kontragent')]||'').trim();
       const grp=String(kRows[i][ki('новаягруппа','новая','группа')]||'').trim();
+      const sub=iSubGrp>=0 ? String(kRows[i][iSubGrp]||'').trim() : '';
+      const disp=iDisplay>=0 ? String(kRows[i][iDisplay]||'').trim() : '';
       if (knt) {
         groupMap[knt]=grp||'⚠️ Без группы';
         groupMapNorm[normKey(knt)]=grp||'⚠️ Без группы';
+        if(sub) { subgroupMap[knt]=sub; subgroupMapNorm[normKey(knt)]=sub; }
+        if(disp) { displayMap[knt]=disp; displayMapNorm[normKey(knt)]=disp; }
       }
     }
     // Функция поиска группы: 3 уровня
@@ -258,13 +272,52 @@ const PF = {
     // 2) нормализованное (lowercase, без кавычек, trim)
     // 3) fallback по первым 20 символам (нечёткое)
     const groupMapPrefix={};
+    const subgroupMapPrefix={};
+    const displayMapPrefix={};
     for(const [k,v] of Object.entries(groupMap)){
       const pfx = normKey(k).slice(0,20);
       if(!groupMapPrefix[pfx]) groupMapPrefix[pfx]=v;
     }
+    for(const [k,v] of Object.entries(subgroupMap)){
+      const pfx = normKey(k).slice(0,20);
+      if(!subgroupMapPrefix[pfx]) subgroupMapPrefix[pfx]=v;
+    }
+    for(const [k,v] of Object.entries(displayMap)){
+      const pfx = normKey(k).slice(0,20);
+      if(!displayMapPrefix[pfx]) displayMapPrefix[pfx]=v;
+    }
+
+    // Розничные покупатели (Фирменные точки) → раскидывать по складам
+    const ROZN_NAMES = new Set(['розничная выручка','розничный покупатель','чл-розничная реализация']);
+    const SKLAD_TO_TT = {
+      'артем':'ТТ Артем', 'тт артем':'ТТ Артем',
+      'сауран':'ТТ Сауран', 'тт сауран':'ТТ Сауран',
+      'коктал':'ТТ Коктал', 'тт коктал':'ТТ Коктал',
+      'евразия':'ТТ Евразия', 'тт евразия':'ТТ Евразия',
+      'шапагат':'ТТ Шапагат ТД', 'тт шапагат':'ТТ Шапагат ТД', 'шапагат тд':'ТТ Шапагат ТД',
+      'акмол':'ТТ Акмол Женис', 'женис':'ТТ Акмол Женис', 'тт акмол':'ТТ Акмол Женис', 'акмол женис':'ТТ Акмол Женис',
+    };
+
+    const findDisplayName = (knt, sklad) => {
+      // Розничные покупатели → определяем ТТ по складу
+      if(ROZN_NAMES.has(knt.toLowerCase().trim())){
+        if(sklad){
+          const sl = sklad.toLowerCase().trim();
+          for(const [key, ttName] of Object.entries(SKLAD_TO_TT)){
+            if(sl.includes(key)) return ttName;
+          }
+        }
+        return knt; // не удалось определить ТТ
+      }
+      // Обычные контрагенты → ищем display name
+      if(displayMap[knt]) return displayMap[knt];
+      const nk = normKey(knt);
+      if(displayMapNorm[nk]) return displayMapNorm[nk];
+      const pfx = nk.slice(0,20);
+      if(displayMapPrefix[pfx]) return displayMapPrefix[pfx];
+      return knt; // fallback: оригинальное имя
+    };
     const findGroup = knt => {
-      // Торговые точки — всегда группа "Торговые точки"
-      if(knt.startsWith('ТТ ')) return 'Торговые точки';
       // 1) Точное совпадение
       if(groupMap[knt]) return groupMap[knt];
       const nk = normKey(knt);
@@ -279,28 +332,21 @@ const PF = {
       }
       return '⚠️ Без группы';
     };
+    const findSubgroup = knt => {
+      if(subgroupMap[knt]) return subgroupMap[knt];
+      const nk = normKey(knt);
+      if(subgroupMapNorm[nk]) return subgroupMapNorm[nk];
+      const pfx = nk.slice(0,20);
+      if(subgroupMapPrefix[pfx]) return subgroupMapPrefix[pfx];
+      for(const [k,v] of Object.entries(subgroupMapNorm)){
+        if(k.length>5 && nk.length>5 && (k.includes(nk) || nk.includes(k))) return v;
+      }
+      return '';
+    };
 
-    // 3. ИсхРеал (янв-апр) + ИсхРеалМай (май+)
+    // 3. ИсхРеал
     p(45,'Данные реализации...');
-    const rRows1=this.parseCSV(await (await fetch(this.csvUrl(this.GID_REAL))).text());
-    p(52,'Данные реализации (май)...');
-    const rRows2=this.parseCSV(await (await fetch(this.csvUrl(this.GID_REAL_MAY))).text());
-
-    // Заголовки ИсхРеал и ИсхРеалМай могут быть в разном порядке.
-    // Ремаппим строки ИсхРеалМай → порядок колонок ИсхРеал.
-    const h1=rRows1[0].map(h=>h.toLowerCase().replace(/\s/g,''));
-    const h2=rRows2[0].map(h=>h.toLowerCase().replace(/\s/g,''));
-    // Для каждой колонки h1 находим соответствующий индекс в h2
-    const colMap=h1.map(name=>{
-      let idx=h2.findIndex(h=>h===name);
-      if(idx<0) idx=h2.findIndex(h=>h.includes(name)||name.includes(h));
-      return idx;
-    });
-    // Ремаппим каждую строку из rRows2 в порядок h1
-    const rRows2mapped=rRows2.slice(1).map(row=>colMap.map(ci=>ci>=0?row[ci]:''));
-
-    const rRows=[rRows1[0], ...rRows1.slice(1), ...rRows2mapped];
-
+    const rRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_REAL))).text());
     const rH=rRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
     const ri=(...ns)=>this.findCol(rH,...ns);
 
@@ -325,16 +371,12 @@ const PF = {
 
     for (let i=1;i<rRows.length;i++) {
       const r=rRows[i];
-      let knt=String(r[iKnt]||'').trim();
+      const rawKnt=String(r[iKnt]||'').trim();
       const sku=String(r[iSku]||'').trim();
       const sklad=iSklad>=0 ? String(r[iSklad]||'').trim() : '';
 
-      // Торговые точки: Розничная выручка/покупатель → разделяем по складам
-      const TT_SKLADS={'Сауран':'ТТ Сауран','Коктал':'ТТ Коктал','Артем':'ТТ Артем',
-        'Евразия':'ТТ Евразия','Акмол Женис':'ТТ Акмол Женис','Шапагат ТД':'ТТ Шапагат ТД'};
-      if(knt.toLowerCase().includes('розничн') && TT_SKLADS[sklad]){
-        knt = TT_SKLADS[sklad];
-      }
+      // Display name: розничные → по складу, остальные → из справочника "Общее название для Дашборда"
+      const knt = findDisplayName(rawKnt, sklad);
 
       // Пропускаем: пустые, строку "Итого", нетоварные
       if (!knt||!sku) continue;
@@ -349,26 +391,28 @@ const PF = {
       const day=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
       if (!monthMap.has(mk)) monthMap.set(mk,this.MO[dt.getMonth()]+' '+dt.getFullYear());
 
-      const qtyReal  =this.toNum(r[iQtyReal]);
-      const sumReal  =this.toNum(r[iSumReal]);
-      const sumRealS =iSumRealS>=0 ? this.toNum(r[iSumRealS]) : (sumReal + sumR);  // J+K или колонка L
       const qtyN     =this.toNum(r[iQtyN]);
       const qtyR     =Math.abs(this.toNum(r[iQtyR]));
-      const sumBezNds=this.toNum(r[iSumBezNds]);
+      // qtyReal/sumReal: если отдельная колонка есть и заполнена — берём её, иначе берём "с возвратами"
+      const _rawQtyReal = iQtyReal>=0 ? r[iQtyReal] : undefined;
+      const _rawSumReal = iSumReal>=0 ? r[iSumReal] : undefined;
+      const qtyReal  = (_rawQtyReal != null && String(_rawQtyReal).trim() !== '') ? this.toNum(_rawQtyReal) : qtyN;
       const sumR     =this.toNum(r[iSumR]);
-      const seb      =this.toNum(r[iSeb]);
-      const prof     =this.toNum(r[iProf]);
+      const sumRealS =iSumRealS>=0 ? this.toNum(r[iSumRealS]) : (this.toNum(_rawSumReal) + sumR);
+      const sumReal  = (_rawSumReal != null && String(_rawSumReal).trim() !== '') ? this.toNum(_rawSumReal) : sumRealS;
+      const sumBezNds=this.toNum(r[iSumBezNds]);
       const w        =skuWeight[sku]||1;
 
       // Себестоимость из прихода: цена ближайшего прихода ДО даты продажи
+      // Колонка "Стоимость (без НДС)" из исходника НЕ используется — она неточная.
       // Основная себестоимость считается БЕЗ НДС, чтобы корректно сравнивать с выручкой без НДС.
       const prikhodCost = this.getPrikhodCostPrices(sku, day);
       // Себест. ₸ = цена прихода × qtyN (финансовая себест., как и выручка — с возвратами)
-      const sebNew      = prikhodCost ? prikhodCost.priceNoNds  * qtyN    : seb;
-      const sebWithNds  = prikhodCost ? prikhodCost.priceWithNds * qtyN   : seb;
+      const sebNew      = prikhodCost ? prikhodCost.priceNoNds  * qtyN    : 0;
+      const sebWithNds  = prikhodCost ? prikhodCost.priceWithNds * qtyN   : 0;
       // Для цены закупа — только строки продаж (qtyReal), не смешиваем с возвратами
-      const sebSale         = prikhodCost ? prikhodCost.priceNoNds  * qtyReal : seb;
-      const sebSaleWithNds  = prikhodCost ? prikhodCost.priceWithNds * qtyReal : seb;
+      const sebSale         = prikhodCost ? prikhodCost.priceNoNds  * qtyReal : 0;
+      const sebSaleWithNds  = prikhodCost ? prikhodCost.priceWithNds * qtyReal : 0;
       const profNew = sumBezNds - sebNew;
 
       rawRows.push({
@@ -379,7 +423,8 @@ const PF = {
           if(!hasReturn && sumReal && Math.abs(sumBezNds - sumReal/1.16) > 5) return true;
           return false;
         })(),
-        group:    findGroup(knt),
+        group:    findGroup(rawKnt),
+        subgroup: findSubgroup(rawKnt),
         skuGroup: skuGroup[sku]||'Прочее',
         weight:w,
         qtyN,qtyR,qtyReal,sumReal,sumRealS,
@@ -396,7 +441,62 @@ const PF = {
     }
 
     const months=[...monthMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-    return {rawRows,groupMap,skuWeight,skuGroup,months};
+
+    // 3b. ИсхРеалАО — данные от Астана-Өнім (тот же формат, мержим в rawRows)
+    try {
+      p(75,'Данные АО...');
+      const aoRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_REAL_AO))).text());
+      if(aoRows.length>1){
+        const aoH=aoRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+        const ai=(...ns)=>this.findCol(aoH,...ns);
+        const aiKnt=ai('контрагент'), aiSku=ai('номенклатура','sku','товар'), aiDate=ai('периоддень','период','дата');
+        const aiQtyN=ai('количествореализации(с','количествосвозвр'), aiQtyR=ai('количествовозвратов');
+        const aiQtyReal=aoH.findIndex(h=>h==='количествореализации');
+        const aiSumReal=aoH.findIndex(h=>h==='суммареализации');
+        const aiSumRealS=ai('суммареализации(с','суммасвозвр');
+        const aiSumR=ai('суммавозвратов'), aiSumBezNds=ai('суммабезналогов','безналогов');
+        const aiSklad=ai('склад');
+        for(let i=1;i<aoRows.length;i++){
+          const r=aoRows[i];
+          const rawKnt=String(r[aiKnt]||'').trim();
+          const sku=String(r[aiSku]||'').trim();
+          if(!rawKnt||!sku) continue;
+          if(rawKnt.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
+          if(!this.isDairy(sku)) continue;
+          const dt=this.toDate(r[aiDate]); if(!dt) continue;
+          const mk=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+          const day=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+          if(!monthMap.has(mk)) monthMap.set(mk,this.MO[dt.getMonth()]+' '+dt.getFullYear());
+          const sklad=aiSklad>=0?String(r[aiSklad]||'').trim():'';
+          const knt=findDisplayName(rawKnt, sklad);
+          const qtyN=this.toNum(r[aiQtyN]), qtyR=Math.abs(this.toNum(r[aiQtyR]));
+          const _rQR=aiQtyReal>=0?r[aiQtyReal]:undefined, _rSR=aiSumReal>=0?r[aiSumReal]:undefined;
+          const qtyReal=(_rQR!=null&&String(_rQR).trim()!=='')?this.toNum(_rQR):qtyN;
+          const sumR=this.toNum(r[aiSumR]);
+          const sumRealS=aiSumRealS>=0?this.toNum(r[aiSumRealS]):(this.toNum(_rSR)+sumR);
+          const sumReal=(_rSR!=null&&String(_rSR).trim()!=='')?this.toNum(_rSR):sumRealS;
+          const sumBezNds=this.toNum(r[aiSumBezNds]);
+          const w=skuWeight[sku]||1;
+          const prikhodCost=this.getPrikhodCostPrices(sku,day);
+          const sebNew=prikhodCost?prikhodCost.priceNoNds*qtyN:0;
+          const sebWithNds=prikhodCost?prikhodCost.priceWithNds*qtyN:0;
+          const sebSale=prikhodCost?prikhodCost.priceNoNds*qtyReal:0;
+          const sebSaleWithNds=prikhodCost?prikhodCost.priceWithNds*qtyReal:0;
+          rawRows.push({
+            knt,sku,mk,day,ndsSuspect:false,
+            group:findGroup(rawKnt),subgroup:findSubgroup(rawKnt),
+            skuGroup:skuGroup[sku]||'Прочее',weight:w,
+            qtyN,qtyR,qtyReal,sumReal,sumRealS,sumBezNds,sumR,
+            seb:sebNew,sebWithNds,sebSale,sebSaleWithNds,
+            prof:sumBezNds-sebNew,kg:qtyN*w,retKg:qtyR*w,
+          });
+        }
+        p(85,'АО: '+aoRows.length+' строк');
+      }
+    }catch(e){ console.warn('ИсхРеалАО не загружен:',e); }
+
+    const months2=[...monthMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+    return {rawRows,groupMap,subgroupMap,skuWeight,skuGroup,months:months2};
   },
 
   // ── ЗАГРУЗКА ПРИХОДА ─────────────────────────────────────────
@@ -436,4 +536,143 @@ const PF = {
     const months=[...monthMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
     return {pRows,months};
   },
+
+  // ── ЗАГРУЗКА ДАННЫХ ДЛЯ ДиР / P&L ────────────────────────
+  // Расходы + ЗП + вес прихода по поставщикам + сырые планы.
+  async loadDirData(onProgress) {
+    const p=onProgress||(()=>{});
+    const monthKeyFromText = raw => {
+      const s=String(raw||'').trim();
+      const dt=this.toDate(s);
+      if(dt && !isNaN(dt)) return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      const mm=s.match(/([А-Яа-яЁёA-Za-z]+)\s+(\d{4})/);
+      if(mm){
+        const mi=this.MO.findIndex(m=>m.toLowerCase()===mm[1].toLowerCase());
+        if(mi>=0) return `${mm[2]}-${String(mi+1).padStart(2,'0')}`;
+      }
+      return '';
+    };
+    const fetchCsvRows = async gid => this.parseCSV(await (await fetch(this.csvUrl(gid))).text());
+
+    // 1. Расходы
+    p(10,'Загрузка расходов...');
+    const rRows=await fetchCsvRows(this.GID_RASHOD);
+    const rH=(rRows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
+    const ri=(...ns)=>this.findCol(rH,...ns);
+    const iRA=ri('аналитика','analitika','наименование');
+    const iRVid=ri('вид');
+    const iRPeriod=ri('период.началомесяца','период','period');
+    const iRKat=ri('категориязатрат','категория');
+    const iRVidNal=ri('видрасходоввналоговомучете','видрасходов');
+    const iRName=ri('наименование','name');
+    const iRSchet=ri('счет','account');
+    const iRSum=ri('сумма','sum');
+
+    const rashod=[];
+    for(let i=1;i<rRows.length;i++){
+      const r=rRows[i]||[];
+      const analitika=String(r[iRA>=0?iRA:'']||'').trim();
+      const vid=String(r[iRVid>=0?iRVid:'']||'').trim();
+      const period=String(r[iRPeriod>=0?iRPeriod:'']||'').trim();
+      const kat=String(r[iRKat>=0?iRKat:'']||'').trim();
+      const name=String(r[iRName>=0?iRName:'']||'').trim();
+      const schet=String(r[iRSchet>=0?iRSchet:'']||'').trim();
+      const vidNal=String(r[iRVidNal>=0?iRVidNal:'']||'').trim();
+      const sum=this.toNum(r[iRSum>=0?iRSum:'']);
+      if(!analitika || !sum) continue;
+      const mk=monthKeyFromText(period);
+      let tip='прочие';
+      if(schet.includes('7010')) tip='себестоимость';
+      else if(schet.includes('7110')) tip='реализация';
+      else if(schet.includes('7210')) tip='административные';
+      const isAmort=vidNal.toLowerCase().includes('амортиз') || analitika.toLowerCase().includes('амортиз');
+      rashod.push({analitika,vid,period,mk,kat,name,schet,tip,vidNal,sum,isAmort});
+    }
+
+    // 2. ЗП Общее
+    p(32,'Загрузка ЗП общего листа...');
+    let zpObh=[];
+    try{
+      const zRows=await fetchCsvRows(this.GID_ZP_OBH);
+      const zH=(zRows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
+      const zi=(...ns)=>this.findCol(zH,...ns);
+      const iZPodrazd=zi('подразделениеорганизации','подразделение','department');
+      const iZDolj=zi('должность','position');
+      const iZPeriod=zi('месяцрегистрацииначислений','месяц','period');
+      const iZNach=zi('начисление','accrual');
+      const iZSotr=zi('сотрудник','employee');
+      const iZSum=zi('начислено','sum','сумма');
+      for(let i=1;i<zRows.length;i++){
+        const r=zRows[i]||[];
+        const podrazd=String(r[iZPodrazd>=0?iZPodrazd:'']||'').trim();
+        const dolj=String(r[iZDolj>=0?iZDolj:'']||'').trim();
+        const periodRaw=String(r[iZPeriod>=0?iZPeriod:'']||'').trim();
+        const nach=String(r[iZNach>=0?iZNach:'']||'').trim();
+        const sotr=String(r[iZSotr>=0?iZSotr:'']||'').trim();
+        const sum=this.toNum(r[iZSum>=0?iZSum:'']);
+        if(!sum) continue;
+        const mk=monthKeyFromText(periodRaw);
+        zpObh.push({podrazd,dolj,nach,sotr,periodRaw,mk,sum});
+      }
+    }catch(e){ console.warn('ЗП Общее не загружено:',e); }
+
+    // 3. ЗП Детально — сохраняем очищенный raw-слой для детализации
+    p(44,'Загрузка ЗП детально...');
+    let zpDet=[];
+    try{
+      const dRows=await fetchCsvRows(this.GID_ZP_DET);
+      const dH=(dRows[0]||[]).map(h=>String(h||'').trim());
+      zpDet=dRows.slice(1).filter(r=>r.some(v=>String(v||'').trim())).map(r=>({row:r,header:dH}));
+    }catch(e){ console.warn('ЗП Детально не загружено:',e); }
+
+    // 4. Приход — вес по поставщикам AO/BM
+    p(58,'Загрузка прихода для ДиР...');
+    const pData=await this.loadPrikhod2();
+
+    // 5. Планы — текущий лист планов оставляем доступным сырым массивом
+    p(78,'Загрузка листа планов...');
+    let plans={raw:[],header:[]};
+    try{
+      const plRows=await fetchCsvRows(this.GID_PLAN);
+      plans={raw:plRows,header:(plRows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''))};
+    }catch(e){ console.warn('Планы не загружены:',e); }
+
+    p(95,'ДиР-данные готовы');
+    return {rashod,zpObh,zpDet,prikhod:pData,plans};
+  },
+
+  // Приход из отдельного листа ДиР: агрегация веса/суммы по AO, BM и прочим.
+  async loadPrikhod2() {
+    const rows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_PRIHOD2))).text());
+    const H=(rows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
+    const fi=(...ns)=>this.findCol(H,...ns);
+    const iSku=fi('номенклатура','sku');
+    const iSup=fi('контрагент','поставщик','ссылка.контрагент');
+    const iDate=fi('дата','date','ссылка.дата');
+    const iQty=fi('количество','qty');
+    const iSum=fi('сумма','sum');
+    const iNDS=fi('нд','nds','сумманд','суммандс');
+    const bySupMonth={};
+    for(let i=1;i<rows.length;i++){
+      const r=rows[i]||[];
+      const sku=String(r[iSku>=0?iSku:'']||'').trim();
+      if(!sku) continue;
+      const sup=String(r[iSup>=0?iSup:'']||'').trim();
+      const dt=this.toDate(r[iDate>=0?iDate:'']);
+      if(!dt) continue;
+      const mk=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      const qty=this.toNum(r[iQty>=0?iQty:'']);
+      const sum=this.toNum(r[iSum>=0?iSum:'']);
+      const nds=this.toNum(r[iNDS>=0?iNDS:'']);
+      if(!bySupMonth[mk]) bySupMonth[mk]={};
+      const s=sup.toLowerCase();
+      const supKey=s.includes('burabay')?'BM':(s.includes('астана')||s.includes('astana')?'AO':'OTHER');
+      if(!bySupMonth[mk][supKey]) bySupMonth[mk][supKey]={kg:0,sum:0,sumNoNds:0};
+      bySupMonth[mk][supKey].kg+=qty;
+      bySupMonth[mk][supKey].sum+=sum;
+      bySupMonth[mk][supKey].sumNoNds+=sum-nds;
+    }
+    return bySupMonth;
+  },
+
 };
