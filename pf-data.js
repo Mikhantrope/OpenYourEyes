@@ -222,24 +222,39 @@ const PF = {
     const p = onProgress || (()=>{});
 
     // 1. SKU справочник
+    // Колонка C = собирательный SKU (все варианты из исходников) — ключ для маппинга
+    // Колонка D = итоговое название для дашборда (без дублей)
+    // Колонка E = объём/вес
+    // Строки с "Не брать в Dashboard" — пропускаем
     p(10,'SKU справочник...');
     const skuRows = this.parseCSV(await (await fetch(this.csvUrl(this.GID_SKU))).text());
     const skuH    = skuRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
     const si = (...ns) => this.findCol(skuH,...ns);
-    const iSN=si('sku1с','sku1c','наим');
-    const iSV=si('объем','обьем','вес','vol');
+    const iSN=si('sku1с','sku1c','наим','собирательный','всевозможные');  // col C — source names
+    const iSD=si('итоговые','итоговоеназвание','длядашборда','displaysku','dashboard');  // col D — display name
+    const iSV=si('объем','обьем','вес','vol');  // col E — weight
     const iSG=si('группаsku','группаs','группа');
 
-    const skuWeight={}, skuGroup={};
+    const skuWeight={}, skuGroup={}, skuDisplayMap={};
+    const skuSkipSet=new Set();
     for (let i=1;i<skuRows.length;i++) {
       const r=skuRows[i];
-      const name=String(r[iSN]||'').trim();
-      if (name) {
-        const w=this.toNum(r[iSV]);
-        skuWeight[name]=w>0?w:1;
-        skuGroup[name]=String(r[iSG]||'').trim()||'Прочее';
-      }
+      const srcName=String(r[iSN]||'').trim();
+      const dispName=iSD>=0 ? String(r[iSD]||'').trim() : '';
+      if (!srcName) continue;
+      // Пропускаем строки "Не брать в Dashboard"
+      if(dispName.toLowerCase().includes('не брать')){ skuSkipSet.add(srcName); continue; }
+      const finalName = dispName || srcName;  // если display пустой — используем source
+      const w=this.toNum(r[iSV]);
+      const grp=String(r[iSG]||'').trim()||'Прочее';
+      skuWeight[srcName]=w>0?w:1;
+      skuWeight[finalName]=w>0?w:1;
+      skuGroup[srcName]=grp;
+      skuGroup[finalName]=grp;
+      if(dispName && dispName !== srcName) skuDisplayMap[srcName]=dispName;
     }
+    // Функция: получить display name для SKU
+    const findSkuDisplay = sku => skuDisplayMap[sku] || sku;
 
     // 2. Группы контрагентов
     p(25,'Справочник групп...');
@@ -372,16 +387,18 @@ const PF = {
     for (let i=1;i<rRows.length;i++) {
       const r=rRows[i];
       const rawKnt=String(r[iKnt]||'').trim();
-      const sku=String(r[iSku]||'').trim();
+      const rawSku=String(r[iSku]||'').trim();
       const sklad=iSklad>=0 ? String(r[iSklad]||'').trim() : '';
 
-      // Display name: розничные → по складу, остальные → из справочника "Общее название для Дашборда"
+      // Display names
       const knt = findDisplayName(rawKnt, sklad);
+      const sku = findSkuDisplay(rawSku);
 
-      // Пропускаем: пустые, строку "Итого", нетоварные
-      if (!knt||!sku) continue;
-      if (knt.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
-      if (!this.isDairy(sku)) continue;
+      // Пропускаем: пустые, строку "Итого", нетоварные, "Не брать в Dashboard"
+      if (!knt||!rawSku) continue;
+      if (knt.toLowerCase().includes('итого')||rawSku.toLowerCase().includes('итого')) continue;
+      if (skuSkipSet.has(rawSku)) continue;
+      if (!this.isDairy(rawSku) && !this.isDairy(sku)) continue;
 
       const dt=this.toDate(r[iDate]);
       if (!dt) continue;
@@ -459,10 +476,12 @@ const PF = {
         for(let i=1;i<aoRows.length;i++){
           const r=aoRows[i];
           const rawKnt=String(r[aiKnt]||'').trim();
-          const sku=String(r[aiSku]||'').trim();
-          if(!rawKnt||!sku) continue;
-          if(rawKnt.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
-          if(!this.isDairy(sku)) continue;
+          const rawSku=String(r[aiSku]||'').trim();
+          if(!rawKnt||!rawSku) continue;
+          if(rawKnt.toLowerCase().includes('итого')||rawSku.toLowerCase().includes('итого')) continue;
+          if(skuSkipSet.has(rawSku)) continue;
+          const sku=findSkuDisplay(rawSku);
+          if(!this.isDairy(rawSku) && !this.isDairy(sku)) continue;
           const dt=this.toDate(r[aiDate]); if(!dt) continue;
           const mk=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
           const day=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
