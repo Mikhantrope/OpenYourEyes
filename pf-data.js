@@ -263,46 +263,133 @@ const PF = {
     const findSkuDisplay = sku => skuDisplayMap[sku] || sku;
 
     // 2. Группы контрагентов
-    p(25,'Справочник групп...');
+    // НОВАЯ СТРУКТУРА КонтрагентыСправочник:
+    //   B = КонтрагентИсходник      — ключ из исходников 1С
+    //   C = Контрагент              — очищенное имя
+    //   D = Общее название          — итоговое имя для сайта/дашборда
+    //   E = Группа                  — верхний уровень
+    //   F = Подгруппа               — второй уровень
+    p(25,'Справочник контрагентов...');
     const kRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_KONTR))).text());
     const kH=kRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
     const ki=(...ns)=>this.findCol(kH,...ns);
-    const groupMap={};
-    const groupMapNorm={};  // нормализованный ключ для нечёткого сопоставления
-    const normKey = s => s.toLowerCase().replace(/\s+/g,' ').replace(/[«»"'`]/g,'').trim();
+    const exactK=(...ns)=>{
+      for(const n of ns){
+        const needle=String(n||'').toLowerCase().replace(/\s/g,'');
+        const idx=kH.findIndex(h=>h===needle);
+        if(idx>=0) return idx;
+      }
+      return -1;
+    };
+
+    let iKSrc=ki('контрагентиисходник','контрагентисходник','исходник','source');
+    let iKName=exactK('контрагент');
+    let iKDisplay=ki('общееназвание','общееназваниедлядашборда','дашборд','dashboard','display');
+    let iKGroup=exactK('группа');
+    let iKSub=ki('подгруппа','подгруппы','subgroup','sub');
+    // Жёсткий fallback под текущий лист: B/C/D/E/F.
+    if(iKSrc<0) iKSrc=1;
+    if(iKName<0) iKName=2;
+    if(iKDisplay<0) iKDisplay=3;
+    if(iKGroup<0) iKGroup=4;
+    if(iKSub<0) iKSub=5;
+
+    const groupMap={}, groupMapNorm={}, groupMapPrefix={};
+    const subgroupMap={}, subgroupMapNorm={}, subgroupMapPrefix={};
+    const displayMap={}, displayMapNorm={}, displayMapPrefix={};
+    const ttCandidates=[];
+    const normKey = s => String(s||'').toLowerCase().replace(/\s+/g,' ').replace(/[«»"'`]/g,'').trim();
+    const putMap=(map,normMap,prefixMap,key,value)=>{
+      key=String(key||'').trim(); value=String(value||'').trim();
+      if(!key || !value) return;
+      map[key]=value;
+      const nk=normKey(key);
+      normMap[nk]=value;
+      const pfx=nk.slice(0,24);
+      if(!prefixMap[pfx]) prefixMap[pfx]=value;
+    };
+
     for (let i=1;i<kRows.length;i++) {
-      const knt=String(kRows[i][ki('контрагент','kontragent')]||'').trim();
-      const grp=String(kRows[i][ki('новаягруппа','новая','группа')]||'').trim();
-      if (knt) {
-        groupMap[knt]=grp||'⚠️ Без группы';
-        groupMapNorm[normKey(knt)]=grp||'⚠️ Без группы';
+      const r=kRows[i]||[];
+      const src=String(r[iKSrc]||'').trim();
+      const clean=String(r[iKName]||'').trim();
+      const display=String(r[iKDisplay]||'').trim();
+      const grp=String(r[iKGroup]||'').trim()||'⚠️ Без группы';
+      const sub=String(r[iKSub]||'').trim();
+      const finalName=display || clean || src;
+      const keys=[src,clean,finalName].filter(Boolean);
+
+      for(const key of keys){
+        putMap(displayMap,displayMapNorm,displayMapPrefix,key,finalName);
+        putMap(groupMap,groupMapNorm,groupMapPrefix,key,grp);
+        if(sub) putMap(subgroupMap,subgroupMapNorm,subgroupMapPrefix,key,sub);
+      }
+
+      const allTxt=normKey([src,clean,finalName,grp,sub].join(' '));
+      if(finalName && (grp.toLowerCase().includes('фирмен') || allTxt.includes('тт ') || allTxt.includes('сауран') || allTxt.includes('коктал') || allTxt.includes('артем') || allTxt.includes('евраз') || allTxt.includes('шапагат') || allTxt.includes('акмол') || allTxt.includes('женис'))){
+        ttCandidates.push({name:finalName, group:grp, subgroup:sub});
       }
     }
-    // Функция поиска группы: 3 уровня
-    // 1) точное совпадение
-    // 2) нормализованное (lowercase, без кавычек, trim)
-    // 3) fallback по первым 20 символам (нечёткое)
-    const groupMapPrefix={};
-    for(const [k,v] of Object.entries(groupMap)){
-      const pfx = normKey(k).slice(0,20);
-      if(!groupMapPrefix[pfx]) groupMapPrefix[pfx]=v;
-    }
-    const findGroup = knt => {
-      // Торговые точки — всегда группа "Торговые точки"
-      if(knt.startsWith('ТТ ')) return 'Торговые точки';
-      // 1) Точное совпадение
-      if(groupMap[knt]) return groupMap[knt];
-      const nk = normKey(knt);
-      // 2) Нормализованное
-      if(groupMapNorm[nk]) return groupMapNorm[nk];
-      // 3) По первым 20 символам
-      const pfx = nk.slice(0,20);
-      if(groupMapPrefix[pfx]) return groupMapPrefix[pfx];
-      // 4) Substring: если справочник содержит наше имя или наоборот
-      for(const [k,v] of Object.entries(groupMapNorm)){
+
+    const findMapped=(map,normMap,prefixMap,key)=>{
+      key=String(key||'').trim();
+      if(!key) return '';
+      if(map[key]) return map[key];
+      const nk=normKey(key);
+      if(normMap[nk]) return normMap[nk];
+      const pfx=nk.slice(0,24);
+      if(prefixMap[pfx]) return prefixMap[pfx];
+      for(const [k,v] of Object.entries(normMap)){
         if(k.length>5 && nk.length>5 && (k.includes(nk) || nk.includes(k))) return v;
       }
-      return '⚠️ Без группы';
+      return '';
+    };
+
+    const isRetailRaw = knt => {
+      const nk=normKey(knt);
+      return nk.includes('розничная выручка') || nk.includes('розничный покупатель') || nk.includes('чл-розничная реализация');
+    };
+    const TT_ALIASES=[
+      {keys:['артем','artem'], name:'ТТ Артем'},
+      {keys:['сауран','sauran'], name:'ТТ Сауран'},
+      {keys:['коктал','koktal'], name:'ТТ Коктал'},
+      {keys:['евраз','eurasia'], name:'ТТ Евразия'},
+      {keys:['шапагат','shapagat'], name:'ТТ Шапагат ТД'},
+      {keys:['акмол','женис','жеңіс','zhenis'], name:'ТТ Акмол Женис'},
+    ];
+    const findRetailPointBySklad = sklad => {
+      const sk=normKey(sklad);
+      if(!sk) return 'Розница без склада';
+      // Сначала пытаемся вернуть ровно то название, которое уже есть в справочнике.
+      for(const c of ttCandidates){
+        const cn=normKey(c.name);
+        if(cn && (cn.includes(sk) || sk.includes(cn))) return c.name;
+      }
+      // Потом — по ключевым словам склада.
+      for(const a of TT_ALIASES){
+        if(a.keys.some(k=>sk.includes(k))){
+          const fromDict=ttCandidates.find(c=>a.keys.some(k=>normKey(c.name).includes(k)));
+          return fromDict ? fromDict.name : a.name;
+        }
+      }
+      return `ТТ ${String(sklad||'').trim()}`;
+    };
+
+    const findDisplayName = (rawKnt, sklad) => {
+      if(isRetailRaw(rawKnt)) return findRetailPointBySklad(sklad);
+      return findMapped(displayMap,displayMapNorm,displayMapPrefix,rawKnt) || rawKnt;
+    };
+    const findGroup = (rawKnt, displayKnt='') => {
+      if(isRetailRaw(rawKnt) || String(displayKnt).startsWith('ТТ ')){
+        return findMapped(groupMap,groupMapNorm,groupMapPrefix,displayKnt) || 'Фирменные точки';
+      }
+      return findMapped(groupMap,groupMapNorm,groupMapPrefix,rawKnt) || findMapped(groupMap,groupMapNorm,groupMapPrefix,displayKnt) || '⚠️ Без группы';
+    };
+    const findSubgroup = (rawKnt, displayKnt='') => {
+      if(isRetailRaw(rawKnt) || String(displayKnt).startsWith('ТТ ')){
+        return findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,displayKnt) || 'Фирменные точки';
+      }
+      return findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,rawKnt) || findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,displayKnt) || '';
     };
 
     // 3. ИсхРеал
@@ -332,21 +419,15 @@ const PF = {
 
     for (let i=1;i<rRows.length;i++) {
       const r=rRows[i];
-      let knt=String(r[iKnt]||'').trim();
+      const rawKnt=String(r[iKnt]||'').trim();
       const rawSku=String(r[iSku]||'').trim();
       const sku=findSkuDisplay(rawSku);
       const sklad=iSklad>=0 ? String(r[iSklad]||'').trim() : '';
-
-      // Торговые точки: Розничная выручка/покупатель → разделяем по складам
-      const TT_SKLADS={'Сауран':'ТТ Сауран','Коктал':'ТТ Коктал','Артем':'ТТ Артем',
-        'Евразия':'ТТ Евразия','Акмол Женис':'ТТ Акмол Женис','Шапагат ТД':'ТТ Шапагат ТД'};
-      if(knt.toLowerCase().includes('розничн') && TT_SKLADS[sklad]){
-        knt = TT_SKLADS[sklad];
-      }
+      const knt=findDisplayName(rawKnt, sklad);
 
       // Пропускаем: пустые, строку "Итого", нетоварные, строки "Не брать в Dashboard"
-      if (!knt||!rawSku) continue;
-      if (knt.toLowerCase().includes('итого')||rawSku.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
+      if (!rawKnt||!knt||!rawSku) continue;
+      if (rawKnt.toLowerCase().includes('итого')||knt.toLowerCase().includes('итого')||rawSku.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
       if (skuSkipSet.has(rawSku) || skuSkipSet.has(sku)) continue;
       if (!this.isDairy(rawSku) && !this.isDairy(sku)) continue;
 
@@ -389,7 +470,8 @@ const PF = {
           if(!hasReturn && sumReal && Math.abs(sumBezNds - sumReal/1.16) > 5) return true;
           return false;
         })(),
-        group:    findGroup(knt),
+        group:    findGroup(rawKnt,knt),
+        subgroup: findSubgroup(rawKnt,knt),
         skuGroup: skuGroup[rawSku]||skuGroup[sku]||'Прочее',
         weight:w,
         qtyN,qtyR,qtyReal,sumReal,sumRealS,
@@ -406,7 +488,7 @@ const PF = {
     }
 
     const months=[...monthMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-    return {rawRows,groupMap,skuWeight,skuGroup,skuDisplayMap,months};
+    return {rawRows,groupMap,subgroupMap,skuWeight,skuGroup,skuDisplayMap,months};
   },
 
   // ── ЗАГРУЗКА ПРИХОДА ─────────────────────────────────────────
