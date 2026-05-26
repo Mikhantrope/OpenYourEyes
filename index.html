@@ -208,11 +208,16 @@ tr.tot td{font-weight:700;}
 .dim-empty{font-size:10px;color:var(--amber);border:1px dashed var(--amber);padding:3px 8px;border-radius:6px;}
 
 /* Horizontal day table */
-.day-table-outer{flex:1;overflow-x:scroll;overflow-y:auto;position:relative;scroll-behavior:smooth;}
-.day-table-outer::-webkit-scrollbar{height:10px;}
-.day-table-outer::-webkit-scrollbar-track{background:var(--s2);border-radius:5px;}
-.day-table-outer::-webkit-scrollbar-thumb{background:var(--muted);border-radius:5px;border:2px solid var(--s2);}
+.day-table-outer{flex:1;overflow-x:scroll;overflow-y:auto;position:relative;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--muted) var(--s2);}
+.day-table-outer::-webkit-scrollbar{height:14px;}
+.day-table-outer::-webkit-scrollbar-track{background:var(--s2);border-radius:7px;}
+.day-table-outer::-webkit-scrollbar-thumb{background:var(--muted);border-radius:7px;border:3px solid var(--s2);}
 .day-table-outer::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+.day-scroll-top{height:14px;}
+.day-scroll-top::-webkit-scrollbar{height:14px;}
+.day-scroll-top::-webkit-scrollbar-track{background:var(--s2);border-radius:7px;}
+.day-scroll-top::-webkit-scrollbar-thumb{background:var(--muted);border-radius:7px;border:3px solid var(--s2);}
+.day-scroll-top::-webkit-scrollbar-thumb:hover{background:var(--accent);}
 .day-table-container{min-width:100%;}
 
 table.dtable{border-collapse:collapse;table-layout:auto;width:max-content;min-width:100%;}
@@ -567,6 +572,7 @@ tr.dt-dimmed{opacity:.25;}
     <div style="margin-left:auto;font-size:10px;color:var(--dim)">← Листайте таблицу вправо →</div>
   </div>
   <!-- Horizontal scrollable table -->
+  <div class="day-scroll-top" id="dayScrollTop" style="overflow-x:scroll;overflow-y:hidden;flex-shrink:0;scrollbar-width:thin;scrollbar-color:var(--muted) var(--s2);"><div id="dayScrollTopInner" style="height:1px;"></div></div>
   <div class="day-table-outer" id="dayTableOuter">
     <div class="day-table-container">
       <table class="dtable" id="dTable">
@@ -1794,6 +1800,19 @@ function renderDay(){
 
   document.getElementById('dTbody').innerHTML=parts.join('');
   document.getElementById('stRows').textContent=flatWithRows.length;
+
+  // Sync top scrollbar width with table
+  const outer=document.getElementById('dayTableOuter');
+  const topScroll=document.getElementById('dayScrollTop');
+  const topInner=document.getElementById('dayScrollTopInner');
+  if(outer&&topScroll&&topInner){
+    const tw=outer.scrollWidth;
+    topInner.style.width=tw+'px';
+    // Sync scroll positions
+    let syncing=false;
+    topScroll.onscroll=()=>{if(syncing)return;syncing=true;outer.scrollLeft=topScroll.scrollLeft;syncing=false;};
+    outer.onscroll=()=>{if(syncing)return;syncing=true;topScroll.scrollLeft=outer.scrollLeft;syncing=false;};
+  }
 }
 
 function dayToggle(key,btn){
