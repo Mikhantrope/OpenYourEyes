@@ -208,10 +208,10 @@ tr.tot td{font-weight:700;}
 .dim-empty{font-size:10px;color:var(--amber);border:1px dashed var(--amber);padding:3px 8px;border-radius:6px;}
 
 /* Horizontal day table */
-.day-table-outer{flex:1;overflow-x:scroll;overflow-y:auto;position:relative;scroll-behavior:smooth;}
-.day-table-outer::-webkit-scrollbar{height:10px;}
-.day-table-outer::-webkit-scrollbar-track{background:var(--s2);border-radius:5px;}
-.day-table-outer::-webkit-scrollbar-thumb{background:var(--muted);border-radius:5px;border:2px solid var(--s2);}
+.day-table-outer{flex:1;overflow-x:scroll;overflow-y:auto;position:relative;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--muted) var(--s2);}
+.day-table-outer::-webkit-scrollbar{height:14px;}
+.day-table-outer::-webkit-scrollbar-track{background:var(--s2);border-radius:7px;}
+.day-table-outer::-webkit-scrollbar-thumb{background:var(--muted);border-radius:7px;border:3px solid var(--s2);}
 .day-table-outer::-webkit-scrollbar-thumb:hover{background:var(--accent);}
 .day-table-container{min-width:100%;}
 
