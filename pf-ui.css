@@ -192,35 +192,3 @@ body[data-theme="light"] .export-shot tr.tot td,
 body[data-theme="light"] .export-shot tr.dt-tot td{background:#e9f8ef!important;color:var(--text)!important}
 
 @media(max-width:900px){.g2,.g3,.g4,.mini-grid,.issues-grid,.exec-cards,.sigs,.passport-grid,.health-wrap{grid-template-columns:1fr!important}.kpi-band{grid-template-columns:1fr 1fr!important}.nav-r{width:auto!important;margin-left:0!important}.main{padding:14px 10px!important}.hero{padding:18px 12px!important}.nav>.pf-theme-btn{margin-left:0}}
-
-/* === 2026-05-26: Qara/AQ universal theme button + day-table horizontal scroll fix === */
-html[data-theme="light"], html[data-theme="light"] body,
-body[data-theme="light"]{background:var(--bg)!important;color:var(--text)!important;}
-
-/* The button is injected by pf-utils.js. Keep it visible on every page, but let header/nav placement win. */
-.pf-theme-btn{min-height:26px;line-height:1;z-index:9992;}
-.hdr-r .pf-theme-btn,.nav .pf-theme-btn{position:static!important;right:auto!important;top:auto!important;margin-left:6px!important;}
-.pf-theme-fixed{position:fixed!important;top:7px;right:10px;z-index:9992;margin:0!important;}
-body[data-theme="light"] .pf-theme-btn{box-shadow:0 1px 2px rgba(15,23,42,.08);}
-
-/* Day view scroll: flex children need min-width/min-height zero, otherwise table can overflow the page instead of becoming scrollable. */
-#dayView{min-width:0!important;min-height:0!important;overflow:hidden!important;}
-#dayView.active{display:flex!important;min-width:0!important;min-height:0!important;}
-.day-table-outer{
-  width:100%!important;
-  max-width:100vw!important;
-  min-width:0!important;
-  min-height:0!important;
-  flex:1 1 auto!important;
-  overflow-x:auto!important;
-  overflow-y:auto!important;
-  overscroll-behavior:contain!important;
-  -webkit-overflow-scrolling:touch;
-  scrollbar-gutter:stable both-edges;
-}
-.day-table-container{width:max-content!important;min-width:max-content!important;}
-table.dtable{width:max-content!important;min-width:max-content!important;}
-table.dtable th.row-hdr,table.dtable td.row-hdr{left:0!important;}
-body[data-theme="light"] .day-table-outer{background:var(--bg)!important;scrollbar-color:#9fb0c3 #eef3f8!important;}
-body[data-theme="light"] .day-table-outer::-webkit-scrollbar-track{background:#eef3f8!important;}
-body[data-theme="light"] .day-table-outer::-webkit-scrollbar-thumb{background:#9fb0c3!important;border-color:#eef3f8!important;}
