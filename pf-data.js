@@ -223,39 +223,115 @@ const PF = {
     const p = onProgress || (()=>{});
 
     // 1. SKU справочник
-    // Колонка C = собирательный SKU (все варианты из исходников) — ключ для маппинга
-    // Колонка D = итоговое название для дашборда (без дублей)
-    // Колонка E = объём/вес
+    // ТЕКУЩАЯ СТРУКТУРА SKUСправочник:
+    //   B = ГруппаSKU
+    //   C = SKUИсходник   — имя как в источниках реализации
+    //   D = SKUКонечный   — итоговое имя для сайта/дашборда
+    //   E = Объем         — вес/объем для расчёта кг
     // Строки с "Не брать в Dashboard" — пропускаем
     p(10,'SKU справочник...');
     const skuRows = this.parseCSV(await (await fetch(this.csvUrl(this.GID_SKU))).text());
-    const skuH    = skuRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+    const skuH    = (skuRows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
     const si = (...ns) => this.findCol(skuH,...ns);
-    const iSN=si('sku1с','sku1c','наим','собирательный','всевозможные');  // col C — source names
-    const iSD=si('итоговые','итоговоеназвание','длядашборда','displaysku','dashboard');  // col D — display name
-    const iSV=si('объем','обьем','вес','vol');  // col E — weight
-    const iSG=si('группаsku','группаs','группа');
+    const exactSkuCol=(...ns)=>{
+      for(const n of ns){
+        const needle=String(n||'').toLowerCase().replace(/\s/g,'');
+        const idx=skuH.findIndex(h=>h===needle);
+        if(idx>=0) return idx;
+      }
+      return -1;
+    };
+
+    let iSG=exactSkuCol('группаsku','группа');
+    let iSN=exactSkuCol('skuисходник','skuисходный','исходник');
+    let iSD=exactSkuCol('skuконечный','итоговоеsku','итоговоеназвание','skuдлядашборда');
+    let iSV=exactSkuCol('объем','обьем','вес','vol');
+
+    // Жесткий fallback под текущий лист Google Sheets: B/C/D/E.
+    if(iSG<0) iSG=1;
+    if(iSN<0) iSN=2;
+    if(iSD<0) iSD=3;
+    if(iSV<0) iSV=4;
 
     const skuWeight={}, skuGroup={}, skuDisplayMap={};
-    const skuSkipSet=new Set();
+    const skuWeightNorm={}, skuGroupNorm={}, skuDisplayMapNorm={};
+    const skuSkipSet=new Set(), skuSkipNormSet=new Set();
+    const skuNorm = s => String(s||'').toLowerCase().replace(/\s+/g,' ').replace(/[«»"'`]/g,'').trim();
+    const markSkuSkip = name => {
+      name=String(name||'').trim();
+      if(!name) return;
+      skuSkipSet.add(name);
+      skuSkipNormSet.add(skuNorm(name));
+    };
+    const isSkuSkipped = name => {
+      name=String(name||'').trim();
+      if(!name) return false;
+      return skuSkipSet.has(name) || skuSkipNormSet.has(skuNorm(name));
+    };
+    const putSkuMap = (key, finalName, grp, w) => {
+      key=String(key||'').trim();
+      if(!key) return;
+      const nk=skuNorm(key);
+      skuWeight[key]=w;
+      skuWeightNorm[nk]=w;
+      skuGroup[key]=grp;
+      skuGroupNorm[nk]=grp;
+      if(finalName){
+        skuDisplayMap[key]=finalName;
+        skuDisplayMapNorm[nk]=finalName;
+      }
+    };
+
     for (let i=1;i<skuRows.length;i++) {
-      const r=skuRows[i];
+      const r=skuRows[i]||[];
       const srcName=String(r[iSN]||'').trim();
-      const dispName=iSD>=0 ? String(r[iSD]||'').trim() : '';
+      const dispName=String(r[iSD]||'').trim();
+      const grpRaw=String(r[iSG]||'').trim();
+      const rawWeight=String(r[iSV]||'').trim();
+
       if (!srcName) continue;
-      // Пропускаем строки "Не брать в Dashboard"
-      if(dispName.toLowerCase().includes('не брать')){ skuSkipSet.add(srcName); continue; }
-      const finalName = dispName || srcName;  // если display пустой — используем source
-      const w=this.toNum(r[iSV]);
-      const grp=String(r[iSG]||'').trim()||'Прочее';
-      skuWeight[srcName]=w>0?w:1;
-      skuWeight[finalName]=w>0?w:1;
-      skuGroup[srcName]=grp;
-      skuGroup[finalName]=grp;
-      if(dispName && dispName !== srcName) skuDisplayMap[srcName]=dispName;
+
+      const skipText=skuNorm([srcName,dispName,grpRaw,rawWeight].join(' '));
+      if(skipText.includes('не брать') && skipText.includes('dashboard')){
+        markSkuSkip(srcName);
+        markSkuSkip(dispName);
+        continue;
+      }
+
+      const finalName = dispName || srcName;
+      const w=this.toNum(rawWeight);
+      const weight=w>0?w:1;
+      const grp=grpRaw||'Прочее';
+
+      putSkuMap(srcName, finalName, grp, weight);
+      putSkuMap(finalName, finalName, grp, weight);
     }
-    // Функция: получить display name для SKU
-    const findSkuDisplay = sku => skuDisplayMap[sku] || sku;
+
+    const findSkuDisplay = sku => {
+      const s=String(sku||'').trim();
+      if(!s) return '';
+      return skuDisplayMap[s] || skuDisplayMapNorm[skuNorm(s)] || s;
+    };
+    const findSkuWeight = (...names) => {
+      for(const name of names){
+        const s=String(name||'').trim();
+        if(!s) continue;
+        if(skuWeight[s]) return skuWeight[s];
+        const n=skuNorm(s);
+        if(skuWeightNorm[n]) return skuWeightNorm[n];
+      }
+      return 1;
+    };
+    const findSkuGroup = (...names) => {
+      for(const name of names){
+        const s=String(name||'').trim();
+        if(!s) continue;
+        if(skuGroup[s]) return skuGroup[s];
+        const n=skuNorm(s);
+        if(skuGroupNorm[n]) return skuGroupNorm[n];
+      }
+      return 'Прочее';
+    };
 
     // 2. Группы контрагентов
     // ТЕКУЩАЯ СТРУКТУРА КонтрагентыСправочник:
@@ -462,7 +538,7 @@ const PF = {
       // Пропускаем: пустые, строку "Итого", нетоварные, "Не брать в Dashboard"
       if (!rawKnt||!knt||!rawSku) continue;
       if (rawKnt.toLowerCase().includes('итого')||knt.toLowerCase().includes('итого')||rawSku.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
-      if (skuSkipSet.has(rawSku) || skuSkipSet.has(sku)) continue;
+      if (isSkuSkipped(rawSku) || isSkuSkipped(sku)) continue;
       if (!this.isDairy(rawSku) && !this.isDairy(sku)) continue;
 
       const dt=this.toDate(r[iDate]);
@@ -483,7 +559,7 @@ const PF = {
       const sumRealS =iSumRealS>=0 ? this.toNum(r[iSumRealS]) : (this.toNum(_rawSumReal) + sumR);
       const sumReal  = (_rawSumReal != null && String(_rawSumReal).trim() !== '') ? this.toNum(_rawSumReal) : sumRealS;
       const sumBezNds=this.toNum(r[iSumBezNds]);
-      const w        =skuWeight[rawSku]||skuWeight[sku]||1;
+      const w        =findSkuWeight(rawSku, sku);
 
       // Себестоимость из прихода: цена ближайшего прихода ДО даты продажи
       // Колонка "Стоимость (без НДС)" из исходника НЕ используется — она неточная.
@@ -516,7 +592,7 @@ const PF = {
         })(),
         group:    mappedGroup,
         subgroup: mappedSubgroup,
-        skuGroup: skuGroup[rawSku]||skuGroup[sku]||'Прочее',
+        skuGroup: findSkuGroup(rawSku, sku),
         weight:w,
         qtyN,qtyR,qtyReal,sumReal,sumRealS,
         sumBezNds,
@@ -558,7 +634,7 @@ const PF = {
           if(!rawKnt||!rawSku) continue;
           const sku=findSkuDisplay(rawSku);
           if(rawKnt.toLowerCase().includes('итого')||rawSku.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
-          if(skuSkipSet.has(rawSku) || skuSkipSet.has(sku)) continue;
+          if(isSkuSkipped(rawSku) || isSkuSkipped(sku)) continue;
           if(!this.isDairy(rawSku) && !this.isDairy(sku)) continue;
           const dt=this.toDate(r[aiDate]); if(!dt) continue;
           const mk=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
@@ -573,7 +649,7 @@ const PF = {
           const sumRealS=aiSumRealS>=0?this.toNum(r[aiSumRealS]):(this.toNum(_rSR)+sumR);
           const sumReal=(_rSR!=null&&String(_rSR).trim()!=='')?this.toNum(_rSR):sumRealS;
           const sumBezNds=this.toNum(r[aiSumBezNds]);
-          const w=skuWeight[rawSku]||skuWeight[sku]||1;
+          const w=findSkuWeight(rawSku, sku);
           const prikhodCost=this.getPrikhodCostPrices(rawSku,day)||this.getPrikhodCostPrices(sku,day);
           const sebNew=prikhodCost?prikhodCost.priceNoNds*qtyN:0;
           const sebWithNds=prikhodCost?prikhodCost.priceWithNds*qtyN:0;
@@ -592,7 +668,7 @@ const PF = {
             sklad,
             group:mappedGroup,
             subgroup:mappedSubgroup,
-            skuGroup:skuGroup[rawSku]||skuGroup[sku]||'Прочее',weight:w,
+            skuGroup:findSkuGroup(rawSku, sku),weight:w,
             qtyN,qtyR,qtyReal,sumReal,sumRealS,sumBezNds,sumR,
             seb:sebNew,sebWithNds,sebSale,sebSaleWithNds,
             prof:sumBezNds-sebNew,kg:qtyN*w,retKg:qtyR*w,
@@ -627,7 +703,7 @@ const PF = {
           if(!rawKnt||!rawSku) continue;
           const sku=findSkuDisplay(rawSku);
           if(rawKnt.toLowerCase().includes('итого')||rawSku.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
-          if(skuSkipSet.has(rawSku) || skuSkipSet.has(sku)) continue;
+          if(isSkuSkipped(rawSku) || isSkuSkipped(sku)) continue;
           if(!this.isDairy(rawSku) && !this.isDairy(sku)) continue;
           const dt=this.toDate(r[miDate]); if(!dt) continue;
           const mk=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
@@ -642,7 +718,7 @@ const PF = {
           const sumRealS=miSumRealS>=0?this.toNum(r[miSumRealS]):(this.toNum(_rSR)+sumR);
           const sumReal=(_rSR!=null&&String(_rSR).trim()!=='')?this.toNum(_rSR):sumRealS;
           const sumBezNds=this.toNum(r[miSumBezNds]);
-          const w=skuWeight[rawSku]||skuWeight[sku]||1;
+          const w=findSkuWeight(rawSku, sku);
           const prikhodCost=this.getPrikhodCostPrices(rawSku,day)||this.getPrikhodCostPrices(sku,day);
           const sebNew=prikhodCost?prikhodCost.priceNoNds*qtyN:0;
           const sebWithNds=prikhodCost?prikhodCost.priceWithNds*qtyN:0;
@@ -661,7 +737,7 @@ const PF = {
             sklad,
             group:mappedGroup,
             subgroup:mappedSubgroup,
-            skuGroup:skuGroup[rawSku]||skuGroup[sku]||'Прочее',weight:w,
+            skuGroup:findSkuGroup(rawSku, sku),weight:w,
             qtyN,qtyR,qtyReal,sumReal,sumRealS,sumBezNds,sumR,
             seb:sebNew,sebWithNds,sebSale,sebSaleWithNds,
             prof:sumBezNds-sebNew,kg:qtyN*w,retKg:qtyR*w,
