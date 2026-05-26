@@ -139,8 +139,23 @@
     let btn=document.getElementById('pfThemeBtn');
     if(!btn){
       btn=document.createElement('button');
-      btn.id='pfThemeBtn'; btn.className='pf-theme-btn pf-theme-fixed'; btn.type='button'; btn.onclick=PFU.toggleTheme;
-      document.body.appendChild(btn);
+      btn.id='pfThemeBtn';
+      btn.className='pf-theme-btn';
+      btn.type='button';
+      btn.onclick=PFU.toggleTheme;
+    }
+
+    // Prefer a real header/nav placement. Fixed fallback is only for pages without a normal header.
+    const host = document.querySelector('.hdr-r') || document.querySelector('.nav') || document.querySelector('header') || null;
+    if(host){
+      btn.classList.remove('pf-theme-fixed');
+      if(!host.contains(btn)){
+        const before = host.querySelector('.nav-r') || null;
+        host.insertBefore(btn, before);
+      }
+    }else{
+      btn.classList.add('pf-theme-fixed');
+      if(!document.body.contains(btn)) document.body.appendChild(btn);
     }
     return btn;
   };
@@ -151,6 +166,12 @@
     PFU.ensureThemeButton();
     PFU.applyTheme(theme);
   };
+
+
+  PFU.repairThemeButton = function(){
+    try{ PFU.ensureThemeButton(); PFU.applyTheme((localStorage.getItem('pf.theme') || 'dark') === 'light' ? 'light' : 'dark'); }catch(e){}
+  };
+  window.addEventListener('pageshow', PFU.repairThemeButton);
 
   PFU.initPage = function(){ PFU.ensureDirLink(); PFU.initTheme(); };
   window.PFU = PFU;
