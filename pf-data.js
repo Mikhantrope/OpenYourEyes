@@ -400,7 +400,7 @@ const PF = {
       }
 
       const allTxt=normKey([src,clean,finalName,grp,sub].join(' '));
-      if(finalName && (grp.toLowerCase().includes('фирмен') || allTxt.includes('тт ') || allTxt.includes('сауран') || allTxt.includes('коктал') || allTxt.includes('артем') || allTxt.includes('евраз') || allTxt.includes('шапагат') || allTxt.includes('акмол') || allTxt.includes('женис'))){
+      if(finalName && (grp.toLowerCase().includes('фирмен') || allTxt.includes('фт ') || allTxt.includes('тт ') || allTxt.includes('сауран') || allTxt.includes('коктал') || allTxt.includes('артем') || allTxt.includes('евраз') || allTxt.includes('шапагат') || allTxt.includes('акмол') || allTxt.includes('женис'))){
         ttCandidates.push({name:finalName, group:grp, subgroup:sub});
       }
     }
@@ -424,34 +424,30 @@ const PF = {
       return nk.includes('розничная выручка') || nk.includes('розничный покупатель') || nk.includes('чл-розничная реализация');
     };
 
-    const TT_ALIASES=[
-      {keys:['артем','artem'], name:'ТТ Артем'},
-      {keys:['сауран','sauran'], name:'ТТ Сауран'},
-      {keys:['коктал','koktal'], name:'ТТ Коктал'},
-      {keys:['евраз','eurasia'], name:'ТТ Евразия'},
-      {keys:['шапагат','shapagat'], name:'ТТ Шапагат ТД'},
-      {keys:['акмол','женис','жеңіс','zhenis'], name:'ТТ Акмол Женис'},
+    const FT_ALIASES=[
+      {keys:['артем','artem'], name:'ФТ Артем'},
+      {keys:['сауран','sauran'], name:'ФТ Сауран'},
+      {keys:['коктал','koktal'], name:'ФТ Коктал'},
+      {keys:['евраз','eurasia','евразия'], name:'ФТ Евразия'},
+      {keys:['шапагат','shapagat'], name:'ФТ Шапагат'},
+      {keys:['акмол','женис','жеңіс','zhenis'], name:'ФТ Акмол'},
     ];
+    const FT_VALID_NAMES=new Set(FT_ALIASES.map(a=>a.name));
 
     const findRetailPointBySklad = sklad => {
       const sk=normKey(sklad);
       if(!sk) return 'Розница без склада';
 
-      // Сначала пытаемся вернуть ровно то название, которое уже есть в справочнике.
-      for(const c of ttCandidates){
-        const cn=normKey(c.name);
-        if(cn && (cn.includes(sk) || sk.includes(cn))) return c.name;
-      }
-
-      // Потом — по ключевым словам склада.
-      for(const a of TT_ALIASES){
+      // Сначала по ключевым словам склада — только 6 ФТ точек.
+      for(const a of FT_ALIASES){
         if(a.keys.some(k=>sk.includes(k))){
-          const fromDict=ttCandidates.find(c=>a.keys.some(k=>normKey(c.name).includes(k)));
-          return fromDict ? fromDict.name : a.name;
+          return a.name;
         }
       }
 
-      return `ТТ ${String(sklad||'').trim()}`;
+      // Если склад не попал ни в одну из 6 ФТ — отдаём как "Розница без склада"
+      // чтобы не создавать лишних ФТ
+      return 'Розница без склада';
     };
 
     const findDisplayName = (rawKnt, sklad) => {
@@ -459,15 +455,18 @@ const PF = {
       return findMapped(displayMap,displayMapNorm,displayMapPrefix,rawKnt) || rawKnt;
     };
 
+    // Проверка: принадлежит ли displayKnt к фирменным точкам
+    const isFirmTochka = knt => FT_VALID_NAMES.has(knt) || String(knt).startsWith('ФТ ');
+
     const findGroup = (rawKnt, displayKnt='') => {
-      if(isRetailRaw(rawKnt) || String(displayKnt).startsWith('ТТ ')){
+      if(isRetailRaw(rawKnt) || FT_VALID_NAMES.has(displayKnt) || String(displayKnt).startsWith('ФТ ')){
         return findMapped(groupMap,groupMapNorm,groupMapPrefix,displayKnt) || 'Фирменные точки';
       }
       return findMapped(groupMap,groupMapNorm,groupMapPrefix,rawKnt) || findMapped(groupMap,groupMapNorm,groupMapPrefix,displayKnt) || '⚠️ Без группы';
     };
 
     const findSubgroup = (rawKnt, displayKnt='') => {
-      if(isRetailRaw(rawKnt) || String(displayKnt).startsWith('ТТ ')){
+      if(isRetailRaw(rawKnt) || FT_VALID_NAMES.has(displayKnt) || String(displayKnt).startsWith('ФТ ')){
         return findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,displayKnt) || 'Фирменные точки';
       }
       return findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,rawKnt) || findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,displayKnt) || '';
