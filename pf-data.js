@@ -400,10 +400,13 @@ const PF = {
       }
 
       const allTxt=normKey([src,clean,finalName,grp,sub].join(' '));
-      if(finalName && (grp.toLowerCase().includes('фирмен') || allTxt.includes('фт ') || allTxt.includes('тт ') || allTxt.includes('сауран') || allTxt.includes('коктал') || allTxt.includes('артем') || allTxt.includes('евраз') || allTxt.includes('шапагат') || allTxt.includes('акмол') || allTxt.includes('женис'))){
+      if(finalName && (grp.toLowerCase().includes('фирмен') || allTxt.includes('тт ') || allTxt.includes('сауран') || allTxt.includes('коктал') || allTxt.includes('артем') || allTxt.includes('евраз') || allTxt.includes('шапагат') || allTxt.includes('акмол') || allTxt.includes('женис'))){
         ttCandidates.push({name:finalName, group:grp, subgroup:sub});
       }
     }
+
+    // Глубокая нормализация: только буквы и цифры, без пунктуации/пробелов/невидимых символов
+    const deepNorm = s => String(s||'').replace(/[^а-яёa-z0-9]/gi, '').toLowerCase();
 
     const findMapped=(map,normMap,prefixMap,key)=>{
       key=String(key||'').trim();
@@ -413,6 +416,14 @@ const PF = {
       if(normMap[nk]) return normMap[nk];
       const pfx=nk.slice(0,24);
       if(prefixMap[pfx]) return prefixMap[pfx];
+      // Deep normalization fallback — стрипает ВСЮ пунктуацию, пробелы, невидимые символы
+      const dk = deepNorm(key);
+      if(dk.length > 5) {
+        for(const [k,v] of Object.entries(normMap)){
+          if(deepNorm(k) === dk) return v;
+        }
+      }
+      // Substring fallback
       for(const [k,v] of Object.entries(normMap)){
         if(k.length>5 && nk.length>5 && (k.includes(nk) || nk.includes(k))) return v;
       }
@@ -424,30 +435,34 @@ const PF = {
       return nk.includes('розничная выручка') || nk.includes('розничный покупатель') || nk.includes('чл-розничная реализация');
     };
 
-    const FT_ALIASES=[
-      {keys:['артем','artem'], name:'ФТ Артем'},
-      {keys:['сауран','sauran'], name:'ФТ Сауран'},
-      {keys:['коктал','koktal'], name:'ФТ Коктал'},
-      {keys:['евраз','eurasia','евразия'], name:'ФТ Евразия'},
-      {keys:['шапагат','shapagat'], name:'ФТ Шапагат'},
-      {keys:['акмол','женис','жеңіс','zhenis'], name:'ФТ Акмол'},
+    const TT_ALIASES=[
+      {keys:['артем','artem'], name:'ТТ Артем'},
+      {keys:['сауран','sauran'], name:'ТТ Сауран'},
+      {keys:['коктал','koktal'], name:'ТТ Коктал'},
+      {keys:['евраз','eurasia'], name:'ТТ Евразия'},
+      {keys:['шапагат','shapagat'], name:'ТТ Шапагат ТД'},
+      {keys:['акмол','женис','жеңіс','zhenis'], name:'ТТ Акмол Женис'},
     ];
-    const FT_VALID_NAMES=new Set(FT_ALIASES.map(a=>a.name));
 
     const findRetailPointBySklad = sklad => {
       const sk=normKey(sklad);
       if(!sk) return 'Розница без склада';
 
-      // Сначала по ключевым словам склада — только 6 ФТ точек.
-      for(const a of FT_ALIASES){
+      // Сначала пытаемся вернуть ровно то название, которое уже есть в справочнике.
+      for(const c of ttCandidates){
+        const cn=normKey(c.name);
+        if(cn && (cn.includes(sk) || sk.includes(cn))) return c.name;
+      }
+
+      // Потом — по ключевым словам склада.
+      for(const a of TT_ALIASES){
         if(a.keys.some(k=>sk.includes(k))){
-          return a.name;
+          const fromDict=ttCandidates.find(c=>a.keys.some(k=>normKey(c.name).includes(k)));
+          return fromDict ? fromDict.name : a.name;
         }
       }
 
-      // Если склад не попал ни в одну из 6 ФТ — отдаём как "Розница без склада"
-      // чтобы не создавать лишних ФТ
-      return 'Розница без склада';
+      return `ТТ ${String(sklad||'').trim()}`;
     };
 
     const findDisplayName = (rawKnt, sklad) => {
@@ -455,18 +470,15 @@ const PF = {
       return findMapped(displayMap,displayMapNorm,displayMapPrefix,rawKnt) || rawKnt;
     };
 
-    // Проверка: принадлежит ли displayKnt к фирменным точкам
-    const isFirmTochka = knt => FT_VALID_NAMES.has(knt) || String(knt).startsWith('ФТ ');
-
     const findGroup = (rawKnt, displayKnt='') => {
-      if(isRetailRaw(rawKnt) || FT_VALID_NAMES.has(displayKnt) || String(displayKnt).startsWith('ФТ ')){
+      if(isRetailRaw(rawKnt) || String(displayKnt).startsWith('ТТ ')){
         return findMapped(groupMap,groupMapNorm,groupMapPrefix,displayKnt) || 'Фирменные точки';
       }
       return findMapped(groupMap,groupMapNorm,groupMapPrefix,rawKnt) || findMapped(groupMap,groupMapNorm,groupMapPrefix,displayKnt) || '⚠️ Без группы';
     };
 
     const findSubgroup = (rawKnt, displayKnt='') => {
-      if(isRetailRaw(rawKnt) || FT_VALID_NAMES.has(displayKnt) || String(displayKnt).startsWith('ФТ ')){
+      if(isRetailRaw(rawKnt) || String(displayKnt).startsWith('ТТ ')){
         return findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,displayKnt) || 'Фирменные точки';
       }
       return findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,rawKnt) || findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,displayKnt) || '';
@@ -762,6 +774,7 @@ const PF = {
       contractorDictionaryGid:this.GID_KONTR,
       unmappedContractors,
       retailPoints,
+      groupMap,groupMapNorm,displayMap,displayMapNorm,
     };
     this._lastSalesDiagnostics=diagnostics;
     if(typeof window!=='undefined'){
