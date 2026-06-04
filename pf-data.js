@@ -595,6 +595,7 @@ const PF = {
         sourceGid:this.GID_REAL,
         sourceRow:i+1,
         sklad,
+        manager:'',
         ndsSuspect: (() => {
           // Проверяем только строки без возвратов (для строк с возвратами формула другая)
           const hasReturn = Math.abs(qtyR) > 0 || Math.abs(sumR) > 0;
@@ -677,6 +678,7 @@ const PF = {
             sourceGid:this.GID_REAL_AO,
             sourceRow:i+1,
             sklad,
+            manager:'',
             group:mappedGroup,
             subgroup:mappedSubgroup,
             skuGroup:findSkuGroup(rawSku, sku),weight:w,
@@ -707,6 +709,7 @@ const PF = {
         const miSumRealS=mi('суммареализации(с','суммасвозвр');
         const miSumR=mi('суммавозвратов'), miSumBezNds=mi('суммабезналогов','безналогов');
         const miSklad=mi('склад');
+        const miManager=mi('менеджер','торговый','manager');
         for(let i=1;i<mayRows.length;i++){
           const r=mayRows[i];
           const rawKnt=String(r[miKnt]||'').trim();
@@ -746,6 +749,7 @@ const PF = {
             sourceGid:this.GID_REAL_MAY,
             sourceRow:i+1,
             sklad,
+            manager:miManager>=0?String(r[miManager]||'').trim():'',
             group:mappedGroup,
             subgroup:mappedSubgroup,
             skuGroup:findSkuGroup(rawSku, sku),weight:w,
