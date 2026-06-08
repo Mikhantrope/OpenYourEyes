@@ -33,6 +33,10 @@ const PF = {
   NON_PRODUCT: ['услуг','аренд','дистриб','транспорт','обслуж','сервис','подписк'],
   isDairy(sku) { return !this.NON_PRODUCT.some(k => sku.toLowerCase().includes(k)); },
 
+  // Фиксированный порядок каналов
+  GROUP_ORDER: ['Фирменные точки','Категория А','BC','Кофейни','ГосЗакуп','Horeca','Юридические лица','Регион Бурабай','Кымызнай'],
+  groupSortIdx(g) { const i=this.GROUP_ORDER.indexOf(g); return i>=0?i:998; },
+
   MO: ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
 
   // ── ФОРМАТИРОВАНИЕ ──────────────────────────────────────────
@@ -115,7 +119,7 @@ const PF = {
       }
     }
     const mar            = rev  ? prof/rev*100  : 0;
-    const retPct         = sumRealSTotal  ? ret/sumRealSTotal*100   : 0;
+    const retPct         = sumRealSTotal  ? Math.abs(ret)/sumRealSTotal*100   : 0;
     const avg            = qtyRealSum ? revSaleOnly/qtyRealSum : 0;  // ср.цена только по строкам продаж
     const retKgPct       = kg   ? retKg/kg*100 : 0;
     const priceZakup     = qtyRealSum ? sebRealSum/qtyRealSum            : 0;  // без НДС, только из строк продаж
