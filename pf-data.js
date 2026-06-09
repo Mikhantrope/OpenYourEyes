@@ -173,18 +173,28 @@ const PF = {
   //   если sum_nds = 0  → поставщик/строка без НДС, цену НЕ делим
   // Отдельно храним цену с НДС для режима отображения цен «НДС».
   _prikhodCostIndex: null,
+  _prikhodCostNormIndex: null,
+
+  _normPrikhodKey(s) {
+    // Унифицируем точки/запятые: "м.д.ж" и "м,д,ж" → одинаковый ключ
+    return String(s||'').trim().replace(/[.,]/g, ' ').replace(/\s+/g, ' ').toLowerCase();
+  },
 
   _buildPrikhodCostIndex(){
     if (this._prikhodCostIndex) return this._prikhodCostIndex;
 
     const idx = {};
+    const normIdx = {};
     const push = (sku, dt, priceNoNds, priceWithNds) => {
       sku = String(sku || '').trim();
       dt = String(dt || '').trim().slice(0, 10);
       priceNoNds = Number(priceNoNds) || 0;
       priceWithNds = Number(priceWithNds) || 0;
       if (!sku || !dt || priceNoNds <= 0) return;
-      (idx[sku] = idx[sku] || []).push({ dt, priceNoNds, priceWithNds: priceWithNds || priceNoNds });
+      const entry = { dt, priceNoNds, priceWithNds: priceWithNds || priceNoNds };
+      (idx[sku] = idx[sku] || []).push(entry);
+      const nk = this._normPrikhodKey(sku);
+      (normIdx[nk] = normIdx[nk] || []).push(entry);
     };
 
     // Новый формат PRIKHOD_PRICES: {sku: [[dt, priceNoNds, priceWithNds], ...]}
@@ -199,13 +209,22 @@ const PF = {
     for (const entries of Object.values(idx)) {
       entries.sort((a, b) => a.dt.localeCompare(b.dt));
     }
+    for (const entries of Object.values(normIdx)) {
+      entries.sort((a, b) => a.dt.localeCompare(b.dt));
+    }
 
     this._prikhodCostIndex = idx;
+    this._prikhodCostNormIndex = normIdx;
     return idx;
   },
 
   getPrikhodCostPrices(sku, saleDate){
-    const entries = this._buildPrikhodCostIndex()[sku];
+    this._buildPrikhodCostIndex();
+    // Сначала точное совпадение, потом нормализованное (точки↔запятые)
+    let entries = this._prikhodCostIndex[sku];
+    if (!entries || !entries.length) {
+      entries = this._prikhodCostNormIndex[this._normPrikhodKey(sku)];
+    }
     if (!entries || entries.length === 0) return null;
 
     // Минимально допустимая цена: 10 ₸ с НДС
