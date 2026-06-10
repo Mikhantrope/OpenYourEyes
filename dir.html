@@ -81,9 +81,10 @@ function expenseFactPerKg(mk,m){const e=DIR_EXPENSES[mk]||{}; return m&&m.kg ? (
 function expensePlanPerKg(mk){const e=DIR_EXPENSES[mk]||{}; return e.planKg ? (e.plan||0)/e.planKg : 0;}
 function expenseTotal(kind){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.[kind]||0),0);}
 function expenseTotalPlanKg(){return Q_MONTHS.reduce((sum,mk)=>sum+(DIR_EXPENSES[mk]?.planKg||0),0);}
-const SKU_ORD=['Молоко','Масло','Сметана','Кисломолочная','Творог','Национальный продукт','Прочее','Сыр','Сливки'];
+const SKU_ORD=['Молоко','Масло','Сметана','Кисломолочная','Творог','Национальный продукт','Сыр','Сливки'];
 function buildSalesTable(id,title,rows){
-  const allC=Object.keys(groupBy(rows,r=>r.skuGroup||'Прочее'));
+  rows=rows.filter(r=>r.skuGroup && r.skuGroup!=='Прочее');
+  const allC=Object.keys(groupBy(rows,r=>r.skuGroup));
   const cats=[...SKU_ORD,...allC.filter(c=>!SKU_ORD.includes(c)).sort((a,b)=>agg(rows.filter(r=>r.skuGroup===b)).rev-agg(rows.filter(r=>r.skuGroup===a)).rev)];
   const total=agg(rows);
   let copyBtns=Q_MONTHS.map((mk,i)=>`<button class="copy-btn" onclick="copyDirMonth('${id}',${i},this)">📋 ${MONTH_LABEL[mk]}</button>`).join('');
@@ -93,7 +94,7 @@ function buildSalesTable(id,title,rows){
   html+=`<thead><tr><th rowspan="2">SKU / Категория</th>${Q_MONTHS.map(m=>`<th class="month-h" colspan="7">${MONTH_LABEL[m]}</th>`).join('')}<th class="month-h" colspan="7">${cfg().totalLabel}</th></tr>`;
   html+=`<tr>${[...Q_MONTHS,'TOTAL'].map(()=>'<th>Реализация, тенге</th><th>Себестоимость, тенге</th><th>Реализация, кг.<br>(с возвратами)</th><th>Цена за 1 кг, тенге</th><th>Реализация, кг.<br>(без возвратов)</th><th>Возврат, кг</th><th>% Возврата</th>').join('')}</tr></thead><tbody>`;
   for(const cat of cats){
-    const rs=rows.filter(r=>(r.skuGroup||'Прочее')===cat);
+    const rs=rows.filter(r=>r.skuGroup===cat);
     html+=`<tr><td data-copy="${esc(cat)}">${esc(cat)}</td>`;
     for(const mk of Q_MONTHS) html+=metricCells(agg(rs.filter(r=>r.mk===mk)));
     html+=metricCells(agg(rs))+`</tr>`;
