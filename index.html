@@ -1557,7 +1557,7 @@ function renderMonth(){
   const parts=[`<tr class="tot"><td><div class="cnm"><span style="width:13px;display:inline-block"></span><span class="rnm totlbl">📊 ИТОГО</span></div></td>`+
     vis.map(c=>{
       const v=c.id==='share'?(shareMode==='kg'?tot.kg:shareMode==='prof'?tot.prof:tot.rev):(tot[c.key]||0);
-      const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profNet'||c.key==='profKg')?(v>=0?'pos':'neg'):'';
+      const c2=c.fmt==='pct'?((c.key==='retPct'||c.key==='retKgPct')?(v>0?'neg':'neu'):(v<0?'neg':v>0?'pos':'neu')):(c.key==='prof'||c.key==='profNet'||c.key==='profKg')?(v>=0?'pos':'neg'):'';
       const txt=c.id==='share'?'100%':fmtCell(v,c.fmt,tRev);
       return `<td class="${c2}">${txt}</td>`;
     }).join('')+'</tr>'];
@@ -1570,7 +1570,7 @@ function renderMonth(){
     const nc=n.isDate?'rnm date-name':(n.ng?'rnm nog':'rnm');
     const tds=vis.map(c=>{
       const v=c.id==='share'?(shareMode==='kg'?m.kg:shareMode==='prof'?m.prof:m.rev):(m[c.key]||0);
-      const c2=c.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(c.key==='prof'||c.key==='profNet'||c.key==='profKg')?(v>0?'pos':v<0?'neg':''):(c.key==='ret'||c.key==='retKg')?v?'neg':'neu':'';
+      const c2=c.fmt==='pct'?((c.key==='retPct'||c.key==='retKgPct')?(v>0?'neg':'neu'):(v<0?'neg':v>0?'pos':'neu')):(c.key==='prof'||c.key==='profNet'||c.key==='profKg')?(v>0?'pos':v<0?'neg':''):(c.key==='ret'||c.key==='retKg')?v?'neg':'neu':'';
       let txt;
       if(c.id==='share'){
         const shVal=shareMode==='kg'?m.kg:shareMode==='prof'?m.prof:m.rev;
@@ -1690,7 +1690,7 @@ function renderDay(){
     const da=PF.agg(dayR);
     visMetrics.forEach((m,mi)=>{
       const v=da[m.key]||0;
-      const c2=m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):((m.key==='ret'||m.key==='retKg')?v?'neg':'neu':'');
+      const c2=m.fmt==='pct'?((m.key==='retPct'||m.key==='retKgPct')?(v>0?'neg':'neu'):(v<0?'neg':v>0?'pos':'neu')):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):((m.key==='ret'||m.key==='retKg')?v?'neg':'neu':'');
       const isFirst=mi===0;const isLast=mi===numM-1;
       const bLeft=di>0&&isFirst?'border-left:2px solid var(--border);':'';
       const bRight=isLast?'border-right:2px solid var(--border);':'';
@@ -1747,7 +1747,7 @@ function renderDay(){
       visMetrics.forEach((m,mi)=>{
         const v=da?da[m.key]||0:null;
         const hasVal=da&&dayNodeRows.length>0;
-        const c2=hasVal?(m.fmt==='pct'?(v<0?'neg':v>0?'pos':'neu'):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):((m.key==='ret'||m.key==='retKg')?v?'neg':'neu':'')):'';
+        const c2=hasVal?(m.fmt==='pct'?((m.key==='retPct'||m.key==='retKgPct')?(v>0?'neg':'neu'):(v<0?'neg':v>0?'pos':'neu')):(m.key==='prof')?(v>0?'pos':v<0?'neg':''):((m.key==='ret'||m.key==='retKg')?v?'neg':'neu':'')):'';
         const bLeft=di>0&&mi===0?'border-left:2px solid var(--border);':'';
         const txt=hasVal&&v!==0?fmtCell(v,m.fmt,tRev):'<span class="empty-cell">—</span>';
         tds+=`<td class="dcell ${c2}" style="${bLeft}">${txt}</td>`;
