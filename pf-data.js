@@ -134,6 +134,7 @@ const PF = {
       qtyReal:        Math.round(qtyRealSum), // Кол-во реализации (без возвратов)
       qtyRet:         Math.round(qty - qtyRealSum < 0 ? qty - qtyRealSum : 0), // Кол-во возвратов
       rev:            Math.round(rev),
+      revSale:        Math.round(revSaleOnly),   // выручка б/НДС только продаж (без строк возвратов)
       sumReal:        Math.round(sumRealTotal),   // Сумма реализации с НДС (колонка J, все строки)
       sumRealS:       Math.round(sumRealSTotal),  // Сумма реализации с возвратами (колонка L = J+K)
       ret:            Math.round(ret),
