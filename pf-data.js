@@ -592,7 +592,8 @@ const PF = {
       const qtyReal  = (_rawQtyReal != null && String(_rawQtyReal).trim() !== '') ? this.toNum(_rawQtyReal) : qtyN;
       const sumR     =this.toNum(r[iSumR]);
       const sumRealS =iSumRealS>=0 ? this.toNum(r[iSumRealS]) : (this.toNum(_rawSumReal) + sumR);
-      const sumReal  = (_rawSumReal != null && String(_rawSumReal).trim() !== '') ? this.toNum(_rawSumReal) : sumRealS;
+      // Если колонки J нет — «только продажи» = сумма с возвратами МИНУС возвраты
+      const sumReal  = (_rawSumReal != null && String(_rawSumReal).trim() !== '') ? this.toNum(_rawSumReal) : (sumRealS - sumR);
       const sumBezNds=this.toNum(r[iSumBezNds]);
       const w        =findSkuWeight(rawSku, sku);
 
@@ -683,7 +684,7 @@ const PF = {
           const qtyReal=(_rQR!=null&&String(_rQR).trim()!=='')?this.toNum(_rQR):qtyN;
           const sumR=this.toNum(r[aiSumR]);
           const sumRealS=aiSumRealS>=0?this.toNum(r[aiSumRealS]):(this.toNum(_rSR)+sumR);
-          const sumReal=(_rSR!=null&&String(_rSR).trim()!=='')?this.toNum(_rSR):sumRealS;
+          const sumReal=(_rSR!=null&&String(_rSR).trim()!=='')?this.toNum(_rSR):(sumRealS-sumR);
           const sumBezNds=this.toNum(r[aiSumBezNds]);
           const w=findSkuWeight(rawSku, sku);
           const prikhodCost=this.getPrikhodCostPrices(rawSku,day)||this.getPrikhodCostPrices(sku,day);
@@ -754,7 +755,7 @@ const PF = {
           const qtyReal=(_rQR!=null&&String(_rQR).trim()!=='')?this.toNum(_rQR):qtyN;
           const sumR=this.toNum(r[miSumR]);
           const sumRealS=miSumRealS>=0?this.toNum(r[miSumRealS]):(this.toNum(_rSR)+sumR);
-          const sumReal=(_rSR!=null&&String(_rSR).trim()!=='')?this.toNum(_rSR):sumRealS;
+          const sumReal=(_rSR!=null&&String(_rSR).trim()!=='')?this.toNum(_rSR):(sumRealS-sumR);
           const sumBezNds=this.toNum(r[miSumBezNds]);
           const w=findSkuWeight(rawSku, sku);
           const prikhodCost=this.getPrikhodCostPrices(rawSku,day)||this.getPrikhodCostPrices(sku,day);
