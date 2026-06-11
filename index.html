@@ -474,6 +474,12 @@ tr.dt-dimmed{opacity:.25;}
     <div class="dim-list" id="rowDimList"></div>
     <select class="sel" id="dimAddSel" onchange="addRowDimFromSelect(this)"></select>
     <button class="ebtn" onclick="resetRowDims()" title="Вернуть стандартную иерархию">Сброс</button>
+    <div class="sep"></div>
+    <span class="tlbl">Шаблоны:</span>
+    <button class="ebtn" onclick="applyDimPreset('full')" title="Группа контр. → Подгруппа → Контрагент → Группа SKU → SKU">📊 Полная</button>
+    <button class="ebtn" onclick="applyDimPreset('channels')" title="Группа контр. → Контрагент → SKU">🏪 Каналы</button>
+    <button class="ebtn" onclick="applyDimPreset('products')" title="Группа SKU → SKU → Группа контр.">🥛 Продукты</button>
+    <button class="ebtn" onclick="applyDimPreset('days')" title="День → Группа контр. → SKU">📅 Дни</button>
   </div>
   
   <div class="sep"></div>
@@ -624,10 +630,10 @@ const MCOLS=[
   {id:'qtyRet',   lbl:'Возвр (шт)',      key:'qtyRet',      fmt:'qty', on:true,
     tip:'Количество возвратов (штук)',
     doc:{formula:'СУММ(«Количество возвратов»)',source:'Колонка H в ИсхРеал из 1С',meaning:'Сколько штук вернули покупатели. Отображается как отрицательное число',example:'Вернули 3 шт → Возвр. = −3'}},
-  {id:'rev',      lbl:'Выручка (₸)',  key:'rev',         fmt:'full',on:true,
+  {id:'rev',      lbl:'Выручка б/НДС (₸)',  key:'rev',         fmt:'full',on:true,
     tip:'Выручка без НДС',
     doc:{formula:'СУММ(«Сумма без налогов»)',source:'Колонка O в ИсхРеал из 1С',meaning:'Выручка без НДС = основа для маржи и прибыли. Включает возвраты (уже вычтены 1С). Колонка «Сумма реализации» (J) содержит НДС — мы её НЕ используем для выручки',example:'Продали на 116 000 ₸ с НДС → Выручка без НДС = 100 000 ₸'}},
-  {id:'sumReal',   lbl:'Реал.факт (₸)',key:'sumRealS', fmt:'rev',  on:true,
+  {id:'sumReal',   lbl:'Реал.факт с НДС (₸)',key:'sumRealS', fmt:'full',  on:true,
     tip:'Сумма реализации с НДС (колонка J из 1С)',
     doc:{formula:'СУММ(«Сумма реализации»)',source:'Колонка J в ИсхРеал из 1С',meaning:'Сумма продаж С НДС — именно эта сумма в накладных у покупателей. Отличается от Выручки (колонка O без НДС)',example:'Продали на 100 000 ₸ без НДС → Сумма реал. = 116 000 ₸'}},
   {id:'ret',      lbl:'Возврат (₸)',  key:'ret',         fmt:'full',on:true,
@@ -729,7 +735,7 @@ const DAY_METRICS=[
   {id:'qty',     lbl:'С возвр (шт)',  key:'qty',      fmt:'qty', on:true},
   {id:'qtyReal', lbl:'Реал (шт)',     key:'qtyReal',  fmt:'qty', on:true},
   {id:'qtyRet',  lbl:'Возвр (шт)',    key:'qtyRet',   fmt:'qty', on:false},
-  {id:'rev',     lbl:'Выручка (₸)',   key:'rev',      fmt:'rev', on:true},
+  {id:'rev',     lbl:'Выручка б/НДС (₸)',   key:'rev',      fmt:'rev', on:true},
   {id:'prof',    lbl:'Прибыль (₸)',   key:'prof',     fmt:'rev', on:true},
   {id:'profNet', lbl:'Приб.чист (₸)',key:'profNet',  fmt:'rev', on:false},
   {id:'mar',     lbl:'Маржа (%)',   key:'mar',      fmt:'pct', on:true},
@@ -737,7 +743,7 @@ const DAY_METRICS=[
   {id:'seb',     lbl:'Себест (₸)',   key:'seb',      fmt:'rev', on:false},
   {id:'ret',     lbl:'Возврат (₸)',   key:'ret',      fmt:'rev', on:false},
   {id:'retKg',   lbl:'Возвр (кг)', key:'retKg',    fmt:'kg',  on:false},
-  {id:'sumReal', lbl:'Реал.факт (₸)',key:'sumRealS', fmt:'rev', on:false},
+  {id:'sumReal', lbl:'Реал.факт с НДС (₸)',key:'sumRealS', fmt:'rev', on:false},
   {id:'retPct',  lbl:'Возврат (%)',  key:'retPct',   fmt:'pct', on:false},
   {id:'priceZakup', lbl:'Закуп (₸)', key:'priceZakup',   fmt:'full',on:false},
   {id:'priceSell',  lbl:'Продажа (₸)',key:'priceSellNds', fmt:'full',on:false},
@@ -840,8 +846,8 @@ function setProfMode(mode){
   // Переключаем Сумму реал: Факт=с возвратами (sumRealS), Без возвр.=только продажи (sumReal)
   const mSumReal = MCOLS.find(c=>c.id==='sumReal');
   const dSumReal = DAY_METRICS.find(c=>c.id==='sumReal');
-  if(mSumReal){ mSumReal.key = mode==='std' ? 'sumRealS' : 'sumReal'; mSumReal.lbl = mode==='std' ? 'Реал.факт (₸)' : 'Реал.чист (₸)'; }
-  if(dSumReal){ dSumReal.key = mode==='std' ? 'sumRealS' : 'sumReal'; dSumReal.lbl = mode==='std' ? 'Реал.факт (₸)' : 'Реал.чист (₸)'; }
+  if(mSumReal){ mSumReal.key = mode==='std' ? 'sumRealS' : 'sumReal'; mSumReal.lbl = mode==='std' ? 'Реал.факт с НДС (₸)' : 'Реал.чист с НДС (₸)'; }
+  if(dSumReal){ dSumReal.key = mode==='std' ? 'sumRealS' : 'sumReal'; dSumReal.lbl = mode==='std' ? 'Реал.факт с НДС (₸)' : 'Реал.чист с НДС (₸)'; }
   saveMonthCols();
   buildCtogs();
   buildMHeader();
@@ -988,10 +994,22 @@ function setViewMode(mode){
   render();
 }
 
+// ── FIT TABLE HEIGHT (вертикальный скролл не обрезается тулбарами) ──
+function fitTableHeight(){
+  for(const id of ['monthView','dayView']){
+    const el=document.getElementById(id);
+    if(!el || el.offsetParent===null) continue;
+    const top=el.getBoundingClientRect().top;
+    el.style.height=Math.max(200, window.innerHeight-top-4)+'px';
+  }
+}
+window.addEventListener('resize',fitTableHeight);
+
 function render(){
   updateKPIs();
   if(viewMode==='month') renderMonth();
   else renderDay();
+  requestAnimationFrame(fitTableHeight);
 }
 
 // ── KPIs ──────────────────────────────────────────────────
@@ -1002,8 +1020,10 @@ function updateKPIs(){
   document.getElementById('k-qty').textContent=PF.fmtQty(tot.qty);
   document.getElementById('k-kg').textContent=PF.fmtKg(tot.kg)+' кг';
   document.getElementById('k-seb').textContent=PF.fmtRev(tot.seb)+' ₸';
-  const pe=document.getElementById('k-prof');pe.textContent=PF.fmtRev(tot.prof)+' ₸';pe.className='kpi-val '+(tot.prof>=0?'grn':'red');
-  const me=document.getElementById('k-mar');me.textContent=PF.fmtPct(tot.mar);me.className='kpi-val '+(tot.mar>=0?'grn':'red');
+  const profV = profMode==='net' ? tot.profNet : tot.prof;
+  const marV  = profMode==='net' ? (tot.rev?tot.profNet/tot.rev*100:0) : tot.mar;
+  const pe=document.getElementById('k-prof');pe.textContent=PF.fmtRev(profV)+' ₸';pe.className='kpi-val '+(profV>=0?'grn':'red');
+  const me=document.getElementById('k-mar');me.textContent=PF.fmtPct(marV);me.className='kpi-val '+(marV>=0?'grn':'red');
   document.getElementById('k-ret').textContent=PF.fmtRev(tot.ret)+' ₸';
   document.getElementById('k-retpct').textContent=PF.fmtPctAbs(tot.retPct);
   document.getElementById('k-avg').textContent=PF.fmtFull(calcAvg(rows))+' ₸';
@@ -1255,6 +1275,20 @@ function moveRowDim(idx,dir){
   const ni=idx+dir; if(ni<0||ni>=rowDims.length)return;
   [rowDims[idx],rowDims[ni]]=[rowDims[ni],rowDims[idx]]; onRowDimsChanged();
 }
+// ── ШАБЛОНЫ ИЕРАРХИЙ ──────────────────────────────────────
+const DIM_PRESETS={
+  full:     ['group','subgroup','knt','skuGroup','sku'],
+  channels: ['group','knt','sku'],
+  products: ['skuGroup','sku','group'],
+  days:     ['day','group','sku'],
+};
+function applyDimPreset(name){
+  const preset=DIM_PRESETS[name];
+  if(!preset) return;
+  rowDims=[...preset];
+  onRowDimsChanged();
+}
+
 function resetRowDims(){
   rowDims=[...DEFAULT_ROW_DIMS]; showMonthDates=false;
   // Сброс колонок к дефолту
@@ -1262,7 +1296,7 @@ function resetRowDims(){
   MCOLS.forEach(c => { mColOn[c.id] = defaultOn.includes(c.id); });
   // Сброс sumReal key
   const mSR = MCOLS.find(c=>c.id==='sumReal');
-  if(mSR){ mSR.key='sumRealS'; mSR.lbl='Реал.факт (₸)'; }
+  if(mSR){ mSR.key='sumRealS'; mSR.lbl='Реал.факт с НДС (₸)'; }
   // Сброс profMode
   profMode='std';
   mColOn['prof']=true; mColOn['profNet']=false;
