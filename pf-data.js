@@ -496,6 +496,8 @@ const PF = {
 
     const findGroup = (rawKnt, displayKnt='') => {
       if(isRetailRaw(rawKnt) || String(displayKnt).startsWith('ТТ ')){
+        // Розница без склада → BC (не портит статистику ФТ)
+        if(displayKnt === 'Розница без склада') return 'BC';
         return findMapped(groupMap,groupMapNorm,groupMapPrefix,displayKnt) || 'Фирменные точки';
       }
       return findMapped(groupMap,groupMapNorm,groupMapPrefix,rawKnt) || findMapped(groupMap,groupMapNorm,groupMapPrefix,displayKnt) || '⚠️ Без группы';
@@ -503,6 +505,7 @@ const PF = {
 
     const findSubgroup = (rawKnt, displayKnt='') => {
       if(isRetailRaw(rawKnt) || String(displayKnt).startsWith('ТТ ')){
+        if(displayKnt === 'Розница без склада') return 'BC';
         return findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,displayKnt) || 'Фирменные точки';
       }
       return findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,rawKnt) || findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,displayKnt) || '';
