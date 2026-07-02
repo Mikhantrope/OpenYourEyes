@@ -424,7 +424,7 @@ const PF = {
       }
 
       const allTxt=normKey([src,clean,finalName,grp,sub].join(' '));
-      if(finalName && (grp.toLowerCase().includes('фирмен') || allTxt.includes('тт ') || allTxt.includes('сауран') || allTxt.includes('коктал') || allTxt.includes('артем') || allTxt.includes('евраз') || allTxt.includes('шапагат') || allTxt.includes('акмол') || allTxt.includes('женис'))){
+      if(finalName && (grp.toLowerCase().includes('фирмен') || allTxt.includes('тт ') || allTxt.includes('фт ') || allTxt.includes('сауран') || allTxt.includes('коктал') || allTxt.includes('артем') || allTxt.includes('евраз') || allTxt.includes('шапагат') || allTxt.includes('акмол') || allTxt.includes('женис'))){
         ttCandidates.push({name:finalName, group:grp, subgroup:sub});
       }
     }
@@ -460,12 +460,12 @@ const PF = {
     };
 
     const TT_ALIASES=[
-      {keys:['артем','artem'], name:'ТТ Артем'},
-      {keys:['сауран','sauran'], name:'ТТ Сауран'},
-      {keys:['коктал','koktal'], name:'ТТ Коктал'},
-      {keys:['евраз','eurasia'], name:'ТТ Евразия'},
-      {keys:['шапагат','shapagat'], name:'ТТ Шапагат ТД'},
-      {keys:['акмол','женис','жеңіс','zhenis'], name:'ТТ Акмол Женис'},
+      {keys:['артем','artem'], name:'ФТ Артем'},
+      {keys:['сауран','sauran'], name:'ФТ Сауран'},
+      {keys:['коктал','koktal'], name:'ФТ Коктал'},
+      {keys:['евраз','eurasia'], name:'ФТ Евразия'},
+      {keys:['шапагат','shapagat'], name:'ФТ Шапагат'},
+      {keys:['акмол','женис','жеңіс','zhenis'], name:'ФТ Акмол Женис'},
     ];
 
     const findRetailPointBySklad = sklad => {
@@ -486,7 +486,7 @@ const PF = {
         }
       }
 
-      return `ТТ ${String(sklad||'').trim()}`;
+      return 'Розница без склада';
     };
 
     const findDisplayName = (rawKnt, sklad) => {
@@ -494,8 +494,10 @@ const PF = {
       return findMapped(displayMap,displayMapNorm,displayMapPrefix,rawKnt) || rawKnt;
     };
 
+    const isFTName = s => { const d=String(s); return d.startsWith('ТТ ') || d.startsWith('ФТ '); };
+
     const findGroup = (rawKnt, displayKnt='') => {
-      if(isRetailRaw(rawKnt) || String(displayKnt).startsWith('ТТ ')){
+      if(isRetailRaw(rawKnt) || isFTName(displayKnt)){
         // Розница без склада → BC (не портит статистику ФТ)
         if(displayKnt === 'Розница без склада') return 'BC';
         return findMapped(groupMap,groupMapNorm,groupMapPrefix,displayKnt) || 'Фирменные точки';
@@ -504,7 +506,7 @@ const PF = {
     };
 
     const findSubgroup = (rawKnt, displayKnt='') => {
-      if(isRetailRaw(rawKnt) || String(displayKnt).startsWith('ТТ ')){
+      if(isRetailRaw(rawKnt) || isFTName(displayKnt)){
         if(displayKnt === 'Розница без склада') return 'BC';
         return findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,displayKnt) || 'Фирменные точки';
       }
