@@ -114,7 +114,9 @@ function buildQtyFactTable(rows,byMonth){
   const grossKgTotal=total.saleKg ?? (total.kg+total.retKg);
   let html=`<div class="table-card"><div class="table-head"><div><div class="table-sub">Реализация — количество</div><div class="table-title">Реализация по месяцам: тенге, себестоимость, шт. и кг.</div></div><button class="copy-btn" onclick="copyDirTable('${id}',this)">📋 Скопировать таблицу</button></div><div class="table-wrap"><table class="tbl" id="${id}"><thead><tr><th>Показатель</th>${Q_MONTHS.map(m=>`<th>${MONTH_LABEL[m]}</th>`).join('')}<th>${cfg().totalLabel}</th></tr></thead><tbody>`;
   const rowsDef=[
-    ['Реализация, тенге',byMonth.map(x=>x.rev),total.rev,v=>fmtMoney(v)],
+    ['Реализация, тенге (с возвратами)',byMonth.map(x=>x.revSale),total.revSale,v=>fmtMoney(v)],
+    ['Возвраты, тенге',byMonth.map(x=>Math.abs(x.ret||0)),Math.abs(total.ret||0),v=>fmtMoney(v),'neg'],
+    ['Реализация, тенге (без возвратов)',byMonth.map(x=>x.rev),total.rev,v=>fmtMoney(v)],
     ['Себестоимость, тенге',byMonth.map(x=>x.seb),total.seb,v=>fmtMoney(v)],
     ['Реализация, шт. (с возвратами)',byMonth.map(x=>x.qtyReal),total.qtyReal,v=>fmtFull(v)+' шт'],
     ['Возвраты, шт.',byMonth.map(x=>x.qtyRet),total.qtyRet,v=>fmtFull(v)+' шт','neg'],
