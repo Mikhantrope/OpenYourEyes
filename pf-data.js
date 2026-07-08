@@ -19,9 +19,9 @@ const PF = {
   GID_REAL_MAY:'1919783760',  // ИсхРеалМай — отдельный лист майской реализации
   GID_KONTR: '1039539700',
   GID_SKU:   '286897778',
-  GID_PRIHOD:'1270219264',
+  GID_PRIHOD:'739937881',   // Приход — универсальный отчёт «Поступление ТМЗ и услуг» (тот же физический лист, что и GID_PRIHOD2 ниже)
   GID_PLAN:  '311695615',   // Лист Планы — план закупа по поставщикам
-  GID_PRIHOD2:'739937881',  // Приход для ДиР / веса по поставщикам
+  GID_PRIHOD2:'739937881',  // Приход для ДиР / веса по поставщикам — тот же лист; fetchCsvCached сам избежит двойной загрузки одного gid
   GID_RASHOD:'753197950',   // Расходы для ДиР
   GID_ZP_DET:'1431078713',  // ЗП Детально
   GID_ZP_OBH:'2144268074',  // ЗП Общее
@@ -121,6 +121,17 @@ const PF = {
       if (i >= 0) return i;
     }
     return -1;
+  },
+
+  // Некоторые листы 1С («универсальный отчёт») имеют мусорную шапку сверху (заголовок отчёта,
+  // пустая строка) прежде чем начинаются реальные названия колонок. Ищем строку заголовков по
+  // наличию ключевого слова (обычно «номенклатура») среди первых нескольких строк листа.
+  _findHeaderRowIdx(rows, keyword='номенклатура', maxScan=10) {
+    for (let i = 0; i < Math.min(rows.length, maxScan); i++) {
+      const cells = (rows[i]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
+      if (cells.some(c => c.includes(keyword))) return i;
+    }
+    return 0;
   },
 
   // ── АГРЕГАЦИЯ ────────────────────────────────────────────────
@@ -314,12 +325,7 @@ const PF = {
       if (!rows.length) { this._prikhodSheetPrices = []; return; }
 
       // Лист — «универсальный отчёт» 1С: сверху может быть мусорная шапка.
-      // Строку заголовков ищем по наличию ячейки «Номенклатура» среди первых строк.
-      let headerRowIdx = 0;
-      for (let i = 0; i < Math.min(rows.length, 10); i++) {
-        const cells = (rows[i]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
-        if (cells.some(c => c.includes('номенклатура'))) { headerRowIdx = i; break; }
-      }
+      const headerRowIdx = this._findHeaderRowIdx(rows, 'номенклатура');
       const H = (rows[headerRowIdx]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
       const fi = (...ns) => this.findCol(H,...ns);
 
@@ -768,6 +774,23 @@ const PF = {
       if(row.sourceRow && x.firstSourceRow>row.sourceRow) x.firstSourceRow=row.sourceRow;
     };
 
+    // Мусорные строки-технические артефакты 1С: SKU вида "0" (пустая/битая ячейка номенклатуры).
+    // Раньше такие строки тихо пропускались без следа — теперь исключаем ЯВНО, с диагностикой,
+    // чтобы было видно что именно убрали из статистики и почему (а не молча потеряли данные).
+    const isGarbageSku = s => /^\d+$/.test(String(s||'').trim());
+    const excludedGarbageMap=new Map();
+    const addExcludedGarbage=(sourceSheet,sourceGid,sourceRow,rawSku,rev,qty)=>{
+      const key=[sourceSheet,rawSku].join('||');
+      if(!excludedGarbageMap.has(key)){
+        excludedGarbageMap.set(key,{sourceSheet,sourceGid,firstSourceRow:sourceRow,rawSku,rows:0,rev:0,qty:0});
+      }
+      const x=excludedGarbageMap.get(key);
+      x.rows+=1;
+      x.rev+=(rev||0);
+      x.qty+=(qty||0);
+      if(sourceRow && x.firstSourceRow>sourceRow) x.firstSourceRow=sourceRow;
+    };
+
     for (let i=1;i<rRows.length;i++) {
       const r=rRows[i];
       const rawKnt=String(r[iKnt]||'').trim();
@@ -781,6 +804,10 @@ const PF = {
       // Пропускаем: пустые, строку "Итого", нетоварные, "Не брать в Dashboard"
       if (!rawKnt||!knt||!rawSku) continue;
       if (rawKnt.toLowerCase().includes('итого')||knt.toLowerCase().includes('итого')||rawSku.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
+      if (isGarbageSku(rawSku)) {
+        addExcludedGarbage('ИсхРеал', this.GID_REAL, i+1, rawSku, this.toNum(r[iSumBezNds]), this.toNum(r[iQtyN]));
+        continue;
+      }
       if (isSkuSkipped(rawSku) || isSkuSkipped(sku)) continue;
       if (!this.isDairy(rawSku) && !this.isDairy(sku)) continue;
 
@@ -882,6 +909,10 @@ const PF = {
           if(!rawKnt||!rawSku) continue;
           const sku=findSkuDisplayM(rawSku);
           if(rawKnt.toLowerCase().includes('итого')||rawSku.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
+          if (isGarbageSku(rawSku)) {
+            addExcludedGarbage('ИсхРеалАО', this.GID_REAL_AO, i+1, rawSku, this.toNum(r[aiSumBezNds]), this.toNum(r[aiQtyN]));
+            continue;
+          }
           if(isSkuSkipped(rawSku) || isSkuSkipped(sku)) continue;
           if(!this.isDairy(rawSku) && !this.isDairy(sku)) continue;
           const dt=this.toDate(r[aiDate]); if(!dt) continue;
@@ -956,6 +987,10 @@ const PF = {
           if(!rawKnt||!rawSku) continue;
           const sku=findSkuDisplayM(rawSku);
           if(rawKnt.toLowerCase().includes('итого')||rawSku.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
+          if (isGarbageSku(rawSku)) {
+            addExcludedGarbage('ИсхРеалМай', this.GID_REAL_MAY, i+1, rawSku, this.toNum(r[miSumBezNds]), this.toNum(r[miQtyN]));
+            continue;
+          }
           if(isSkuSkipped(rawSku) || isSkuSkipped(sku)) continue;
           if(!this.isDairy(rawSku) && !this.isDairy(sku)) continue;
           const dt=this.toDate(r[miDate]); if(!dt) continue;
@@ -1044,12 +1079,17 @@ const PF = {
       .map(x=>({...x,rev:Math.round(x.rev),kg:Math.round(x.kg*10)/10}))
       .sort((a,b)=>b.rev-a.rev);
 
+    const excludedGarbage=[...excludedGarbageMap.values()]
+      .map(x=>({...x,rev:Math.round(x.rev)}))
+      .sort((a,b)=>b.rev-a.rev);
+
     const diagnostics={
       sources:[{name:'ИсхРеал',gid:this.GID_REAL},{name:'ИсхРеалАО',gid:this.GID_REAL_AO},{name:'ИсхРеалМай',gid:this.GID_REAL_MAY}],
       contractorDictionaryGid:this.GID_KONTR,
       skuDictionaryGid:this.GID_SKU,
       unmappedContractors,
       unmappedSkus,
+      excludedGarbage,
       retailPoints,
       groupMap,groupMapNorm,displayMap,displayMapNorm,
       prikhodPrices:{pricesFromStatic,pricesFromSheet,maxPriceDay,maxSaleDay,staleWarning:priceStaleWarning},
@@ -1065,6 +1105,10 @@ const PF = {
         console.warn('PF: есть SKU без группы (попали в "Прочее"). Открой window.PF_SALES_DIAGNOSTICS.unmappedSkus — inDictionary=true значит SKU есть в справочнике, но ячейка ГруппаSKU пустая; inDictionary=false значит такого SKU в справочнике нет вообще.');
         console.table(unmappedSkus.slice(0,50));
       }
+      if(excludedGarbage.length){
+        console.warn('PF: из статистики исключены строки с мусорным SKU (номенклатура вида "0" — битая/пустая ячейка в 1С). Открой window.PF_SALES_DIAGNOSTICS.excludedGarbage, чтобы проверить сумму и строки.');
+        console.table(excludedGarbage);
+      }
       if(priceStaleWarning) console.warn('PF: '+priceStaleWarning);
       window.dispatchEvent(new CustomEvent('pf:dataUpdated'));
     }
@@ -1076,7 +1120,9 @@ const PF = {
     const p=onProgress||(()=>{});
     p(30,'Загрузка журнала прихода...');
     const rows=await this.fetchCsvRows(this.GID_PRIHOD);
-    const H=rows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
+    // Лист — «универсальный отчёт» 1С: сверху мусорная шапка (заголовок отчёта, пустая строка).
+    const headerRowIdx=this._findHeaderRowIdx(rows, 'номенклатура');
+    const H=(rows[headerRowIdx]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
     const fi=(...ns)=>this.findCol(H,...ns);
 
     const iSku  =fi('номенклатура','sku');
@@ -1084,12 +1130,16 @@ const PF = {
     const iDate =fi('дата','date','ссылка.дата');
     const iQty  =fi('количество','qty');
     const iPrice=fi('цена','price');
-    const iSum  =fi('сумма','sum');
-    const iNDS  =fi('нд','nds');
-    const iEd   =fi('ед.','единица','ед_изм','unit');
+    // «Сумма НДС» и «% НДС» обе содержат подстроку «нд» — ищем сумму НДС явно через «сумма»+«нд»,
+    // а «Сумма» — явно БЕЗ «нд», чтобы не перепутать с колонкой процента НДС.
+    let iNDS = H.findIndex(h => h.includes('сумма') && h.includes('нд'));
+    if (iNDS < 0) iNDS = fi('нд','nds');
+    let iSum = H.findIndex(h => h.includes('сумма') && !h.includes('нд'));
+    if (iSum < 0) iSum = fi('сумма','sum');
+    const iEd   =fi('ед.','единица','ед_изм','unit','ед,');
 
     const pRows=[];const monthMap=new Map();
-    for (let i=1;i<rows.length;i++) {
+    for (let i=headerRowIdx+1;i<rows.length;i++) {
       const r=rows[i];
       const sku=String(r[iSku]||'').trim();
       const sup=String(r[iSup]||'').trim();
@@ -1233,16 +1283,22 @@ const PF = {
   },
 
   _aggregatePrikhod2(rows) {
-    const H=(rows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
+    // Лист — «универсальный отчёт» 1С: сверху мусорная шапка (заголовок отчёта, пустая строка).
+    const headerRowIdx=this._findHeaderRowIdx(rows, 'номенклатура');
+    const H=(rows[headerRowIdx]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
     const fi=(...ns)=>this.findCol(H,...ns);
     const iSku=fi('номенклатура','sku');
     const iSup=fi('контрагент','поставщик','ссылка.контрагент');
     const iDate=fi('дата','date','ссылка.дата');
     const iQty=fi('количество','qty');
-    const iSum=fi('сумма','sum');
-    const iNDS=fi('нд','nds','сумманд','суммандс');
+    // «Сумма НДС» и «% НДС» обе содержат «нд» — сначала ищем сумму НДС явно через «сумма»+«нд»,
+    // а «Сумма» — явно БЕЗ «нд», чтобы не перепутать колонки местами.
+    let iNDS = H.findIndex(h => h.includes('сумма') && h.includes('нд'));
+    if (iNDS < 0) iNDS = fi('нд','nds','сумманд','суммандс');
+    let iSum = H.findIndex(h => h.includes('сумма') && !h.includes('нд'));
+    if (iSum < 0) iSum = fi('сумма','sum');
     const bySupMonth={};
-    for(let i=1;i<rows.length;i++){
+    for(let i=headerRowIdx+1;i<rows.length;i++){
       const r=rows[i]||[];
       const sku=String(r[iSku>=0?iSku:'']||'').trim();
       if(!sku) continue;
