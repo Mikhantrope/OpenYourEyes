@@ -2,9 +2,10 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://docs.google.com">
 <title>PF — Сравнение периодов</title>
-<link rel="stylesheet" href="pf-ui.css?v=20260527">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="pf-ui.css?v=20260708">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#2f81f7;--green:#3fb950;--red:#f85149;--amber:#d29922;--text:#e6edf3;--muted:#8b949e;--dim:#484f58;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -129,7 +130,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
 </div>
 
-<script src="pf-data.js"></script>
+<script src="pf-data.js?v=20260708"></script>
 <script>
 let rawRows=[], months=[], charts={};
 
@@ -268,6 +269,6 @@ function renderCompare(){
 async function reloadData(){document.getElementById('ls').style.display='flex';document.getElementById('prog').style.width='0%';rawRows=[];months=[];destroyCharts();await loadData();;}
 loadData();
 </script>
-<script src="pf-utils.js?v=20260527"></script>
+<script src="pf-utils.js?v=20260708"></script>
 </body>
 </html>

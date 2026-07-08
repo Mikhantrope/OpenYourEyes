@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://docs.google.com">
 <title>PF — Приход</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap">
 <style>
 :root{--bg:#07090f;--s1:#0d1219;--s2:#131a23;--border:#1e2d40;
   --accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;
@@ -11,8 +15,6 @@
   --mono:'IBM Plex Mono',monospace;--body:'IBM Plex Sans',sans-serif;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:12px;}
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
-
 /* NAV */
 .nav{display:flex;align-items:center;padding:7px 16px;background:var(--s1);border-bottom:1px solid var(--border);gap:3px;position:sticky;top:0;z-index:200;}
 .nl{font-family:'Bebas Neue',sans-serif;font-size:22px;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px;}
@@ -76,7 +78,7 @@ td.conflict-cell{color:var(--red);font-weight:700;}
 .page-btn:disabled{opacity:.3;cursor:default;}
 .page-info{font-family:var(--mono);font-size:11px;color:var(--text);}
 </style>
-<link rel="stylesheet" href="pf-ui.css?v=20260527">
+<link rel="stylesheet" href="pf-ui.css?v=20260708">
 </head>
 <body>
 
@@ -154,9 +156,8 @@ td.conflict-cell{color:var(--red);font-weight:700;}
   <span id="totalInfo" style="margin-left:auto;font-size:11px;color:var(--muted)"></span>
 </div>
 
-<script src="pf-prikhod.js?v=20260429-safe2"></script>
-<script src="pf-data.js?v=20260527"></script>
-<script src="pf-utils.js?v=20260527"></script>
+<script src="pf-data.js?v=20260708"></script>
+<script src="pf-utils.js?v=20260708"></script>
 <script>
 const PAGE_SIZE = 200;
 

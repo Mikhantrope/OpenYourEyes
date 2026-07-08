@@ -30,6 +30,39 @@ const PF = {
     return `https://docs.google.com/spreadsheets/d/e/${this.PUB_ID}/pub?gid=${gid}&single=true&output=csv`;
   },
 
+  // ── КЭШ CSV МЕЖДУ СТРАНИЦАМИ (sessionStorage, TTL по умолчанию 15 мин) ──
+  // Тяжёлые листы реализации (ИсхРеал/АО/Май) кэшируем тоже — квота обычно
+  // хватает; если sessionStorage переполнится, ловим ошибку и просто не кэшируем.
+  async fetchCsvCached(gid, ttlMin = 15) {
+    const key = 'pf.csv.' + gid;
+    try {
+      const c = JSON.parse(sessionStorage.getItem(key) || 'null');
+      if (c && Date.now() - c.t < ttlMin * 60000) return c.text;
+    } catch (e) {}
+    const resp = await fetch(this.csvUrl(gid));
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' (gid ' + gid + ')');
+    const text = await resp.text();
+    try {
+      sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), text }));
+      sessionStorage.setItem('pf.csv.updatedAt', String(Date.now()));
+    } catch (e) {
+      // превышена квота sessionStorage — работаем без кэша для этого листа
+    }
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pf:dataUpdated'));
+    return text;
+  },
+
+  clearCsvCache() {
+    try {
+      Object.keys(sessionStorage).filter(k => k.startsWith('pf.csv.')).forEach(k => sessionStorage.removeItem(k));
+    } catch (e) {}
+  },
+
+  // Скачать и распарсить один лист (с кэшем)
+  async fetchCsvRows(gid, ttlMin) {
+    return this.parseCSV(await this.fetchCsvCached(gid, ttlMin));
+  },
+
   NON_PRODUCT: ['услуг','аренд','дистриб','транспорт','обслуж','сервис','подписк'],
   isDairy(sku) { return !this.NON_PRODUCT.some(k => sku.toLowerCase().includes(k)); },
 
@@ -184,6 +217,10 @@ const PF = {
   _buildPrikhodCostIndex(){
     if (this._prikhodCostIndex) return this._prikhodCostIndex;
 
+    // Минимально допустимая цена: 10 ₸ с НДС. Цены ниже — ошибки в 1С
+    // (технические строки, списания и т.д.) — фильтруем ОДИН раз здесь,
+    // а не на каждый вызов getPrikhodCostPrices (P0.4).
+    const MIN_PRICE = 10;
     const idx = {};
     const normIdx = {};
     const push = (sku, dt, priceNoNds, priceWithNds) => {
@@ -192,6 +229,7 @@ const PF = {
       priceNoNds = Number(priceNoNds) || 0;
       priceWithNds = Number(priceWithNds) || 0;
       if (!sku || !dt || priceNoNds <= 0) return;
+      if ((priceWithNds || priceNoNds) < MIN_PRICE) return;
       const entry = { dt, priceNoNds, priceWithNds: priceWithNds || priceNoNds };
       (idx[sku] = idx[sku] || []).push(entry);
       const nk = this._normPrikhodKey(sku);
@@ -199,12 +237,28 @@ const PF = {
     };
 
     // Новый формат PRIKHOD_PRICES: {sku: [[dt, priceNoNds, priceWithNds], ...]}
+    let _maxStaticDay = ''; // самая свежая дата, УЖЕ покрытая статикой pf-prikhod.js (глобально, по всем SKU)
     if (typeof PRIKHOD_PRICES !== 'undefined') {
       for (const [sku, entries] of Object.entries(PRIKHOD_PRICES)) {
         for (const [dt, pNoNds, pNds] of entries || []) {
           push(sku, dt, Number(pNoNds)||0, Number(pNds)||0);
+          const dtStr = String(dt||'').trim().slice(0,10);
+          if (dtStr > _maxStaticDay) _maxStaticDay = dtStr;
         }
       }
+    }
+
+    // Живые цены из листа «Приход» (GID_PRIHOD) — добавляем ТОЛЬКО даты СТРОГО ПОЗЖЕ
+    // последней известной статичной цены (_maxStaticDay, обычно ~дата генерации pf-prikhod.js).
+    // Это принципиально: себестоимость ВСЕХ строк реализации (включая январь-апрель) уже
+    // считается через этот индекс, а не из колонки «Стоимость» 1С. Без такого ограничения
+    // лист мог бы случайно сдвинуть исторические цены (другое округление/агрегация при
+    // пересчёте средневзвешенной), нарушив требование «январь-апрель без изменений».
+    // Ограничивая лист датами после cutoff, гарантируем: старые месяцы решаются исключительно
+    // статикой (как и раньше), а лист лишь ПРОДОЛЖАЕТ историю цен вперёд — на май-июнь и далее.
+    for (const [sku, dt, pNo, pW] of this._prikhodSheetPrices || []) {
+      if (_maxStaticDay && dt <= _maxStaticDay) continue;
+      push(sku, dt, pNo, pW);
     }
 
     for (const entries of Object.values(idx)) {
@@ -216,35 +270,129 @@ const PF = {
 
     this._prikhodCostIndex = idx;
     this._prikhodCostNormIndex = normIdx;
+    this._prikhodCostMemo = new Map();
     return idx;
   },
 
   getPrikhodCostPrices(sku, saleDate){
     this._buildPrikhodCostIndex();
+    // Мемоизация по ключу sku+day (P0.4) — вызывается 2 раза на строку реализации
+    const memoKey = sku + '|' + saleDate;
+    if (this._prikhodCostMemo.has(memoKey)) return this._prikhodCostMemo.get(memoKey);
+
     // Сначала точное совпадение, потом нормализованное (точки↔запятые)
     let entries = this._prikhodCostIndex[sku];
     if (!entries || !entries.length) {
       entries = this._prikhodCostNormIndex[this._normPrikhodKey(sku)];
     }
-    if (!entries || entries.length === 0) return null;
-
-    // Минимально допустимая цена: 10 ₸ с НДС
-    // Цены ниже — это ошибки в 1С (технические строки, списания и т.д.)
-    const MIN_PRICE = 10;
-    const valid = entries.filter(e => (e.priceWithNds || e.priceNoNds) >= MIN_PRICE);
-    if (!valid.length) return null;
-
-    let best = null;
-    for (const entry of valid) {
-      if (entry.dt <= saleDate) best = entry;
-      else break;
+    let result;
+    if (!entries || entries.length === 0) {
+      result = null;
+    } else {
+      // Цены уже отфильтрованы по MIN_PRICE в _buildPrikhodCostIndex
+      let best = null;
+      for (const entry of entries) {
+        if (entry.dt <= saleDate) best = entry;
+        else break;
+      }
+      result = best || entries[0]; // если прихода ДО нет — берём первый валидный
     }
+    this._prikhodCostMemo.set(memoKey, result);
+    return result;
+  },
 
-    return best || valid[0]; // если прихода ДО нет — берём первый валидный
+  // ── ЖИВЫЕ ЦЕНЫ ПРИХОДА ИЗ ЛИСТА (поверх статичного pf-prikhod.js) ──────
+  // pf-prikhod.js (PRIKHOD_PRICES) — база и фолбэк, устаревает между обновлениями файла.
+  // Лист «Приход» (this.GID_PRIHOD, тот же, что читает loadPrikhod() для prikhod.html) —
+  // источник актуальных цен: подтягиваем его сюда и добавляем поверх статики в индекс.
+  _prikhodSheetPrices: null,
+
+  async ensurePrikhodPrices() {
+    if (this._prikhodSheetPrices) return; // уже загружено в этой сессии — не перезапрашиваем
+    try {
+      const rows = this.parseCSV(await this.fetchCsvCached(this.GID_PRIHOD));
+      if (!rows.length) { this._prikhodSheetPrices = []; return; }
+
+      // Лист — «универсальный отчёт» 1С: сверху может быть мусорная шапка.
+      // Строку заголовков ищем по наличию ячейки «Номенклатура» среди первых строк.
+      let headerRowIdx = 0;
+      for (let i = 0; i < Math.min(rows.length, 10); i++) {
+        const cells = (rows[i]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
+        if (cells.some(c => c.includes('номенклатура'))) { headerRowIdx = i; break; }
+      }
+      const H = (rows[headerRowIdx]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
+      const fi = (...ns) => this.findCol(H,...ns);
+
+      const iSku = fi('номенклатура','sku');
+      const iDate= fi('дата','date','ссылка.дата');
+      const iQty = fi('количество','qty');
+      // «Сумма НДС» и «Сумма» обе содержат подстроку «сумма» — сначала ищем НДС-колонку
+      // отдельно (с «нд»), затем «Сумма» явно БЕЗ «нд», чтобы не перепутать местами.
+      let iNDS = H.findIndex(h => h.includes('сумма') && h.includes('нд'));
+      if (iNDS < 0) iNDS = fi('нд','nds');
+      let iSum = H.findIndex(h => h.includes('сумма') && !h.includes('нд'));
+      if (iSum < 0) iSum = fi('сумма','sum');
+
+      // Средневзвешенная цена по sku+день, если за день несколько поступлений
+      const acc = new Map(); // key = sku+'||'+day → {qty, sum, nds}
+      for (let i = headerRowIdx+1; i < rows.length; i++) {
+        const r = rows[i]||[];
+        const sku = String(r[iSku]||'').trim();
+        if (!sku) continue;
+        const dt = this.toDate(r[iDate]);
+        if (!dt) continue;
+        const qty = this.toNum(r[iQty]);
+        const sum = this.toNum(r[iSum]);
+        if (qty <= 0 || sum <= 0) continue; // мусорные/технические строки — пропускаем
+        const nds = iNDS>=0 ? this.toNum(r[iNDS]) : 0;
+        const day = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+        const key = sku+'||'+day;
+        const a = acc.get(key) || {qty:0, sum:0, nds:0};
+        a.qty += qty; a.sum += sum; a.nds += nds;
+        acc.set(key, a);
+      }
+
+      const MIN_PRICE = 10; // то же правило, что и в pf-prikhod.js / _buildPrikhodCostIndex
+      const out = [];
+      for (const [key, a] of acc) {
+        if (a.qty <= 0) continue;
+        const sepIdx = key.lastIndexOf('||');
+        const sku = key.slice(0, sepIdx), day = key.slice(sepIdx+2);
+        const priceWithNds = a.sum / a.qty;
+        if (priceWithNds < MIN_PRICE) continue;
+        const priceNoNds = a.nds > 0 ? (a.sum - a.nds) / a.qty : priceWithNds;
+        out.push([sku, day, priceNoNds, priceWithNds]);
+      }
+
+      this._prikhodSheetPrices = out;
+      // Сбрасываем ленивый кэш индекса — пересоберётся при следующем getPrikhodCostPrices с учётом свежих цен
+      this._prikhodCostIndex = null;
+      this._prikhodCostNormIndex = null;
+      if (this._prikhodCostMemo) this._prikhodCostMemo.clear();
+    } catch (e) {
+      console.warn('Цены прихода из листа не загружены, работаем по статичному pf-prikhod.js:', e);
+      this._prikhodSheetPrices = []; // не ретраить в этой сессии
+    }
   },
 
   async loadSales(onProgress) {
     const p = onProgress || (()=>{});
+
+    // P0.1: качаем все листы ОДНИМ Promise.all — вместо последовательных await
+    // (было: SKU → контрагенты → ИсхРеал → ИсхРеалАО → ИсхРеалМай подряд, 10-20 сек).
+    // Обрабатываем результаты по-прежнему последовательно: сначала справочники, потом реализация.
+    p(5,'Загрузка листов...');
+    let _loaded = 0; const _total = 6;
+    const _track = (pr,label) => pr.then(r => { _loaded++; p(5 + Math.round(_loaded/_total*40), label || `Листы ${_loaded}/${_total}...`); return r; });
+
+    const [skuRows, kRows, rRows, aoRowsPre, mayRowsPre] = await Promise.all([
+      _track(this.fetchCsvRows(this.GID_SKU), 'SKU справочник...'),
+      _track(this.fetchCsvRows(this.GID_KONTR), 'Контрагенты...'),
+      _track(this.fetchCsvRows(this.GID_REAL), 'ИсхРеал...'),
+      _track(this.fetchCsvRows(this.GID_REAL_AO).catch(e => { console.warn('ИсхРеалАО не загружен:', e); return []; }), 'ИсхРеалАО...'),
+      _track(this.fetchCsvRows(this.GID_REAL_MAY).catch(e => { console.warn('ИсхРеалМай не загружен:', e); return []; }), 'ИсхРеалМай...'),
+      _track(this.ensurePrikhodPrices(), 'Цены прихода...'), // живые цены прихода — должны быть готовы ДО обработки строк реализации
+    ]);
 
     // 1. SKU справочник
     // ТЕКУЩАЯ СТРУКТУРА SKUСправочник:
@@ -253,8 +401,7 @@ const PF = {
     //   D = SKUКонечный   — итоговое имя для сайта/дашборда
     //   E = Объем         — вес/объем для расчёта кг
     // Строки с "Не брать в Dashboard" — пропускаем
-    p(10,'SKU справочник...');
-    const skuRows = this.parseCSV(await (await fetch(this.csvUrl(this.GID_SKU))).text());
+    p(50,'Обработка SKU справочника...');
     const skuH    = (skuRows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
     const si = (...ns) => this.findCol(skuH,...ns);
     const exactSkuCol=(...ns)=>{
@@ -356,6 +503,13 @@ const PF = {
       }
       return 'Прочее';
     };
+    // P0.3: мемоизация по входному ключу (одни SKU повторяются тысячами строк)
+    const _skuDisplayMemo=new Map();
+    const findSkuDisplayM = sku => { const k=String(sku||''); let v=_skuDisplayMemo.get(k); if(v===undefined){v=findSkuDisplay(sku); _skuDisplayMemo.set(k,v);} return v; };
+    const _skuWeightMemo=new Map();
+    const findSkuWeightM = (raw,disp) => { const k=raw+'||'+disp; let v=_skuWeightMemo.get(k); if(v===undefined){v=findSkuWeight(raw,disp); _skuWeightMemo.set(k,v);} return v; };
+    const _skuGroupMemo=new Map();
+    const findSkuGroupM = (raw,disp) => { const k=raw+'||'+disp; let v=_skuGroupMemo.get(k); if(v===undefined){v=findSkuGroup(raw,disp); _skuGroupMemo.set(k,v);} return v; };
 
     // 2. Группы контрагентов
     // ТЕКУЩАЯ СТРУКТУРА КонтрагентыСправочник:
@@ -364,8 +518,7 @@ const PF = {
     //   D = Общее название          — итоговое имя для сайта/дашборда
     //   E = Группа                  — верхний уровень
     //   F = Подгруппа               — второй уровень
-    p(25,'Справочник контрагентов...');
-    const kRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_KONTR))).text());
+    p(55,'Обработка справочника контрагентов...');
     const kH=kRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
     const ki=(...ns)=>this.findCol(kH,...ns);
     const exactK=(...ns)=>{
@@ -432,6 +585,21 @@ const PF = {
     // Глубокая нормализация: только буквы и цифры, без пунктуации/пробелов/невидимых символов
     const deepNorm = s => String(s||'').replace(/[^а-яёa-z0-9]/gi, '').toLowerCase();
 
+    // P0.3: deepNorm по всем ключам словаря считаем ОДИН РАЗ при построении
+    // (было: пересчёт deepNorm(k) для каждого ключа normMap на каждый вызов findMapped)
+    const _deepNormMapCache = new WeakMap();
+    const getDeepNormMap = (normMap) => {
+      let dnMap = _deepNormMapCache.get(normMap);
+      if (dnMap) return dnMap;
+      dnMap = {};
+      for (const [k,v] of Object.entries(normMap)) {
+        const dk = deepNorm(k);
+        if (dk.length > 5 && !(dk in dnMap)) dnMap[dk] = v;
+      }
+      _deepNormMapCache.set(normMap, dnMap);
+      return dnMap;
+    };
+
     const findMapped=(map,normMap,prefixMap,key)=>{
       key=String(key||'').trim();
       if(!key) return '';
@@ -443,16 +611,19 @@ const PF = {
       // Deep normalization fallback — стрипает ВСЮ пунктуацию, пробелы, невидимые символы
       const dk = deepNorm(key);
       if(dk.length > 5) {
-        for(const [k,v] of Object.entries(normMap)){
-          if(deepNorm(k) === dk) return v;
-        }
+        const dnMap = getDeepNormMap(normMap);
+        if(dnMap[dk]) return dnMap[dk];
       }
-      // Substring fallback
+      // Substring fallback (редкий путь — срабатывает только когда все остальные не нашли совпадения)
       for(const [k,v] of Object.entries(normMap)){
         if(k.length>5 && nk.length>5 && (k.includes(nk) || nk.includes(k))) return v;
       }
       return '';
     };
+
+    // P0.3: мемоизация мапперов — findGroup/findSubgroup/... вызываются на КАЖДУЮ
+    // строку реализации, а одни и те же контрагенты/SKU повторяются тысячами строк.
+    const memo2 = fn => { const m = new Map(); return (a,b) => { const k = a+'||'+b; let v=m.get(k); if(v===undefined){ v=fn(a,b); m.set(k,v);} return v; }; };
 
     const isRetailRaw = knt => {
       const nk=normKey(knt);
@@ -493,6 +664,7 @@ const PF = {
       if(isRetailRaw(rawKnt)) return findRetailPointBySklad(sklad);
       return findMapped(displayMap,displayMapNorm,displayMapPrefix,rawKnt) || rawKnt;
     };
+    const findDisplayNameM = memo2(findDisplayName);
 
     const isFTName = s => { const d=String(s); return d.startsWith('ТТ ') || d.startsWith('ФТ '); };
 
@@ -504,6 +676,7 @@ const PF = {
       }
       return findMapped(groupMap,groupMapNorm,groupMapPrefix,rawKnt) || findMapped(groupMap,groupMapNorm,groupMapPrefix,displayKnt) || '⚠️ Без группы';
     };
+    const findGroupM = memo2(findGroup);
 
     const findSubgroup = (rawKnt, displayKnt='') => {
       if(isRetailRaw(rawKnt) || isFTName(displayKnt)){
@@ -512,10 +685,10 @@ const PF = {
       }
       return findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,rawKnt) || findMapped(subgroupMap,subgroupMapNorm,subgroupMapPrefix,displayKnt) || '';
     };
+    const findSubgroupM = memo2(findSubgroup);
 
     // 3. ИсхРеал
-    p(45,'Данные реализации...');
-    const rRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_REAL))).text());
+    p(65,'Обработка данных реализации...');
     const rH=rRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
     const ri=(...ns)=>this.findCol(rH,...ns);
 
@@ -572,8 +745,8 @@ const PF = {
       const sklad=iSklad>=0 ? String(r[iSklad]||'').trim() : '';
 
       // Display names
-      const knt = findDisplayName(rawKnt, sklad);
-      const sku = findSkuDisplay(rawSku);
+      const knt = findDisplayNameM(rawKnt, sklad);
+      const sku = findSkuDisplayM(rawSku);
 
       // Пропускаем: пустые, строку "Итого", нетоварные, "Не брать в Dashboard"
       if (!rawKnt||!knt||!rawSku) continue;
@@ -600,7 +773,7 @@ const PF = {
       // Если колонки J нет — «только продажи» = сумма с возвратами МИНУС возвраты
       const sumReal  = (_rawSumReal != null && String(_rawSumReal).trim() !== '') ? this.toNum(_rawSumReal) : (sumRealS - sumR);
       const sumBezNds=this.toNum(r[iSumBezNds]);
-      const w        =findSkuWeight(rawSku, sku);
+      const w        =findSkuWeightM(rawSku, sku);
 
       // Себестоимость из прихода: цена ближайшего прихода ДО даты продажи
       // Колонка "Стоимость (без НДС)" из исходника НЕ используется — она неточная.
@@ -613,8 +786,8 @@ const PF = {
       const sebSale         = prikhodCost ? prikhodCost.priceNoNds  * qtyReal : 0;
       const sebSaleWithNds  = prikhodCost ? prikhodCost.priceWithNds * qtyReal : 0;
       const profNew = sumBezNds - sebNew;
-      const mappedGroup=findGroup(rawKnt,knt);
-      const mappedSubgroup=findSubgroup(rawKnt,knt);
+      const mappedGroup=findGroupM(rawKnt,knt);
+      const mappedSubgroup=findSubgroupM(rawKnt,knt);
       if(isRetailRaw(rawKnt)){
         retailPointStats[knt]=(retailPointStats[knt]||0)+1;
       }
@@ -634,7 +807,7 @@ const PF = {
         })(),
         group:    mappedGroup,
         subgroup: mappedSubgroup,
-        skuGroup: findSkuGroup(rawSku, sku),
+        skuGroup: findSkuGroupM(rawSku, sku),
         weight:w,
         qtyN,qtyR,qtyReal,sumReal,sumRealS,
         sumBezNds,
@@ -657,8 +830,8 @@ const PF = {
 
     // 3b. ИсхРеалАО — данные от Астана-Өнім (тот же формат, мержим в rawRows)
     try {
-      p(75,'Данные АО...');
-      const aoRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_REAL_AO))).text());
+      p(85,'Обработка данных АО...');
+      const aoRows=aoRowsPre;
       if(aoRows.length>1){
         const aoH=aoRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
         const ai=(...ns)=>this.findCol(aoH,...ns);
@@ -674,7 +847,7 @@ const PF = {
           const rawKnt=String(r[aiKnt]||'').trim();
           const rawSku=String(r[aiSku]||'').trim();
           if(!rawKnt||!rawSku) continue;
-          const sku=findSkuDisplay(rawSku);
+          const sku=findSkuDisplayM(rawSku);
           if(rawKnt.toLowerCase().includes('итого')||rawSku.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
           if(isSkuSkipped(rawSku) || isSkuSkipped(sku)) continue;
           if(!this.isDairy(rawSku) && !this.isDairy(sku)) continue;
@@ -683,7 +856,7 @@ const PF = {
           const day=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
           if(!monthMap.has(mk)) monthMap.set(mk,this.MO[dt.getMonth()]+' '+dt.getFullYear());
           const sklad=aiSklad>=0?String(r[aiSklad]||'').trim():'';
-          const knt=findDisplayName(rawKnt, sklad);
+          const knt=findDisplayNameM(rawKnt, sklad);
           const qtyN=this.toNum(r[aiQtyN]), qtyR=Math.abs(this.toNum(r[aiQtyR]));
           const _rQR=aiQtyReal>=0?r[aiQtyReal]:undefined, _rSR=aiSumReal>=0?r[aiSumReal]:undefined;
           const qtyReal=(_rQR!=null&&String(_rQR).trim()!=='')?this.toNum(_rQR):qtyN;
@@ -691,14 +864,14 @@ const PF = {
           const sumRealS=aiSumRealS>=0?this.toNum(r[aiSumRealS]):(this.toNum(_rSR)+sumR);
           const sumReal=(_rSR!=null&&String(_rSR).trim()!=='')?this.toNum(_rSR):(sumRealS-sumR);
           const sumBezNds=this.toNum(r[aiSumBezNds]);
-          const w=findSkuWeight(rawSku, sku);
+          const w=findSkuWeightM(rawSku, sku);
           const prikhodCost=this.getPrikhodCostPrices(rawSku,day)||this.getPrikhodCostPrices(sku,day);
           const sebNew=prikhodCost?prikhodCost.priceNoNds*qtyN:0;
           const sebWithNds=prikhodCost?prikhodCost.priceWithNds*qtyN:0;
           const sebSale=prikhodCost?prikhodCost.priceNoNds*qtyReal:0;
           const sebSaleWithNds=prikhodCost?prikhodCost.priceWithNds*qtyReal:0;
-          const mappedGroup=findGroup(rawKnt,knt);
-          const mappedSubgroup=findSubgroup(rawKnt,knt);
+          const mappedGroup=findGroupM(rawKnt,knt);
+          const mappedSubgroup=findSubgroupM(rawKnt,knt);
           if(isRetailRaw(rawKnt)){
             retailPointStats[knt]=(retailPointStats[knt]||0)+1;
           }
@@ -711,7 +884,7 @@ const PF = {
             manager:'',
             group:mappedGroup,
             subgroup:mappedSubgroup,
-            skuGroup:findSkuGroup(rawSku, sku),weight:w,
+            skuGroup:findSkuGroupM(rawSku, sku),weight:w,
             qtyN,qtyR,qtyReal,sumReal,sumRealS,sumBezNds,sumR,
             seb:sebNew,sebWithNds,sebSale,sebSaleWithNds,
             prof:sumBezNds-sebNew,kg:qtyN*w,retKg:qtyR*w,
@@ -727,8 +900,8 @@ const PF = {
 
     // 3c. ИсхРеалМай — отдельный источник майской реализации (тот же формат, мержим в rawRows)
     try {
-      p(88,'Данные Май...');
-      const mayRows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_REAL_MAY))).text());
+      p(92,'Обработка данных Май...');
+      const mayRows=mayRowsPre;
       if(mayRows.length>1){
         const mayH=mayRows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
         const mi=(...ns)=>this.findCol(mayH,...ns);
@@ -745,7 +918,7 @@ const PF = {
           const rawKnt=String(r[miKnt]||'').trim();
           const rawSku=String(r[miSku]||'').trim();
           if(!rawKnt||!rawSku) continue;
-          const sku=findSkuDisplay(rawSku);
+          const sku=findSkuDisplayM(rawSku);
           if(rawKnt.toLowerCase().includes('итого')||rawSku.toLowerCase().includes('итого')||sku.toLowerCase().includes('итого')) continue;
           if(isSkuSkipped(rawSku) || isSkuSkipped(sku)) continue;
           if(!this.isDairy(rawSku) && !this.isDairy(sku)) continue;
@@ -754,7 +927,7 @@ const PF = {
           const day=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
           if(!monthMap.has(mk)) monthMap.set(mk,this.MO[dt.getMonth()]+' '+dt.getFullYear());
           const sklad=miSklad>=0?String(r[miSklad]||'').trim():'';
-          const knt=findDisplayName(rawKnt, sklad);
+          const knt=findDisplayNameM(rawKnt, sklad);
           const qtyN=this.toNum(r[miQtyN]), qtyR=Math.abs(this.toNum(r[miQtyR]));
           const _rQR=miQtyReal>=0?r[miQtyReal]:undefined, _rSR=miSumReal>=0?r[miSumReal]:undefined;
           const qtyReal=(_rQR!=null&&String(_rQR).trim()!=='')?this.toNum(_rQR):qtyN;
@@ -762,14 +935,14 @@ const PF = {
           const sumRealS=miSumRealS>=0?this.toNum(r[miSumRealS]):(this.toNum(_rSR)+sumR);
           const sumReal=(_rSR!=null&&String(_rSR).trim()!=='')?this.toNum(_rSR):(sumRealS-sumR);
           const sumBezNds=this.toNum(r[miSumBezNds]);
-          const w=findSkuWeight(rawSku, sku);
+          const w=findSkuWeightM(rawSku, sku);
           const prikhodCost=this.getPrikhodCostPrices(rawSku,day)||this.getPrikhodCostPrices(sku,day);
           const sebNew=prikhodCost?prikhodCost.priceNoNds*qtyN:0;
           const sebWithNds=prikhodCost?prikhodCost.priceWithNds*qtyN:0;
           const sebSale=prikhodCost?prikhodCost.priceNoNds*qtyReal:0;
           const sebSaleWithNds=prikhodCost?prikhodCost.priceWithNds*qtyReal:0;
-          const mappedGroup=findGroup(rawKnt,knt);
-          const mappedSubgroup=findSubgroup(rawKnt,knt);
+          const mappedGroup=findGroupM(rawKnt,knt);
+          const mappedSubgroup=findSubgroupM(rawKnt,knt);
           if(isRetailRaw(rawKnt)){
             retailPointStats[knt]=(retailPointStats[knt]||0)+1;
           }
@@ -782,7 +955,7 @@ const PF = {
             manager:miManager>=0?String(r[miManager]||'').trim():'',
             group:mappedGroup,
             subgroup:mappedSubgroup,
-            skuGroup:findSkuGroup(rawSku, sku),weight:w,
+            skuGroup:findSkuGroupM(rawSku, sku),weight:w,
             qtyN,qtyR,qtyReal,sumReal,sumRealS,sumBezNds,sumR,
             seb:sebNew,sebWithNds,sebSale,sebSaleWithNds,
             prof:sumBezNds-sebNew,kg:qtyN*w,retKg:qtyR*w,
@@ -803,12 +976,35 @@ const PF = {
     const retailPoints=Object.entries(retailPointStats)
       .map(([point,rows])=>({point,rows}))
       .sort((a,b)=>a.point.localeCompare(b.point,'ru'));
+
+    // Диагностика цен прихода: сколько цен из статики (pf-prikhod.js) и сколько из листа «Приход»,
+    // и не устарели ли они относительно самой свежей даты продажи в rawRows.
+    const pricesFromSheet = (this._prikhodSheetPrices||[]).length;
+    const pricesFromStatic = (typeof PRIKHOD_PRICES !== 'undefined')
+      ? Object.values(PRIKHOD_PRICES).reduce((s,arr)=>s+(arr?arr.length:0),0) : 0;
+    let maxPriceDay='';
+    if (this._prikhodCostIndex) {
+      for (const entries of Object.values(this._prikhodCostIndex)) {
+        for (const e of entries) if (e.dt > maxPriceDay) maxPriceDay = e.dt;
+      }
+    }
+    let maxSaleDay='';
+    for (const row of rawRows) if (row.day > maxSaleDay) maxSaleDay = row.day;
+    let priceStaleWarning='';
+    if (maxPriceDay && maxSaleDay) {
+      const diffDays = (new Date(maxSaleDay) - new Date(maxPriceDay)) / 86400000;
+      if (diffDays > 14) {
+        priceStaleWarning = `⚠️ Цены прихода устарели: последняя цена ${maxPriceDay}, последняя продажа ${maxSaleDay} — себестоимость свежих продаж считается по старым ценам. Обнови лист Приход.`;
+      }
+    }
+
     const diagnostics={
       sources:[{name:'ИсхРеал',gid:this.GID_REAL},{name:'ИсхРеалАО',gid:this.GID_REAL_AO},{name:'ИсхРеалМай',gid:this.GID_REAL_MAY}],
       contractorDictionaryGid:this.GID_KONTR,
       unmappedContractors,
       retailPoints,
       groupMap,groupMapNorm,displayMap,displayMapNorm,
+      prikhodPrices:{pricesFromStatic,pricesFromSheet,maxPriceDay,maxSaleDay,staleWarning:priceStaleWarning},
     };
     this._lastSalesDiagnostics=diagnostics;
     if(typeof window!=='undefined'){
@@ -817,6 +1013,7 @@ const PF = {
         console.warn('PF: есть контрагенты без группы. Открой window.PF_SALES_DIAGNOSTICS.unmappedContractors');
         console.table(unmappedContractors.slice(0,50));
       }
+      if(priceStaleWarning) console.warn('PF: '+priceStaleWarning);
     }
     return {rawRows,groupMap,subgroupMap,skuWeight,skuGroup,skuDisplayMap,months:months2,diagnostics};
   },
@@ -825,7 +1022,7 @@ const PF = {
   async loadPrikhod(onProgress) {
     const p=onProgress||(()=>{});
     p(30,'Загрузка журнала прихода...');
-    const rows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_PRIHOD))).text());
+    const rows=await this.fetchCsvRows(this.GID_PRIHOD);
     const H=rows[0].map(h=>h.toLowerCase().replace(/\s/g,''));
     const fi=(...ns)=>this.findCol(H,...ns);
 
@@ -874,11 +1071,21 @@ const PF = {
       }
       return '';
     };
-    const fetchCsvRows = async gid => this.parseCSV(await (await fetch(this.csvUrl(gid))).text());
+    const fetchCsvRows = (gid, ttl) => this.fetchCsvRows(gid, ttl);
+
+    // P0.1: расходы, ЗП×2, планы, приход2 — качаем ОДНИМ Promise.all вместо
+    // последовательных await (было 5 запросов подряд).
+    p(10,'Загрузка листов ДиР...');
+    const [rRows, zRowsRaw, dRowsRaw, plRowsRaw, prihod2Rows] = await Promise.all([
+      fetchCsvRows(this.GID_RASHOD),
+      fetchCsvRows(this.GID_ZP_OBH).catch(e => { console.warn('ЗП Общее не загружено:', e); return null; }),
+      fetchCsvRows(this.GID_ZP_DET).catch(e => { console.warn('ЗП Детально не загружено:', e); return null; }),
+      fetchCsvRows(this.GID_PLAN).catch(e => { console.warn('Планы не загружены:', e); return null; }),
+      this.fetchCsvCached(this.GID_PRIHOD2).then(text => this.parseCSV(text)).catch(e => { console.warn('Приход2 не загружен:', e); return null; }),
+    ]);
 
     // 1. Расходы
-    p(10,'Загрузка расходов...');
-    const rRows=await fetchCsvRows(this.GID_RASHOD);
+    p(40,'Обработка расходов...');
     const rH=(rRows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
     const ri=(...ns)=>this.findCol(rH,...ns);
     const iRA=ri('аналитика','analitika','наименование');
@@ -912,10 +1119,11 @@ const PF = {
     }
 
     // 2. ЗП Общее
-    p(32,'Загрузка ЗП общего листа...');
+    p(55,'Обработка ЗП общего листа...');
     let zpObh=[];
     try{
-      const zRows=await fetchCsvRows(this.GID_ZP_OBH);
+      if(!zRowsRaw) throw new Error('нет данных');
+      const zRows=zRowsRaw;
       const zH=(zRows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
       const zi=(...ns)=>this.findCol(zH,...ns);
       const iZPodrazd=zi('подразделениеорганизации','подразделение','department');
@@ -939,23 +1147,25 @@ const PF = {
     }catch(e){ console.warn('ЗП Общее не загружено:',e); }
 
     // 3. ЗП Детально — сохраняем очищенный raw-слой для детализации
-    p(44,'Загрузка ЗП детально...');
+    p(65,'Обработка ЗП детально...');
     let zpDet=[];
     try{
-      const dRows=await fetchCsvRows(this.GID_ZP_DET);
+      if(!dRowsRaw) throw new Error('нет данных');
+      const dRows=dRowsRaw;
       const dH=(dRows[0]||[]).map(h=>String(h||'').trim());
       zpDet=dRows.slice(1).filter(r=>r.some(v=>String(v||'').trim())).map(r=>({row:r,header:dH}));
     }catch(e){ console.warn('ЗП Детально не загружено:',e); }
 
     // 4. Приход — вес по поставщикам AO/BM
-    p(58,'Загрузка прихода для ДиР...');
-    const pData=await this.loadPrikhod2();
+    p(78,'Обработка прихода для ДиР...');
+    const pData=this._aggregatePrikhod2(prihod2Rows||[]);
 
     // 5. Планы — текущий лист планов оставляем доступным сырым массивом
-    p(78,'Загрузка листа планов...');
+    p(90,'Обработка листа планов...');
     let plans={raw:[],header:[]};
     try{
-      const plRows=await fetchCsvRows(this.GID_PLAN);
+      if(!plRowsRaw) throw new Error('нет данных');
+      const plRows=plRowsRaw;
       plans={raw:plRows,header:(plRows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''))};
     }catch(e){ console.warn('Планы не загружены:',e); }
 
@@ -965,7 +1175,11 @@ const PF = {
 
   // Приход из отдельного листа ДиР: агрегация веса/суммы по AO, BM и прочим.
   async loadPrikhod2() {
-    const rows=this.parseCSV(await (await fetch(this.csvUrl(this.GID_PRIHOD2))).text());
+    const rows=await this.fetchCsvRows(this.GID_PRIHOD2);
+    return this._aggregatePrikhod2(rows);
+  },
+
+  _aggregatePrikhod2(rows) {
     const H=(rows[0]||[]).map(h=>String(h||'').toLowerCase().replace(/\s/g,''));
     const fi=(...ns)=>this.findCol(H,...ns);
     const iSku=fi('номенклатура','sku');

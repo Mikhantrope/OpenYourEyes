@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://docs.google.com">
 <title>PF — Аналитика продаж</title>
-<link rel="stylesheet" href="pf-ui.css?v=20260527">
+<link rel="stylesheet" href="pf-ui.css?v=20260708">
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#2f81f7;--green:#3fb950;--red:#f85149;--amber:#d29922;--purple:#bc8cff;--text:#e6edf3;--muted:#8b949e;--dim:#484f58;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -608,10 +609,9 @@ tr.dt-dimmed{opacity:.25;}
   <div style="margin-left:auto">PF Analytics © 2026</div>
 </div>
 
-<script src="pf-utils.js?v=20260527"></script>
-<script src="pf-prikhod.js?v=20260429-safe2"></script>
-<script src="pf-data.js?v=20260527"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="pf-utils.js?v=20260708"></script>
+<script src="pf-prikhod.js?v=20260708"></script>
+<script src="pf-data.js?v=20260708"></script>
 <script>
 // ── MONTH MODE COLUMNS (v2026-04-23 06:08) ──────────────────────────────────────
 
@@ -641,7 +641,7 @@ const MCOLS=[
     doc:{formula:'СУММ(«Сумма возвратов»)',source:'Колонка K в ИсхРеал из 1С',meaning:'Деньги которые вернули покупателям. Отрицательное число означает уменьшение выручки',example:'-50 000 ₸ = вернули товар на 50 тысяч'}},
   {id:'seb',      lbl:'Себест (₸)',  key:'seb',         fmt:'full',on:true,
     tip:'Себестоимость (прямые затраты на закупку)',
-    doc:{formula:'Цена прихода по SKU на дату продажи × Кол-во реализации. Если цены прихода нет: fallback на «Стоимость (без НДС)» из 1С',source:'pf-prikhod.js / PRIKHOD_PRICES + ИсхРеал',meaning:'Прямые затраты на товар пересчитываются из прихода: берётся ближайшая цена прихода до даты продажи. ФОТ, аренда, логистика и прочие косвенные расходы сюда не входят',example:'Цена прихода 390 ₸ × 100 шт = Себест. 39 000 ₸'}},
+    doc:{formula:'Цена прихода по SKU на дату продажи × Кол-во реализации. Если цены прихода нет: fallback на «Стоимость (без НДС)» из 1С',source:'pf-prikhod.js?v=20260708 / PRIKHOD_PRICES + ИсхРеал',meaning:'Прямые затраты на товар пересчитываются из прихода: берётся ближайшая цена прихода до даты продажи. ФОТ, аренда, логистика и прочие косвенные расходы сюда не входят',example:'Цена прихода 390 ₸ × 100 шт = Себест. 39 000 ₸'}},
   {id:'prof',     lbl:'Прибыль (₸)',  key:'prof',        fmt:'full',on:true,
     tip:'Валовая прибыль (до косвенных затрат)',
     doc:{formula:'Выручка без НДС − Себестоимость из прихода',source:'Считается на сайте после пересчёта себестоимости',meaning:'⚠️ Это ВАЛОВАЯ прибыль — только прямые затраты вычтены. ФОТ, аренда, логистика — НЕ учтены. Для полной картины смотри P&L',example:'Выручка 100 000 − Себест 80 000 = Прибыль 20 000 ₸'}},
@@ -1930,7 +1930,10 @@ function copyTableText(ev){
 async function copyTableImage(ev){
   const btn=ev?.currentTarget; if(btn){btn.dataset.oldText=btn.dataset.oldText||btn.textContent;btn.classList.add('busy');btn.textContent='Готовлю скрин...';}
   try{
-    if(typeof html2canvas==='undefined') throw new Error('html2canvas не загрузился');
+    if(typeof html2canvas==='undefined'){
+      if(window.PFU && PFU.loadHtml2Canvas) await PFU.loadHtml2Canvas();
+      else throw new Error('html2canvas не загрузился');
+    }
     const src=getExportTableEl(); if(!src) throw new Error('Таблица не найдена');
     const wrap=document.createElement('div');
     wrap.className='export-shot';

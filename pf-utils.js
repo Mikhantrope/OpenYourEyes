@@ -152,7 +152,24 @@
     PFU.applyTheme(theme);
   };
 
-  PFU.initPage = function(){ PFU.ensureDirLink(); PFU.initTheme(); };
+  // P0.6: индикатор свежести данных + кнопка обновления (сброс sessionStorage-кэша CSV)
+  PFU.ensureFreshnessBadge = function(){
+    let b = document.getElementById('pfFreshBadge');
+    if (!b) {
+      b = document.createElement('button');
+      b.id = 'pfFreshBadge'; b.className = 'pf-theme-btn'; b.type = 'button';
+      b.onclick = () => { if (window.PF && PF.clearCsvCache) PF.clearCsvCache(); location.reload(); };
+      const nav = document.querySelector('.nav'); if (nav) nav.appendChild(b);
+    }
+    const t = +(sessionStorage.getItem('pf.csv.updatedAt') || 0);
+    b.textContent = t ? '🔄 ' + new Date(t).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'}) : '🔄 Обновить';
+    b.title = t ? 'Данные загружены в ' + new Date(t).toLocaleString('ru-RU') + '. Нажми, чтобы обновить.' : 'Обновить данные';
+    return b;
+  };
+
+  window.addEventListener('pf:dataUpdated', () => { if (document.getElementById('pfFreshBadge')) PFU.ensureFreshnessBadge(); });
+
+  PFU.initPage = function(){ PFU.ensureDirLink(); PFU.initTheme(); PFU.ensureFreshnessBadge(); };
   window.PFU = PFU;
 
   // Apply saved theme immediately, before page-specific scripts create charts.

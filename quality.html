@@ -3,9 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://docs.google.com">
 <title>PF — Качество данных</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
 :root{--bg:#07090f;--s1:#0d1219;--s2:#131a23;--border:#1e2d40;
   --accent:#00c8ff;--green:#00e676;--red:#ff3d57;--amber:#ffaa00;--purple:#b04dff;
   --text:#dde8f5;--muted:#5a7a96;--dim:#2d4055;}
@@ -107,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-ser
 .qbtn:hover{border-color:var(--accent);color:var(--accent);}
 
 </style>
-<link rel="stylesheet" href="pf-ui.css?v=20260527">
+<link rel="stylesheet" href="pf-ui.css?v=20260708">
 </head>
 <body>
 
@@ -175,9 +178,9 @@ body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-ser
 
 </div>
 
-<script src="pf-prikhod.js?v=20260429-safe2"></script>
-<script src="pf-data.js?v=20260527"></script>
-<script src="pf-utils.js?v=20260527"></script>
+<script src="pf-prikhod.js?v=20260708"></script>
+<script src="pf-data.js?v=20260708"></script>
+<script src="pf-utils.js?v=20260708"></script>
 <script>
 const fmtRev = v => Math.abs(v)>=1e6?(v/1e6).toFixed(1)+' млн':Math.abs(v)>=1e3?(v/1e3).toFixed(0)+' тыс':Math.round(v)+'';
 const fmtN = v => Math.round(v).toLocaleString('ru');
