@@ -138,7 +138,7 @@ const PF = {
 
   // ── АГРЕГАЦИЯ ────────────────────────────────────────────────
   agg(rows) {
-    let qty=0,rev=0,ret=0,seb=0,sebWithNds=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0,sebWithNdsRealSum=0,sumRealTotal=0,sumRealSTotal=0,revSaleNoRet=0,sebSaleNoRet=0;
+    let qty=0,rev=0,ret=0,seb=0,sebWithNds=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0,sebWithNdsRealSum=0,sumRealTotal=0,sumRealSTotal=0,revSaleNoRet=0,sebSaleNoRet=0,sebSaleWithNdsNoRet=0;
     for (const x of rows) {
       qty        += x.qtyN;
       rev        += x.sumBezNds;
@@ -150,6 +150,7 @@ const PF = {
       // с таким фильтром, см. ТЗ fix-profNet-vozvraty). В возвратных строках оба поля равны 0 естественным образом.
       revSaleNoRet += (x.revSaleBezNds || 0);
       sebSaleNoRet += (x.sebSale || 0);
+      sebSaleWithNdsNoRet += (x.sebSaleWithNds || 0);
       seb        += x.seb;
       sebWithNds += (x.sebWithNds ?? x.seb);
       prof       += x.prof;
@@ -184,9 +185,12 @@ const PF = {
       sumReal:        Math.round(sumRealTotal),   // Сумма реализации с НДС (колонка J, все строки)
       sumRealS:       Math.round(sumRealSTotal),  // Сумма реализации с возвратами (колонка L = J+K)
       ret:            Math.round(ret),
+      retBez:         Math.round(ret / this.VAT),  // возврат без НДС (ret хранится с НДС = Σ sumR)
       retPct:         Math.round(retPct*10)/10,
       seb:            Math.round(seb),
       sebWithNds:     Math.round(sebWithNds),
+      sebSale:        Math.round(sebSaleNoRet),          // себест продаж (без возвр.), без НДС
+      sebSaleWithNds: Math.round(sebSaleWithNdsNoRet),   // себест продаж (без возвр.), с НДС
       prof:           Math.round(prof),
       profNet:        Math.round(revSaleNoRet - sebSaleNoRet), // прибыль без потерь от возвратов
       mar:            rev ? Math.round(prof/rev*1000)/10 : 0,
