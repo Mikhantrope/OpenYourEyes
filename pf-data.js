@@ -66,6 +66,8 @@ const PF = {
   NON_PRODUCT: ['услуг','аренд','дистриб','транспорт','обслуж','сервис','подписк'],
   isDairy(sku) { return !this.NON_PRODUCT.some(k => sku.toLowerCase().includes(k)); },
 
+  VAT: 1.16, // ставка НДС (16%, Казахстан 2026) — единая константа для всех расчётов «без НДС»
+
   // Фиксированный порядок каналов
   GROUP_ORDER: ['Фирменные точки','Категория А','BC','Кофейни','ГосЗакуп','Horeca','Юридические лица','Регион Бурабай','Кымызнай'],
   groupSortIdx(g) { const i=this.GROUP_ORDER.indexOf(g); return i>=0?i:998; },
@@ -846,8 +848,9 @@ const PF = {
       // Выручка продаж БЕЗ возвратов, устойчиво к обоим форматам строк:
       //  - новые данные (скилл): возврат — отдельная минусовая строка (sumBezNds<0) → в продажи не входит;
       //  - старые данные: продажа и возврат в одной строке, sumBezNds = продажа − возврат → продажа = sumBezNds + |возврат|.
-      const retBezNds     = (sumBezNds < 0) ? -sumBezNds : Math.abs(sumR / 1.16);
-      const revSaleBezNds = (sumBezNds < 0) ? 0 : (sumBezNds + retBezNds);
+      // Выручка продаж БЕЗ возвратов, без НДС: колонка «Сумма реализации» (sumReal, ТОЛЬКО продажи, без НДС).
+      // Прямая колонка, а не реконструкция — одинаково верна для старых (смешанных) и новых (раздельных) строк.
+      const revSaleBezNds = sumReal > 0 ? sumReal / this.VAT : 0;
       const mappedGroup=findGroupM(rawKnt,knt);
       const mappedSubgroup=findSubgroupM(rawKnt,knt);
       if(isRetailRaw(rawKnt)){
@@ -879,7 +882,6 @@ const PF = {
         sebSale,
         sebSaleWithNds,
         prof: profNew,
-        retBezNds,
         revSaleBezNds,
         kg:    qtyN*w,
         retKg: qtyR*w,
@@ -941,8 +943,8 @@ const PF = {
           const sebWithNds=prikhodCost?prikhodCost.priceWithNds*qtyN:0;
           const sebSale=prikhodCost?prikhodCost.priceNoNds*qtyReal:0;
           const sebSaleWithNds=prikhodCost?prikhodCost.priceWithNds*qtyReal:0;
-          const retBezNds     = (sumBezNds < 0) ? -sumBezNds : Math.abs(sumR / 1.16);
-          const revSaleBezNds = (sumBezNds < 0) ? 0 : (sumBezNds + retBezNds);
+          // Выручка продаж БЕЗ возвратов, без НДС: sumReal (ТОЛЬКО продажи) без НДС — прямая колонка.
+          const revSaleBezNds = sumReal > 0 ? sumReal / this.VAT : 0;
           const mappedGroup=findGroupM(rawKnt,knt);
           const mappedSubgroup=findSubgroupM(rawKnt,knt);
           if(isRetailRaw(rawKnt)){
@@ -960,7 +962,7 @@ const PF = {
             skuGroup:findSkuGroupM(rawSku, sku),weight:w,
             qtyN,qtyR,qtyReal,sumReal,sumRealS,sumBezNds,sumR,
             seb:sebNew,sebWithNds,sebSale,sebSaleWithNds,
-            prof:sumBezNds-sebNew,retBezNds,revSaleBezNds,kg:qtyN*w,retKg:qtyR*w,
+            prof:sumBezNds-sebNew,revSaleBezNds,kg:qtyN*w,retKg:qtyR*w,
           };
           if(mappedGroup==='⚠️ Без группы'){
             addUnmappedContractor(rowObj);
@@ -1021,8 +1023,8 @@ const PF = {
           const sebWithNds=prikhodCost?prikhodCost.priceWithNds*qtyN:0;
           const sebSale=prikhodCost?prikhodCost.priceNoNds*qtyReal:0;
           const sebSaleWithNds=prikhodCost?prikhodCost.priceWithNds*qtyReal:0;
-          const retBezNds     = (sumBezNds < 0) ? -sumBezNds : Math.abs(sumR / 1.16);
-          const revSaleBezNds = (sumBezNds < 0) ? 0 : (sumBezNds + retBezNds);
+          // Выручка продаж БЕЗ возвратов, без НДС: sumReal (ТОЛЬКО продажи) без НДС — прямая колонка.
+          const revSaleBezNds = sumReal > 0 ? sumReal / this.VAT : 0;
           const mappedGroup=findGroupM(rawKnt,knt);
           const mappedSubgroup=findSubgroupM(rawKnt,knt);
           if(isRetailRaw(rawKnt)){
@@ -1040,7 +1042,7 @@ const PF = {
             skuGroup:findSkuGroupM(rawSku, sku),weight:w,
             qtyN,qtyR,qtyReal,sumReal,sumRealS,sumBezNds,sumR,
             seb:sebNew,sebWithNds,sebSale,sebSaleWithNds,
-            prof:sumBezNds-sebNew,retBezNds,revSaleBezNds,kg:qtyN*w,retKg:qtyR*w,
+            prof:sumBezNds-sebNew,revSaleBezNds,kg:qtyN*w,retKg:qtyR*w,
           };
           if(mappedGroup==='⚠️ Без группы'){
             addUnmappedContractor(rowObj);
