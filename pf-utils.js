@@ -161,9 +161,20 @@
       b.onclick = () => { if (window.PF && PF.clearCsvCache) PF.clearCsvCache(); location.reload(); };
       const nav = document.querySelector('.nav'); if (nav) nav.appendChild(b);
     }
-    const t = +(sessionStorage.getItem('pf.csv.updatedAt') || 0);
-    b.textContent = t ? '🔄 ' + new Date(t).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'}) : '🔄 Обновить';
-    b.title = t ? 'Данные загружены в ' + new Date(t).toLocaleString('ru-RU') + '. Нажми, чтобы обновить.' : 'Обновить данные';
+    const MO = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    const lastSale = sessionStorage.getItem('pf.data.lastSaleDay') || '';   // YYYY-MM-DD
+    const loadedT  = +(sessionStorage.getItem('pf.csv.updatedAt') || 0);
+
+    if (lastSale && /^\d{4}-\d{2}-\d{2}$/.test(lastSale)) {
+      const [y,m,d] = lastSale.split('-');
+      b.textContent = '🔄 ' + (+d) + ' ' + MO[+m - 1];
+      const loadedStr = loadedT ? ' Загружено в ' + new Date(loadedT).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) + '.' : '';
+      b.title = `Данные по продажам включительно по ${d}.${m}.${y}.${loadedStr} Нажми, чтобы обновить.`;
+    } else {
+      // фолбэк: продажи ещё не загрузились в этой сессии — показываем время загрузки, как раньше
+      b.textContent = loadedT ? '🔄 ' + new Date(loadedT).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'}) : '🔄 Обновить';
+      b.title = loadedT ? 'Данные загружены в ' + new Date(loadedT).toLocaleString('ru-RU') + '. Нажми, чтобы обновить.' : 'Обновить данные';
+    }
     return b;
   };
 

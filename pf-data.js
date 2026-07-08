@@ -990,6 +990,9 @@ const PF = {
     }
     let maxSaleDay='';
     for (const row of rawRows) if (row.day > maxSaleDay) maxSaleDay = row.day;
+    try {
+      if (maxSaleDay) sessionStorage.setItem('pf.data.lastSaleDay', maxSaleDay);  // формат YYYY-MM-DD
+    } catch (e) {}
     let priceStaleWarning='';
     if (maxPriceDay && maxSaleDay) {
       const diffDays = (new Date(maxSaleDay) - new Date(maxPriceDay)) / 86400000;
@@ -1014,6 +1017,7 @@ const PF = {
         console.table(unmappedContractors.slice(0,50));
       }
       if(priceStaleWarning) console.warn('PF: '+priceStaleWarning);
+      window.dispatchEvent(new CustomEvent('pf:dataUpdated'));
     }
     return {rawRows,groupMap,subgroupMap,skuWeight,skuGroup,skuDisplayMap,months:months2,diagnostics};
   },
