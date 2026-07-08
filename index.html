@@ -414,8 +414,8 @@ tr.dt-dimmed{opacity:.25;}
       <button class="pv-btn active" data-vat-mode="no" onclick="setPriceNds(false)">б/НДС</button>
       <button class="pv-btn" data-vat-mode="yes" onclick="setPriceNds(true)">с НДС</button>
     </div>
-    <div class="price-vat-switch" title="С Возвр. = все суммы с учётом возвратов. Без Возвр. = только продажи, без строк возвратов." style="margin-left:4px">
-      <span class="pv-label">Реализация</span>
+    <div class="price-vat-switch" title="С Возвр. = прибыль с учётом потерь от возвратов. Без Возвр. = прибыль только по продажам, как если бы возвратов не было." style="margin-left:4px">
+      <span class="pv-label">Прибыль</span>
       <button class="pv-btn active" id="profModeStd" onclick="setProfMode('std')">С Возвр.</button>
       <button class="pv-btn" id="profModeNet" onclick="setProfMode('net')">Без Возвр.</button>
     </div>
@@ -443,13 +443,13 @@ tr.dt-dimmed{opacity:.25;}
 
 <!-- KPI BAR -->
 <div class="kpi-bar">
-  <div class="kpi"><div class="kpi-lbl">Реал. Сумма (без НДС)</div><div class="kpi-val blue" id="k-rev">—</div><div class="kpi-sub">Сумма без налогов</div><div class="ktip">«Сумма без налогов» из 1С = реализация без НДС. Реагирует на переключатель С Возвр./Без Возвр.</div></div>
+  <div class="kpi"><div class="kpi-lbl" id="k-rev-lbl">Реал. Сумма (без НДС)</div><div class="kpi-val blue" id="k-rev">—</div><div class="kpi-sub">Сумма реализации</div><div class="ktip" id="k-rev-tip">«Сумма без налогов» из 1С = реализация без НДС. Переключается вместе с ценами вверху (б/НДС | с НДС).</div></div>
   <div class="kpi"><div class="kpi-lbl">Кол-во (шт)</div><div class="kpi-val blue" id="k-qty">—</div><div class="kpi-sub">целых единиц</div></div>
   <div class="kpi"><div class="kpi-lbl">Объём (кг)</div><div class="kpi-val blue" id="k-kg">—</div><div class="kpi-sub">кг = кол-во × вес</div></div>
   <div class="kpi"><div class="kpi-lbl" id="k-seb-lbl">Себестоимость (б/НДС)</div><div class="kpi-val amb" id="k-seb">—</div><div class="kpi-sub" id="k-seb-sub">финансовая база без НДС</div><div class="ktip">Себестоимость пересчитывается по цене прихода без НДС: если в приходе есть НДС, он вычитается; если НДС нет — цена не делится. Это база для прибыли и маржи.</div></div>
-  <div class="kpi"><div class="kpi-lbl">Прибыль</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">Выручка − Себест.</div><div class="ktip">«Profit» из 1С = Выручка без НДС − Себестоимость<br>⚠️ Валовая прибыль, ДО косвенных затрат</div></div>
-  <div class="kpi"><div class="kpi-lbl">Маржа %</div><div class="kpi-val" id="k-mar">—</div><div class="kpi-sub">Прибыль ÷ Выручка</div></div>
-  <div class="kpi"><div class="kpi-lbl">Возвраты</div><div class="kpi-val red" id="k-ret">—</div><div class="kpi-sub">сумма возвратов</div></div>
+  <div class="kpi"><div class="kpi-lbl">Прибыль</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">Сумма б/НДС − Себест.</div><div class="ktip">Прибыль = Сумма реализации (без НДС) − Себестоимость (без НДС). Возвраты уже учтены в обеих суммах, отдельно не вычитаются.<br>⚠️ Валовая прибыль, ДО косвенных затрат</div></div>
+  <div class="kpi"><div class="kpi-lbl">Маржа %</div><div class="kpi-val" id="k-mar">—</div><div class="kpi-sub">Прибыль ÷ Сумма б/НДС</div></div>
+  <div class="kpi"><div class="kpi-lbl">Возвраты</div><div class="kpi-val red" id="k-ret">—</div><div class="kpi-sub">сумма возвратов</div><div class="ktip">Справочно. Уже включён в «Сумму без НДС» и в Прибыль — отдельно из прибыли не вычитается.</div></div>
   <div class="kpi"><div class="kpi-lbl">Возврат %</div><div class="kpi-val red" id="k-retpct">—</div><div class="kpi-sub">|Возврат| ÷ Выручка</div></div>
   <div class="kpi avgw" id="avgW" onclick="toggleAvgDD(event)">
     <div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
@@ -630,21 +630,21 @@ const MCOLS=[
   {id:'qtyRet',   lbl:'Возвр (шт)',      key:'qtyRet',      fmt:'qty', on:true,
     tip:'Количество возвратов (штук)',
     doc:{formula:'СУММ(«Количество возвратов»)',source:'Колонка H в ИсхРеал из 1С',meaning:'Сколько штук вернули покупатели. Отображается как отрицательное число',example:'Вернули 3 шт → Возвр. = −3'}},
-  {id:'rev',      lbl:'Реал. Сумма б/НДС (₸)',  key:'rev',         fmt:'full',on:true,
-    tip:'Сумма реализации без НДС. Переключатель Реализация: С Возвр. = с учётом возвратов, Без Возвр. = только продажи',
+  {id:'rev',      lbl:'Реал. Сумма б/НДС (₸)',  key:'rev',         fmt:'full',on:false,
+    tip:'Сумма реализации без НДС (дублирует колонку «Реал. Сумма» в режиме б/НДС — оставлена в Столбцах на случай, если нужны обе базы одновременно)',
     doc:{formula:'СУММ(«Сумма без налогов»)',source:'Колонка O в ИсхРеал из 1С',meaning:'Выручка без НДС = основа для маржи и прибыли. Включает возвраты (уже вычтены 1С). Колонка «Сумма реализации» (J) содержит НДС — мы её НЕ используем для выручки',example:'Продали на 116 000 ₸ с НДС → Выручка без НДС = 100 000 ₸'}},
-  {id:'sumReal',   lbl:'Реал. Сумма с НДС (₸)',key:'sumRealS', fmt:'full',  on:true,
-    tip:'Сумма реализации с НДС (колонка J из 1С)',
-    doc:{formula:'СУММ(«Сумма реализации»)',source:'Колонка J в ИсхРеал из 1С',meaning:'Сумма продаж С НДС — именно эта сумма в накладных у покупателей. Отличается от Выручки (колонка O без НДС)',example:'Продали на 100 000 ₸ без НДС → Сумма реал. = 116 000 ₸'}},
+  {id:'sumReal',   lbl:'Реал. Сумма б/НДС (₸)',key:'rev', fmt:'full',  on:true,
+    tip:'Сумма реализации. Переключатель «Цены» вверху (б/НДС | с НДС) меняет базу: с НДС — что заплатил покупатель, б/НДС — выручка без налога (база для прибыли и маржи).',
+    doc:{formula:'б/НДС: СУММ(«Сумма без налогов») | с НДС: СУММ(«Сумма реализации с возвратами»)',source:'Колонка O (без НДС) или L (с НДС, с возвратами) в ИсхРеал из 1С',meaning:'Одна колонка, две базы — переключаются вместе с ценами вверху. Разница ≈ ×1.16 (НДС 16%). Возвраты уже учтены в обеих суммах.',example:'Продали на 1 160 ₸ с НДС → с НДС: 1 160 ₸, б/НДС: 1 000 ₸'}},
   {id:'ret',      lbl:'Возврат (₸)',  key:'ret',         fmt:'full',on:true,
-    tip:'Сумма возвратов',
-    doc:{formula:'СУММ(«Сумма возвратов»)',source:'Колонка K в ИсхРеал из 1С',meaning:'Деньги которые вернули покупателям. Отрицательное число означает уменьшение выручки',example:'-50 000 ₸ = вернули товар на 50 тысяч'}},
+    tip:'Сумма возвратов. Справочно — уже включена в «Сумму без НДС» и в Прибыль, отдельно из них не вычитается',
+    doc:{formula:'СУММ(«Сумма возвратов»)',source:'Колонка K в ИсхРеал из 1С',meaning:'Деньги которые вернули покупателям. Отрицательное число означает уменьшение выручки. Уже учтена внутри «Суммы без НДС» и «Прибыли» — вычитать её оттуда повторно нельзя',example:'-50 000 ₸ = вернули товар на 50 тысяч'}},
   {id:'seb',      lbl:'Себест (₸)',  key:'seb',         fmt:'full',on:true,
     tip:'Себестоимость (прямые затраты на закупку)',
     doc:{formula:'Цена прихода по SKU на дату продажи × Кол-во реализации. Если цены прихода нет: fallback на «Стоимость (без НДС)» из 1С',source:'pf-prikhod.js?v=20260708 / PRIKHOD_PRICES + ИсхРеал',meaning:'Прямые затраты на товар пересчитываются из прихода: берётся ближайшая цена прихода до даты продажи. ФОТ, аренда, логистика и прочие косвенные расходы сюда не входят',example:'Цена прихода 390 ₸ × 100 шт = Себест. 39 000 ₸'}},
   {id:'prof',     lbl:'Прибыль (₸)',  key:'prof',        fmt:'full',on:true,
-    tip:'Валовая прибыль (до косвенных затрат)',
-    doc:{formula:'Выручка без НДС − Себестоимость из прихода',source:'Считается на сайте после пересчёта себестоимости',meaning:'⚠️ Это ВАЛОВАЯ прибыль — только прямые затраты вычтены. ФОТ, аренда, логистика — НЕ учтены. Для полной картины смотри P&L',example:'Выручка 100 000 − Себест 80 000 = Прибыль 20 000 ₸'}},
+    tip:'Валовая прибыль (до косвенных затрат). Переключатель «Прибыль» вверху: С Возвр. вычитает потери от возвратов, Без Возвр. — прибыль по продажам без учёта возвратов',
+    doc:{formula:'Реал. Сумма (без НДС) − Себестоимость (без НДС)',source:'Считается на сайте после пересчёта себестоимости',meaning:'⚠️ Это ВАЛОВАЯ прибыль — только прямые затраты вычтены. ФОТ, аренда, логистика — НЕ учтены. Возвраты уже учтены внутри обеих сумм, отдельно не вычитаются. Для полной картины смотри P&L',example:'Реал.Сумма б/НДС 100 000 − Себест 80 000 = Прибыль 20 000 ₸'}},
   {id:'retPct',   lbl:'Возврат (%)',  key:'retPct',      fmt:'pct', on:false,
     tip:'Процент возврата от выручки',
     doc:{formula:'|Сумма возвратов| ÷ Выручка × 100%',source:'Считается на сайте из колонок O и K',meaning:'Показывает какой % выручки "уходит" обратно через возвраты. Норма для молочки — до 2-3%. Выше — проблема с качеством или приёмкой',example:'Выручка 1 млн, возвраты 30 тыс → Возврат% = 3.0%'}},
@@ -730,14 +730,14 @@ const DAY_METRICS=[
   {id:'qty',     lbl:'С возвр (шт)',  key:'qty',      fmt:'qty', on:true},
   {id:'qtyReal', lbl:'Реал (шт)',     key:'qtyReal',  fmt:'qty', on:true},
   {id:'qtyRet',  lbl:'Возвр (шт)',    key:'qtyRet',   fmt:'qty', on:false},
-  {id:'rev',     lbl:'Реал. Сумма б/НДС (₸)',   key:'rev',      fmt:'rev', on:true},
+  {id:'rev',     lbl:'Реал. Сумма б/НДС (₸)',   key:'rev',      fmt:'rev', on:false},
   {id:'prof',    lbl:'Прибыль (₸)',   key:'prof',     fmt:'rev', on:true},
   {id:'mar',     lbl:'Маржа (%)',   key:'mar',      fmt:'pct', on:true},
   {id:'kg',      lbl:'Объём (кг)',  key:'kg',       fmt:'kg',  on:false},
   {id:'seb',     lbl:'Себест (₸)',   key:'seb',      fmt:'rev', on:false},
   {id:'ret',     lbl:'Возврат (₸)',   key:'ret',      fmt:'rev', on:false},
   {id:'retKg',   lbl:'Возвр (кг)', key:'retKg',    fmt:'kg',  on:false},
-  {id:'sumReal', lbl:'Реал. Сумма с НДС (₸)',key:'sumRealS', fmt:'rev', on:false},
+  {id:'sumReal', lbl:'Реал. Сумма б/НДС (₸)',key:'rev', fmt:'rev', on:true},
   {id:'retPct',  lbl:'Возврат (%)',  key:'retPct',   fmt:'pct', on:false},
   {id:'priceZakup', lbl:'Закуп (₸)', key:'priceZakup',   fmt:'full',on:false},
   {id:'priceSell',  lbl:'Продажа (₸)',key:'priceSellNds', fmt:'full',on:false},
@@ -808,6 +808,21 @@ function applyPriceNdsKeys() {
   DAY_METRICS.find(c=>c.id==='priceSell').key  = ndsKey;
   DAY_METRICS.find(c=>c.id==='priceZakup').key = zakupKey;
   DAY_METRICS.find(c=>c.id==='profitUnit').key = profKey;
+
+  // Колонка суммы реализации — одна колонка, переключается вместе с ценами: с НДС (sumRealS) / без НДС (rev)
+  const sumKey = priceNds ? 'sumRealS' : 'rev';
+  const sumLbl = priceNds ? 'Реал. Сумма с НДС (₸)' : 'Реал. Сумма б/НДС (₸)';
+  const mSum = MCOLS.find(c=>c.id==='sumReal');
+  const dSum = DAY_METRICS.find(c=>c.id==='sumReal');
+  if (mSum) { mSum.key = sumKey; mSum.lbl = sumLbl; }
+  if (dSum) { dSum.key = sumKey; dSum.lbl = sumLbl; }
+
+  // KPI-карточка суммы — согласована с той же базой
+  const revLbl=document.getElementById('k-rev-lbl'), revTip=document.getElementById('k-rev-tip');
+  if(revLbl) revLbl.textContent = priceNds ? 'Реал. Сумма (с НДС)' : 'Реал. Сумма (без НДС)';
+  if(revTip) revTip.textContent = priceNds
+    ? '«Сумма реализации» из 1С (с возвратами) = сумма с НДС, как в накладной у покупателя. Переключается вместе с ценами вверху (б/НДС | с НДС).'
+    : '«Сумма без налогов» из 1С = реализация без НДС. Переключается вместе с ценами вверху (б/НДС | с НДС).';
 }
 function updateNdsControls() {
   document.querySelectorAll('[data-vat-mode="no"]').forEach(btn=>btn.classList.toggle('active', !priceNds));
@@ -835,21 +850,16 @@ function setProfMode(mode){
   profMode=mode;
   document.getElementById('profModeStd').classList.toggle('active', mode==='std');
   document.getElementById('profModeNet').classList.toggle('active', mode==='net');
-  // Переключаем КЛЮЧИ показателей, названия колонок не меняются:
-  // С Возвр.: rev (вся выручка), sumRealS (реал с возвратами), prof (прибыль с возвратами)
-  // Без Возвр.: revSale (только продажи), sumReal (только продажи), profNet (прибыль продаж)
-  const mRev = MCOLS.find(c=>c.id==='rev');
-  const dRev = DAY_METRICS.find(c=>c.id==='rev');
-  if(mRev) mRev.key = mode==='std' ? 'rev' : 'revSale';
-  if(dRev) dRev.key = mode==='std' ? 'rev' : 'revSale';
-  const mSumReal = MCOLS.find(c=>c.id==='sumReal');
-  const dSumReal = DAY_METRICS.find(c=>c.id==='sumReal');
-  if(mSumReal) mSumReal.key = mode==='std' ? 'sumRealS' : 'sumReal';
-  if(dSumReal) dSumReal.key = mode==='std' ? 'sumRealS' : 'sumReal';
+  // Переключаем ТОЛЬКО прибыль и маржу. Выручка (rev/sumReal), суммы, количество, возвраты —
+  // НЕ зависят от режима: продажа состоялась, выручка не должна прыгать при смене режима.
   const mProf = MCOLS.find(c=>c.id==='prof');
   const dProf = DAY_METRICS.find(c=>c.id==='prof');
-  if(mProf) mProf.key = mode==='std' ? 'prof' : 'profNet';
-  if(dProf) dProf.key = mode==='std' ? 'prof' : 'profNet';
+  if(mProf) mProf.key = mode==='net' ? 'profNet' : 'prof';
+  if(dProf) dProf.key = mode==='net' ? 'profNet' : 'prof';
+  const mMar = MCOLS.find(c=>c.id==='mar');
+  const dMar = DAY_METRICS.find(c=>c.id==='mar');
+  if(mMar) mMar.key = mode==='net' ? 'marNet' : 'mar';
+  if(dMar) dMar.key = mode==='net' ? 'marNet' : 'mar';
   saveMonthCols();
   buildCtogs();
   buildMHeader();
@@ -1018,12 +1028,12 @@ function render(){
 function updateKPIs(){
   const rows=filtered();
   const tot=PF.agg(rows);
-  document.getElementById('k-rev').textContent=PF.fmtRev(profMode==='net'?tot.revSale:tot.rev)+' ₸';
+  document.getElementById('k-rev').textContent=PF.fmtRev(priceNds?tot.sumRealS:tot.rev)+' ₸';
   document.getElementById('k-qty').textContent=PF.fmtQty(tot.qty);
   document.getElementById('k-kg').textContent=PF.fmtKg(tot.kg)+' кг';
   document.getElementById('k-seb').textContent=PF.fmtRev(tot.seb)+' ₸';
   const profV = profMode==='net' ? tot.profNet : tot.prof;
-  const marV  = profMode==='net' ? (tot.revSale?tot.profNet/tot.revSale*100:0) : tot.mar;
+  const marV  = profMode==='net' ? tot.marNet : tot.mar;
   const pe=document.getElementById('k-prof');pe.textContent=PF.fmtRev(profV)+' ₸';pe.className='kpi-val '+(profV>=0?'grn':'red');
   const me=document.getElementById('k-mar');me.textContent=PF.fmtPct(marV);me.className='kpi-val '+(marV>=0?'grn':'red');
   document.getElementById('k-ret').textContent=PF.fmtRev(tot.ret)+' ₸';
@@ -1293,27 +1303,21 @@ function applyDimPreset(name){
 
 function resetRowDims(){
   rowDims=[...DEFAULT_ROW_DIMS]; showMonthDates=false;
-  // Сброс колонок к дефолту
-  const defaultOn = ['qtyReal','qty','qtyRet','rev','sumReal','ret','seb','prof'];
+  // Сброс колонок к дефолту (rev — дублирующая скрытая колонка, по умолчанию выключена;
+  // видна одна объединённая sumReal, переключаемая через «Цены» б/НДС|с НДС)
+  const defaultOn = ['qtyReal','qty','qtyRet','sumReal','ret','seb','prof'];
   MCOLS.forEach(c => { mColOn[c.id] = defaultOn.includes(c.id); });
-  // Сброс ключей к режиму С Возвр.
-  const mSR = MCOLS.find(c=>c.id==='sumReal');
-  if(mSR){ mSR.key='sumRealS'; mSR.lbl='Реал. Сумма с НДС (₸)'; }
-  const mRv = MCOLS.find(c=>c.id==='rev');
-  if(mRv) mRv.key='rev';
-  const mPf = MCOLS.find(c=>c.id==='prof');
-  if(mPf) mPf.key='prof';
-  const dSR = DAY_METRICS.find(c=>c.id==='sumReal');
-  if(dSR) dSR.key='sumRealS';
-  const dRv = DAY_METRICS.find(c=>c.id==='rev');
-  if(dRv) dRv.key='rev';
-  const dPf = DAY_METRICS.find(c=>c.id==='prof');
-  if(dPf) dPf.key='prof';
-  // Сброс profMode
+  // Сброс режима «Прибыль» к С Возвр.
   profMode='std';
   mColOn['prof']=true;
+  const mPf = MCOLS.find(c=>c.id==='prof'); if(mPf) mPf.key='prof';
+  const mMr = MCOLS.find(c=>c.id==='mar');  if(mMr) mMr.key='mar';
+  const dPf = DAY_METRICS.find(c=>c.id==='prof'); if(dPf) dPf.key='prof';
+  const dMr = DAY_METRICS.find(c=>c.id==='mar');  if(dMr) dMr.key='mar';
   document.getElementById('profModeStd').classList.add('active');
   document.getElementById('profModeNet').classList.remove('active');
+  // Колонка суммы реализации — синхронизируем ключ/лейбл с текущим состоянием переключателя НДС
+  applyPriceNdsKeys();
   // Сброс shareMode
   shareMode='rev';
   const mSh=MCOLS.find(c=>c.id==='share');
