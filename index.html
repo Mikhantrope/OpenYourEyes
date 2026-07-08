@@ -501,7 +501,7 @@ tr.dt-dimmed{opacity:.25;}
   <div id="monthSort" style="display:flex;align-items:center;gap:5px;">
     <div class="sep"></div>
     <span class="tlbl">Сортировка:</span>
-    <select class="sel" id="sortSel" onchange="renderMonth()">
+    <select class="sel" id="sortSel" onchange="onSortSelChange(this.value)">
       <option value="rev_d">Выручка ↓</option>
       <option value="prof_d">Прибыль ↓</option>
       <option value="qty_d">Кол-во ↓</option>
@@ -779,6 +779,7 @@ let filterGrp=new Set(['ALL']),filterSkuGrp=new Set(['ALL']);
 let allGroups=[],allSkuGroups=[],allDays=[];
 let selectedDays=new Set();
 let sortKey='rev_d',avgMode='sku';
+let userSorted=false;   // true после явного клика по заголовку или выбора в селекте сортировки — тогда сортировка применяется КО ВСЕМ уровням, побеждая фиксированные дефолтные порядки (каналы/группы SKU/контрагенты)
 let selectedMonths=new Set(['all']);
 let dateFrom='', dateTo='';  // 'all' или набор mk типа '2026-01'
 let priceNds=false;
@@ -1373,11 +1374,23 @@ function resetRowDims(){
   document.getElementById('shareModeRev').classList.add('active');
   document.getElementById('shareModeKg').classList.remove('active');
   document.getElementById('shareModeProf').classList.remove('active');
+  // Сброс сортировки — возвращаемся к дефолтным фиксированным порядкам (каналы/группы SKU/контрагенты)
+  userSorted=false;
+  sortKey='rev_d';
+  clearDynamicSortOptions();
+  document.getElementById('sortSel').value=sortKey;
   // Сохранить и перерисовать
   if(typeof saveMonthCols==='function') saveMonthCols();
   onRowDimsChanged();
   buildMHeader();
   render();
+}
+// Убирает option'ы, добавленные динамически через ensureSortSelOption() — оставляет только исходный фиксированный список
+function clearDynamicSortOptions(){
+  const sel=document.getElementById('sortSel');
+  if(!sel) return;
+  const FIXED=new Set(['rev_d','prof_d','qty_d','kg_d','mar_d','rev_a']);
+  [...sel.options].forEach(o=>{ if(!FIXED.has(o.value)) o.remove(); });
 }
 function onDimDragStart(ev,idx){ dimDragFrom=idx; ev.currentTarget.classList.add('dragging'); ev.dataTransfer.effectAllowed='move'; ev.dataTransfer.setData('text/plain',String(idx)); }
 function onDimDragEnd(ev){ ev.currentTarget.classList.remove('dragging'); dimDragFrom=null; }
@@ -1566,23 +1579,31 @@ function buildInnerTree(rows,sf){
         m:PF.agg(gr),ch:[]
       };
       const children=build(gr,depth+1,nPath);
-      // Даты всегда по хронологии, остальное по выбранной сортировке
+      // Даты всегда по хронологии, остальное — по выбранной сортировке (если userSorted) или по дефолтному порядку
       const childrenAreDate = children.length>0 && children[0].isDate;
       if(dateAsAuto && depth+1>=dims.length){
         node.ch=children.sort((a,b)=>(a.value||'').localeCompare(b.value||''));
       } else if(childrenAreDate){
         node.ch=children.sort((a,b)=>(a.value||'').localeCompare(b.value||''));
+      } else if(userSorted){
+        node.ch=children.sort(sf);
+      } else if(children.length && children[0].dimId==='group'){
+        node.ch=children.sort((a,b)=>PF.groupSortIdx(a.value)-PF.groupSortIdx(b.value));
+      } else if(children.length && children[0].dimId==='skuGroup'){
+        node.ch=children.sort((a,b)=>PF.skuGroupSortIdx(a.value)-PF.skuGroupSortIdx(b.value));
       } else {
         node.ch=children.sort(sf);
       }
       return node;
     }).sort((a,b)=>{
-      // Если текущий уровень — даты, сортируем по хронологии
+      // Даты — всегда по хронологии, независимо ни от чего
       if(a.isDate || a.dimId==='day') return (a.value||'').localeCompare(b.value||'');
-      // Контрагенты — всегда по алфавиту
-      if(a.dimId==='knt') return (a.name||'').localeCompare(b.name||'','ru');
-      // Каналы — фиксированный порядок
-      if(a.dimId==='group') return PF.groupSortIdx(a.value) - PF.groupSortIdx(b.value);
+      // Пользователь явно выбрал сортировку → она применяется ко ВСЕМ уровням
+      if(userSorted) return sf(a,b);
+      // Дефолтное состояние (первое открытие, ничего не кликали): фиксированные порядки
+      if(a.dimId==='group')    return PF.groupSortIdx(a.value) - PF.groupSortIdx(b.value);
+      if(a.dimId==='skuGroup') return PF.skuGroupSortIdx(a.value) - PF.skuGroupSortIdx(b.value);
+      if(a.dimId==='knt')      return sf(a,b);   // контрагенты по умолчанию по выручке ↓ (sortKey='rev_d'), НЕ по алфавиту
       return sf(a,b);
     });
   }
@@ -1598,7 +1619,7 @@ function buildMHeader(){
   document.querySelector('#mThead tr').innerHTML=
     `<th style="text-align:left" onclick="clickSort('rev')">Наименование</th>`+
     vis.map(c=>{
-      const isSorted=c.key===sk||c.id===sk||c.id===sk.replace('NoNds','Nds').replace('Nds','');
+      const isSorted=c.key===sk||c.id===sk;
       // Кнопка ? — показывает объяснение метрики
       const qBtn = (hintMode && c.doc)
         ? `<button class="info-btn" onclick="event.stopPropagation();showInfo('${c.id}',event)" title="Нажми — объяснение формулы">?</button>`
@@ -1613,8 +1634,31 @@ function buildMHeader(){
 
 function clickSort(key){
   sortKey=sortKey===key+'_d'?key+'_a':key+'_d';
+  userSorted=true;
+  ensureSortSelOption(sortKey,key);
   document.getElementById('sortSel').value=sortKey;
   buildMHeader();renderMonth();
+}
+
+// Гарантирует, что в селекте сортировки есть option для текущего sortKey — колонки теперь
+// динамические (sumRealS, revSale, sebSale, profNet, ...), фиксированного списка options не хватает.
+function ensureSortSelOption(sortKeyVal,colKey){
+  const sel=document.getElementById('sortSel');
+  if(!sel || [...sel.options].some(o=>o.value===sortKeyVal)) return;
+  const [k,dir]=sortKeyVal.split('_');
+  const col=MCOLS.find(c=>c.key===colKey||c.id===colKey) || DAY_METRICS.find(c=>c.key===colKey||c.id===colKey);
+  const lbl=(col?col.lbl.replace(/\s*\(.*?\)\s*$/,''):colKey)+(dir==='a'?' ↑':' ↓');
+  const opt=document.createElement('option');
+  opt.value=sortKeyVal; opt.textContent=lbl;
+  sel.appendChild(opt);
+}
+
+// Выбор сортировки из селекта — тоже явный выбор пользователя, применяется ко всем уровням
+function onSortSelChange(v){
+  sortKey=v;
+  userSorted=true;
+  buildMHeader();
+  renderMonth();
 }
 
 function renderMonth(){
