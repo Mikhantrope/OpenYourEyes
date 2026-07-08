@@ -738,6 +738,36 @@ const PF = {
       if(x.examples.size<4 && row.sku) x.examples.add(row.sku);
     };
 
+    // Диагностика SKU без группы (попали в 'Прочее') — две причины:
+    //  1) inDictionary=true  — SKU ЕСТЬ в справочнике (по сырому или итоговому имени), но ячейка
+    //     «ГруппаSKU» для этой строки справочника пустая → нужно заполнить группу в самом справочнике.
+    //  2) inDictionary=false — такого SKU (ни сырого, ни итогового имени) в справочнике вообще нет
+    //     → нужно добавить новую строку в SKUСправочник для этого товара.
+    const unmappedSkuMap=new Map();
+    const addUnmappedSku=(row)=>{
+      const key=[row.sourceSheet,row.rawSku,row.sku].join('||');
+      if(!unmappedSkuMap.has(key)){
+        const inDictionary = !!(skuGroup[row.rawSku] || skuGroup[row.sku]
+          || skuGroupNorm[skuNorm(row.rawSku)] || skuGroupNorm[skuNorm(row.sku)]);
+        unmappedSkuMap.set(key,{
+          sourceSheet:row.sourceSheet,
+          sourceGid:row.sourceGid,
+          firstSourceRow:row.sourceRow,
+          rawSku:row.rawSku,
+          sku:row.sku,
+          inDictionary,
+          rows:0,
+          rev:0,
+          kg:0,
+        });
+      }
+      const x=unmappedSkuMap.get(key);
+      x.rows+=1;
+      x.rev+=(row.sumBezNds||0);
+      x.kg+=(row.kg||0);
+      if(row.sourceRow && x.firstSourceRow>row.sourceRow) x.firstSourceRow=row.sourceRow;
+    };
+
     for (let i=1;i<rRows.length;i++) {
       const r=rRows[i];
       const rawKnt=String(r[iKnt]||'').trim();
@@ -823,6 +853,9 @@ const PF = {
       if(mappedGroup==='⚠️ Без группы'){
         addUnmappedContractor(rowObj);
       }
+      if(rowObj.skuGroup==='Прочее'){
+        addUnmappedSku(rowObj);
+      }
       rawRows.push(rowObj);
     }
 
@@ -891,6 +924,9 @@ const PF = {
           };
           if(mappedGroup==='⚠️ Без группы'){
             addUnmappedContractor(rowObj);
+          }
+          if(rowObj.skuGroup==='Прочее'){
+            addUnmappedSku(rowObj);
           }
           rawRows.push(rowObj);
         }
@@ -963,6 +999,9 @@ const PF = {
           if(mappedGroup==='⚠️ Без группы'){
             addUnmappedContractor(rowObj);
           }
+          if(rowObj.skuGroup==='Прочее'){
+            addUnmappedSku(rowObj);
+          }
           rawRows.push(rowObj);
         }
         p(92,'Май: '+mayRows.length+' строк');
@@ -1001,10 +1040,16 @@ const PF = {
       }
     }
 
+    const unmappedSkus=[...unmappedSkuMap.values()]
+      .map(x=>({...x,rev:Math.round(x.rev),kg:Math.round(x.kg*10)/10}))
+      .sort((a,b)=>b.rev-a.rev);
+
     const diagnostics={
       sources:[{name:'ИсхРеал',gid:this.GID_REAL},{name:'ИсхРеалАО',gid:this.GID_REAL_AO},{name:'ИсхРеалМай',gid:this.GID_REAL_MAY}],
       contractorDictionaryGid:this.GID_KONTR,
+      skuDictionaryGid:this.GID_SKU,
       unmappedContractors,
+      unmappedSkus,
       retailPoints,
       groupMap,groupMapNorm,displayMap,displayMapNorm,
       prikhodPrices:{pricesFromStatic,pricesFromSheet,maxPriceDay,maxSaleDay,staleWarning:priceStaleWarning},
@@ -1015,6 +1060,10 @@ const PF = {
       if(unmappedContractors.length){
         console.warn('PF: есть контрагенты без группы. Открой window.PF_SALES_DIAGNOSTICS.unmappedContractors');
         console.table(unmappedContractors.slice(0,50));
+      }
+      if(unmappedSkus.length){
+        console.warn('PF: есть SKU без группы (попали в "Прочее"). Открой window.PF_SALES_DIAGNOSTICS.unmappedSkus — inDictionary=true значит SKU есть в справочнике, но ячейка ГруппаSKU пустая; inDictionary=false значит такого SKU в справочнике нет вообще.');
+        console.table(unmappedSkus.slice(0,50));
       }
       if(priceStaleWarning) console.warn('PF: '+priceStaleWarning);
       window.dispatchEvent(new CustomEvent('pf:dataUpdated'));
