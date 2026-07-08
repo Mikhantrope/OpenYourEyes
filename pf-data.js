@@ -136,18 +136,18 @@ const PF = {
 
   // ── АГРЕГАЦИЯ ────────────────────────────────────────────────
   agg(rows) {
-    let qty=0,rev=0,ret=0,seb=0,sebWithNds=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0,sebWithNdsRealSum=0,sumRealTotal=0,sumRealSTotal=0,revSaleOnly=0,sebSaleOnly=0;
+    let qty=0,rev=0,ret=0,seb=0,sebWithNds=0,prof=0,kg=0,retKg=0,qtyRealSum=0,sumRealSum=0,sebRealSum=0,sebWithNdsRealSum=0,sumRealTotal=0,sumRealSTotal=0,revSaleNoRet=0,sebSaleNoRet=0;
     for (const x of rows) {
       qty        += x.qtyN;
       rev        += x.sumBezNds;
       ret        += x.sumR;
       sumRealTotal += (x.sumReal||0);
       sumRealSTotal += (x.sumRealS||0);   // Сумма реал с возвратами (колонка L)
-      // Для profNet: только строки продаж (не возвратов)
-      if((x.qtyReal||0) > 0){
-        revSaleOnly += (x.sumBezNds||0);  // выручка только от продаж (без НДС)
-        sebSaleOnly += (x.sebSale||x.seb||0);  // себест только от продаж (priceNoNds × qtyReal)
-      }
+      // profNet/marNet: выручка и себест продаж БЕЗ возвратов — считаем по ВСЕМ строкам через явные
+      // поля revSaleBezNds/sebSale (не через фильтр qtyReal>0 — старые и новые форматы строк несовместимы
+      // с таким фильтром, см. ТЗ fix-profNet-vozvraty). В возвратных строках оба поля равны 0 естественным образом.
+      revSaleNoRet += (x.revSaleBezNds || 0);
+      sebSaleNoRet += (x.sebSale || 0);
       seb        += x.seb;
       sebWithNds += (x.sebWithNds ?? x.seb);
       prof       += x.prof;
@@ -164,7 +164,7 @@ const PF = {
     }
     const mar            = rev  ? prof/rev*100  : 0;
     const retPct         = sumRealSTotal  ? Math.abs(ret)/sumRealSTotal*100   : 0;
-    const avg            = qtyRealSum ? revSaleOnly/qtyRealSum : 0;  // ср.цена только по строкам продаж
+    const avg            = qtyRealSum ? revSaleNoRet/qtyRealSum : 0;  // ср.цена только по строкам продаж
     const retKgPct       = kg   ? retKg/kg*100 : 0;
     const priceZakup     = qtyRealSum ? sebRealSum/qtyRealSum            : 0;  // без НДС, только из строк продаж
     const priceZakupNds  = qtyRealSum ? sebWithNdsRealSum/qtyRealSum     : 0;  // с НДС, только для режима отображения цен
@@ -178,7 +178,7 @@ const PF = {
       qtyReal:        Math.round(qtyRealSum), // Кол-во реализации (без возвратов)
       qtyRet:         Math.round(qty - qtyRealSum < 0 ? qty - qtyRealSum : 0), // Кол-во возвратов
       rev:            Math.round(rev),
-      revSale:        Math.round(revSaleOnly),   // выручка б/НДС только продаж (без строк возвратов)
+      revSale:        Math.round(revSaleNoRet),   // выручка б/НДС только продаж (возвраты исключены арифметически)
       sumReal:        Math.round(sumRealTotal),   // Сумма реализации с НДС (колонка J, все строки)
       sumRealS:       Math.round(sumRealSTotal),  // Сумма реализации с возвратами (колонка L = J+K)
       ret:            Math.round(ret),
@@ -186,9 +186,9 @@ const PF = {
       seb:            Math.round(seb),
       sebWithNds:     Math.round(sebWithNds),
       prof:           Math.round(prof),
-      profNet:        Math.round(revSaleOnly - sebSaleOnly), // прибыль без потерь от возвратов
+      profNet:        Math.round(revSaleNoRet - sebSaleNoRet), // прибыль без потерь от возвратов
       mar:            rev ? Math.round(prof/rev*1000)/10 : 0,
-      marNet:         revSaleOnly ? Math.round((revSaleOnly-sebSaleOnly)/revSaleOnly*1000)/10 : 0,
+      marNet:         revSaleNoRet ? Math.round((revSaleNoRet-sebSaleNoRet)/revSaleNoRet*1000)/10 : 0,
       avg:            Math.round(avg),
       kg:             Math.round(kg*10)/10,
       retKg:          Math.round(retKg*10)/10,
@@ -843,6 +843,11 @@ const PF = {
       const sebSale         = prikhodCost ? prikhodCost.priceNoNds  * qtyReal : 0;
       const sebSaleWithNds  = prikhodCost ? prikhodCost.priceWithNds * qtyReal : 0;
       const profNew = sumBezNds - sebNew;
+      // Выручка продаж БЕЗ возвратов, устойчиво к обоим форматам строк:
+      //  - новые данные (скилл): возврат — отдельная минусовая строка (sumBezNds<0) → в продажи не входит;
+      //  - старые данные: продажа и возврат в одной строке, sumBezNds = продажа − возврат → продажа = sumBezNds + |возврат|.
+      const retBezNds     = (sumBezNds < 0) ? -sumBezNds : Math.abs(sumR / 1.16);
+      const revSaleBezNds = (sumBezNds < 0) ? 0 : (sumBezNds + retBezNds);
       const mappedGroup=findGroupM(rawKnt,knt);
       const mappedSubgroup=findSubgroupM(rawKnt,knt);
       if(isRetailRaw(rawKnt)){
@@ -874,6 +879,8 @@ const PF = {
         sebSale,
         sebSaleWithNds,
         prof: profNew,
+        retBezNds,
+        revSaleBezNds,
         kg:    qtyN*w,
         retKg: qtyR*w,
       };
@@ -934,6 +941,8 @@ const PF = {
           const sebWithNds=prikhodCost?prikhodCost.priceWithNds*qtyN:0;
           const sebSale=prikhodCost?prikhodCost.priceNoNds*qtyReal:0;
           const sebSaleWithNds=prikhodCost?prikhodCost.priceWithNds*qtyReal:0;
+          const retBezNds     = (sumBezNds < 0) ? -sumBezNds : Math.abs(sumR / 1.16);
+          const revSaleBezNds = (sumBezNds < 0) ? 0 : (sumBezNds + retBezNds);
           const mappedGroup=findGroupM(rawKnt,knt);
           const mappedSubgroup=findSubgroupM(rawKnt,knt);
           if(isRetailRaw(rawKnt)){
@@ -951,7 +960,7 @@ const PF = {
             skuGroup:findSkuGroupM(rawSku, sku),weight:w,
             qtyN,qtyR,qtyReal,sumReal,sumRealS,sumBezNds,sumR,
             seb:sebNew,sebWithNds,sebSale,sebSaleWithNds,
-            prof:sumBezNds-sebNew,kg:qtyN*w,retKg:qtyR*w,
+            prof:sumBezNds-sebNew,retBezNds,revSaleBezNds,kg:qtyN*w,retKg:qtyR*w,
           };
           if(mappedGroup==='⚠️ Без группы'){
             addUnmappedContractor(rowObj);
@@ -1012,6 +1021,8 @@ const PF = {
           const sebWithNds=prikhodCost?prikhodCost.priceWithNds*qtyN:0;
           const sebSale=prikhodCost?prikhodCost.priceNoNds*qtyReal:0;
           const sebSaleWithNds=prikhodCost?prikhodCost.priceWithNds*qtyReal:0;
+          const retBezNds     = (sumBezNds < 0) ? -sumBezNds : Math.abs(sumR / 1.16);
+          const revSaleBezNds = (sumBezNds < 0) ? 0 : (sumBezNds + retBezNds);
           const mappedGroup=findGroupM(rawKnt,knt);
           const mappedSubgroup=findSubgroupM(rawKnt,knt);
           if(isRetailRaw(rawKnt)){
@@ -1029,7 +1040,7 @@ const PF = {
             skuGroup:findSkuGroupM(rawSku, sku),weight:w,
             qtyN,qtyR,qtyReal,sumReal,sumRealS,sumBezNds,sumR,
             seb:sebNew,sebWithNds,sebSale,sebSaleWithNds,
-            prof:sumBezNds-sebNew,kg:qtyN*w,retKg:qtyR*w,
+            prof:sumBezNds-sebNew,retBezNds,revSaleBezNds,kg:qtyN*w,retKg:qtyR*w,
           };
           if(mappedGroup==='⚠️ Без группы'){
             addUnmappedContractor(rowObj);
