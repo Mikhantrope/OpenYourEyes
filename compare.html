@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://docs.google.com">
 <title>PF — Сравнение периодов</title>
 <link rel="stylesheet" href="pf-ui.css?v=20260721">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#2f81f7;--green:#3fb950;--red:#f85149;--amber:#d29922;--text:#e6edf3;--muted:#8b949e;--dim:#484f58;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -136,12 +136,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 let rawRows=[], months=[], charts={};
 
 async function loadData(){
-  // Страховка от гонки: Chart.js без defer обычно готов сразу, но если браузер почему-то
-  // ещё не успел его выполнить к этому моменту — ждём полной загрузки страницы (window load).
-  if (typeof Chart === 'undefined') {
-    await new Promise(r => { if (document.readyState === 'complete') r();
-      else window.addEventListener('load', r, { once: true }); });
-  }
   try{
     const res=await PF.loadSales((pct,step)=>{document.getElementById('prog').style.width=pct+'%';document.getElementById('loadStep').textContent=step;});
     rawRows=res.rawRows; months=res.months;
