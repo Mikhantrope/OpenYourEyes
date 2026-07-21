@@ -65,13 +65,21 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 }
 
 /* KPI BAR */
-.kpi-bar{display:flex;gap:1px;background:var(--border);border-bottom:1px solid var(--border);overflow-x:auto;}
-.kpi{background:var(--surface);padding:7px 12px;flex:1;min-width:80px;position:relative;}
-.kpi:hover .ktip{display:block;}
+.kpi-bar{display:flex;gap:8px;padding:0 6px;background:var(--bg);border-bottom:1px solid var(--border);overflow-x:auto;}
+.kpi{background:var(--surface);padding:9px 14px;flex:1;min-width:80px;position:relative;
+  border-top:2px solid transparent;border-left:1px solid transparent;border-right:1px solid transparent;
+  border-radius:4px;transition:border-color .15s;}
+.kpi:hover{border-left-color:var(--border2);border-right-color:var(--border2);}
 .kpi-lbl{font-size:9px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
 .kpi-val{font-size:13px;font-weight:700;font-family:'Consolas',monospace;}
 .kpi-sub{font-size:9px;color:var(--dim);margin-top:1px;}
-.ktip{display:none;position:absolute;bottom:calc(100%+4px);left:0;background:#1c2333;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text);white-space:nowrap;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.5);line-height:1.5;}
+/* Полоска сверху цветом метрики (Шаг 3). km-profit красится по знаку прибыли динамически из JS (borderTopColor inline). */
+.km-blue{border-top-color:var(--accent);}
+.km-amber{border-top-color:var(--amber);}
+.km-purple{border-top-color:var(--purple);}
+.km-profit{border-top-color:var(--green);}
+/* #kpiTip — единый плавающий тултип (Шаг 2), не влияет на layout карточек */
+#kpiTip{display:none;position:fixed;background:#1c2333;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text);z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.5);line-height:1.5;max-width:360px;white-space:normal;}
 .blue{color:#58a6ff;}.grn{color:#3fb950;}.red{color:#f85149;}.amb{color:#d29922;}.pur{color:#bc8cff;}
 
 /* TOOLBAR */
@@ -419,9 +427,9 @@ tr.dt-dimmed{opacity:.25;}
       <button class="pv-btn active" id="profModeStd" onclick="setProfMode('std')">С Возвр.</button>
       <button class="pv-btn" id="profModeNet" onclick="setProfMode('net')">Без Возвр.</button>
     </div>
-    <div class="price-vat-switch" title="Переключает расчёт колонки Доля %" style="margin-left:4px">
-      <span class="pv-label">Доля по</span>
-      <button class="pv-btn active" id="shareModeRev" onclick="setShareMode('rev')">Выручка</button>
+    <div class="price-vat-switch" title="Показывает долю строки в её родительском узле (канал — от ИТОГО, контрагент — от своего канала, и т.д.). Клик по активной кнопке — вернуть цифры. Доля прибыли при отрицательном родителе математически может быть <0 или >100% — это не ошибка." style="margin-left:4px">
+      <span class="pv-label">Доля ПО</span>
+      <button class="pv-btn" id="shareModeRev" onclick="setShareMode('rev')">Выручка</button>
       <button class="pv-btn" id="shareModeKg" onclick="setShareMode('kg')">Кг</button>
       <button class="pv-btn" id="shareModeProf" onclick="setShareMode('prof')">Прибыль</button>
     </div>
@@ -443,15 +451,15 @@ tr.dt-dimmed{opacity:.25;}
 
 <!-- KPI BAR -->
 <div class="kpi-bar">
-  <div class="kpi"><div class="kpi-lbl" id="k-rev-lbl">Реал. Сумма (без НДС)</div><div class="kpi-val blue" id="k-rev">—</div><div class="kpi-sub">Сумма реализации</div><div class="ktip" id="k-rev-tip">«Сумма без налогов» из 1С = реализация без НДС. Переключается вместе с ценами вверху (б/НДС | с НДС).</div></div>
-  <div class="kpi"><div class="kpi-lbl">Кол-во (шт)</div><div class="kpi-val blue" id="k-qty">—</div><div class="kpi-sub">целых единиц</div></div>
-  <div class="kpi"><div class="kpi-lbl">Объём (кг)</div><div class="kpi-val blue" id="k-kg">—</div><div class="kpi-sub">кг = кол-во × вес</div></div>
-  <div class="kpi"><div class="kpi-lbl" id="k-seb-lbl">Себестоимость (б/НДС)</div><div class="kpi-val amb" id="k-seb">—</div><div class="kpi-sub" id="k-seb-sub">финансовая база без НДС</div><div class="ktip" id="k-seb-tip">Себестоимость пересчитывается по цене прихода без НДС: если в приходе есть НДС, он вычитается; если НДС нет — цена не делится. Переключается вместе с ценами вверху (б/НДС | с НДС) и с режимом Прибыль (С Возвр. | Без Возвр.).</div></div>
-  <div class="kpi"><div class="kpi-lbl">Прибыль (всегда без НДС)</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">Сумма б/НДС − Себест.</div><div class="ktip">Прибыль = Сумма реализации (без НДС) − Себестоимость (без НДС). Переключатель «Прибыль» вверху: С Возвр. — с учётом потерь от возврата, Без Возвр. — как если бы возврата не было (вычитается математически, а не по строкам). Кнопка «Цены» (б/НДС|с НДС) на Прибыль НЕ влияет — НДС не ваш доход, он идёт государству. Поэтому в режиме «с НДС» Сумма − Себест на экране не совпадёт с Прибылью ровно на величину НДС — это ожидаемо.<br>⚠️ Валовая прибыль, ДО косвенных затрат</div></div>
-  <div class="kpi"><div class="kpi-lbl">Маржа %</div><div class="kpi-val" id="k-mar">—</div><div class="kpi-sub">Прибыль ÷ Сумма б/НДС</div></div>
-  <div class="kpi"><div class="kpi-lbl">Возвраты</div><div class="kpi-val red" id="k-ret">—</div><div class="kpi-sub">сумма возвратов</div><div class="ktip">Справочно. В режиме «С Возвр.» уже включён в «Сумму без НДС» и в Прибыль — отдельно не вычитается. В режиме «Без Возвр.» прибыль пересчитана так, будто этого возврата не было вообще.</div></div>
-  <div class="kpi"><div class="kpi-lbl">Возврат %</div><div class="kpi-val red" id="k-retpct">—</div><div class="kpi-sub">|Возврат| ÷ Выручка</div></div>
-  <div class="kpi avgw" id="avgW" onclick="toggleAvgDD(event)">
+  <div class="kpi km-blue" id="k-rev-tip" data-tip="«Сумма без налогов» из 1С = реализация без НДС. Переключается вместе с ценами вверху (б/НДС | с НДС)."><div class="kpi-lbl" id="k-rev-lbl">Реал. Сумма (без НДС)</div><div class="kpi-val blue" id="k-rev">—</div><div class="kpi-sub">Сумма реализации</div></div>
+  <div class="kpi km-blue"><div class="kpi-lbl">Кол-во (шт)</div><div class="kpi-val blue" id="k-qty">—</div><div class="kpi-sub">целых единиц</div></div>
+  <div class="kpi km-blue"><div class="kpi-lbl">Объём (кг)</div><div class="kpi-val blue" id="k-kg">—</div><div class="kpi-sub">кг = кол-во × вес</div></div>
+  <div class="kpi km-amber" id="k-seb-tip" data-tip="Себестоимость пересчитывается по цене прихода без НДС: если в приходе есть НДС, он вычитается; если НДС нет — цена не делится. Переключается вместе с ценами вверху (б/НДС | с НДС) и с режимом Прибыль (С Возвр. | Без Возвр.)."><div class="kpi-lbl" id="k-seb-lbl">Себестоимость (б/НДС)</div><div class="kpi-val amb" id="k-seb">—</div><div class="kpi-sub" id="k-seb-sub">финансовая база без НДС</div></div>
+  <div class="kpi km-profit" id="k-prof-card" data-tip="Прибыль = Сумма реализации (без НДС) − Себестоимость (без НДС). Переключатель «Прибыль» вверху: С Возвр. — с учётом потерь от возврата, Без Возвр. — как если бы возврата не было (вычитается математически, а не по строкам). Кнопка «Цены» (б/НДС|с НДС) на Прибыль НЕ влияет — НДС не ваш доход, он идёт государству. Поэтому в режиме «с НДС» Сумма − Себест на экране не совпадёт с Прибылью ровно на величину НДС — это ожидаемо."><div class="kpi-lbl">Прибыль (всегда без НДС)</div><div class="kpi-val" id="k-prof">—</div><div class="kpi-sub">Сумма б/НДС − Себест.</div></div>
+  <div class="kpi km-profit"><div class="kpi-lbl">Маржа %</div><div class="kpi-val" id="k-mar">—</div><div class="kpi-sub">Прибыль ÷ Сумма б/НДС</div></div>
+  <div class="kpi km-purple" data-tip="Справочно. В режиме «С Возвр.» уже включён в «Сумму без НДС» и в Прибыль — отдельно не вычитается. В режиме «Без Возвр.» прибыль пересчитана так, будто этого возврата не было вообще."><div class="kpi-lbl">Возвраты</div><div class="kpi-val red" id="k-ret">—</div><div class="kpi-sub">сумма возвратов</div></div>
+  <div class="kpi km-purple"><div class="kpi-lbl">Возврат %</div><div class="kpi-val red" id="k-retpct">—</div><div class="kpi-sub">|Возврат| ÷ Выручка</div></div>
+  <div class="kpi avgw km-blue" id="avgW" onclick="toggleAvgDD(event)">
     <div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
       <span id="avgLbl">Ср. цена</span><span style="color:var(--accent);font-size:10px">▾</span>
     </div>
@@ -464,9 +472,10 @@ tr.dt-dimmed{opacity:.25;}
       <div class="avo" onclick="setAvgMode('grp',this)">🏢 По группе</div>
     </div>
   </div>
-  <div class="kpi"><div class="kpi-lbl">АКБ</div><div class="kpi-val grn" id="k-akb">—</div><div class="kpi-sub">активная база</div><div class="ktip">Уникальные контрагенты с продажами в текущем периоде</div></div>
-  <div class="kpi"><div class="kpi-lbl">Контрагентов</div><div class="kpi-val blue" id="k-kntcnt">—</div><div class="kpi-sub">всего в выборке</div></div>
+  <div class="kpi km-blue" data-tip="Уникальные контрагенты с продажами в текущем периоде"><div class="kpi-lbl">АКБ</div><div class="kpi-val grn" id="k-akb">—</div><div class="kpi-sub">активная база</div></div>
+  <div class="kpi km-blue"><div class="kpi-lbl">Контрагентов</div><div class="kpi-val blue" id="k-kntcnt">—</div><div class="kpi-sub">всего в выборке</div></div>
 </div>
+<div id="kpiTip"></div>
 
 <!-- TOOLBAR (shared) -->
 <div class="toolbar">
@@ -785,7 +794,7 @@ let selectedMonths=new Set(['all']);
 let dateFrom='', dateTo='';  // 'all' или набор mk типа '2026-01'
 let priceNds=false;
 let profMode='std';
-let shareMode='rev'; // 'rev' | 'kg' | 'prof' — режим расчёта доли // 'std' = с возвратами (текущий), 'net' = только продажи без потерь возврата // false = без НДС по умолчанию: выручка, себестоимость, прибыль и маржа сравниваются без НДС
+let shareMode=null; // null (выкл) | 'rev' | 'kg' | 'prof' — режим «Доля от родителя»: колонка соответствующего показателя показывает % от родительского узла в дереве
 let dayExpanded=new Set(),dayLevelState={};
 let focusedRow=null;   // key строки в фокусе
 let focusedName=null;  // имя строки в фокусе для подписи
@@ -856,18 +865,18 @@ function applyMoneyBaseKeys() {
   // KPI-карточки — согласованы с теми же ключами
   const revLbl=document.getElementById('k-rev-lbl'), revTip=document.getElementById('k-rev-tip');
   if(revLbl) revLbl.textContent = 'Реал. Сумма (' + (nds?'с НДС':'без НДС') + (net?', без возвр.':'') + ')';
-  if(revTip) revTip.textContent = (nds
+  if(revTip) revTip.setAttribute('data-tip', (nds
     ? '«Сумма реализации» из 1С = сумма с НДС, как в накладной у покупателя.'
     : '«Сумма без налогов» из 1С = реализация без НДС.')
     + (net ? ' Без возвратов — как если бы их не было.' : ' С учётом возвратов.')
-    + ' Переключается кнопками «б/НДС|с НДС» и «Прибыль» вверху.';
+    + ' Переключается кнопками «б/НДС|с НДС» и «Прибыль» вверху.');
 
   const sebLblEl=document.getElementById('k-seb-lbl'), sebTipEl=document.getElementById('k-seb-tip'), sebSubEl=document.getElementById('k-seb-sub');
   if(sebLblEl) sebLblEl.textContent = 'Себестоимость (' + (nds?'с НДС':'без НДС') + (net?', без возвр.':'') + ')';
   if(sebSubEl) sebSubEl.textContent = (nds?'с НДС':'без НДС') + (net?', без возвратов':'');
-  if(sebTipEl) sebTipEl.textContent = 'Себестоимость пересчитывается по цене прихода' + (nds?' (с НДС)':' (без НДС, если в приходе есть НДС — он вычитается)') + '.'
+  if(sebTipEl) sebTipEl.setAttribute('data-tip', 'Себестоимость пересчитывается по цене прихода' + (nds?' (с НДС)':' (без НДС, если в приходе есть НДС — он вычитается)') + '.'
     + (net ? ' Без возвратов — только фактически проданное.' : ' С учётом возвратов.')
-    + ' Переключается вместе с ценами вверху и с режимом Прибыль.';
+    + ' Переключается вместе с ценами вверху и с режимом Прибыль.');
 }
 function updateNdsControls() {
   document.querySelectorAll('[data-vat-mode="no"]').forEach(btn=>btn.classList.toggle('active', !priceNds));
@@ -879,13 +888,13 @@ function updateNdsControls() {
   });
 }
 function setShareMode(mode){
-  shareMode=mode;
-  document.getElementById('shareModeRev').classList.toggle('active', mode==='rev');
-  document.getElementById('shareModeKg').classList.toggle('active', mode==='kg');
-  document.getElementById('shareModeProf').classList.toggle('active', mode==='prof');
+  shareMode = (shareMode===mode) ? null : mode; // клик по активной кнопке — снять режим
+  document.getElementById('shareModeRev').classList.toggle('active', shareMode==='rev');
+  document.getElementById('shareModeKg').classList.toggle('active', shareMode==='kg');
+  document.getElementById('shareModeProf').classList.toggle('active', shareMode==='prof');
   const mShare=MCOLS.find(c=>c.id==='share');
-  if(mShare){
-    mShare.lbl = mode==='rev'?'Доля/выр (%)':mode==='kg'?'Доля/кг (%)':'Доля/приб (%)';
+  if(mShare && shareMode){
+    mShare.lbl = shareMode==='rev'?'Доля/выр (%)':shareMode==='kg'?'Доля/кг (%)':'Доля/приб (%)';
   }
   buildMHeader();
   render();
@@ -1085,6 +1094,7 @@ function updateKPIs(){
   const profV = net ? tot.profNet : tot.prof;
   const marV  = net ? tot.marNet : tot.mar;
   const pe=document.getElementById('k-prof');pe.textContent=PF.fmtRev(profV)+' ₸';pe.className='kpi-val '+(profV>=0?'grn':'red');
+  const profCard=document.getElementById('k-prof-card');if(profCard)profCard.style.borderTopColor=profV>=0?'var(--green)':'var(--red)';
   const me=document.getElementById('k-mar');me.textContent=PF.fmtPct(marV);me.className='kpi-val '+(marV>=0?'grn':'red');
   document.getElementById('k-ret').textContent=PF.fmtRev(priceNds?tot.ret:tot.retBez)+' ₸';
   document.getElementById('k-retpct').textContent=PF.fmtPctAbs(tot.retPct);
@@ -1368,11 +1378,11 @@ function resetRowDims(){
   document.getElementById('profModeNet').classList.remove('active');
   // Колонка суммы реализации — синхронизируем ключ/лейбл с текущим состоянием переключателя НДС
   applyPriceNdsKeys();
-  // Сброс shareMode
-  shareMode='rev';
+  // Сброс shareMode — по умолчанию выключен (не выбран ни один из трёх)
+  shareMode=null;
   const mSh=MCOLS.find(c=>c.id==='share');
   if(mSh) mSh.lbl='Доля/выр (%)';
-  document.getElementById('shareModeRev').classList.add('active');
+  document.getElementById('shareModeRev').classList.remove('active');
   document.getElementById('shareModeKg').classList.remove('active');
   document.getElementById('shareModeProf').classList.remove('active');
   // Сброс сортировки — возвращаемся к дефолтным фиксированным порядкам (каналы/группы SKU/контрагенты)
@@ -1617,19 +1627,21 @@ function buildInnerTree(rows,sf){
 function buildMHeader(){
   const vis=getVisibleMonthCols();
   const [sk,sd]=sortKey.split('_');
+  const shareColId = shareMode==='rev'?'sumReal':shareMode==='kg'?'kg':shareMode==='prof'?'prof':null;
   document.querySelector('#mThead tr').innerHTML=
     `<th style="text-align:left" onclick="clickSort('rev')">Наименование</th>`+
     vis.map(c=>{
       const isSorted=c.key===sk||c.id===sk;
+      const lblText = (shareColId && c.id===shareColId) ? c.lbl+' — % от родителя' : c.lbl;
       // Кнопка ? — показывает объяснение метрики
       const qBtn = (hintMode && c.doc)
         ? `<button class="info-btn" onclick="event.stopPropagation();showInfo('${c.id}',event)" title="Нажми — объяснение формулы">?</button>`
         : '';
       if(c.id==='priceSell'||c.id==='priceZakup'||c.id==='profitUnit'){
         const lc=priceNds?'var(--amber)':'var(--accent)';
-        return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" style="box-shadow:inset 0 -2px 0 ${lc};position:relative" onclick="clickSort('${c.key||c.id}')">${c.lbl}${qBtn}</th>`;
+        return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" style="box-shadow:inset 0 -2px 0 ${lc};position:relative" onclick="clickSort('${c.key||c.id}')">${lblText}${qBtn}</th>`;
       }
-      return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${c.lbl}${qBtn}</th>`;
+      return `<th class="${isSorted?('s'+(sd==='d'?'d':'a')):''}" onclick="clickSort('${c.key||c.id}')">${lblText}${qBtn}</th>`;
     }).join('');
 }
 
@@ -1672,7 +1684,7 @@ function renderMonth(){
 
   const flat=[];
   function anyMatch(ns,t){return ns.some(n=>n.name.toLowerCase().includes(t)||(n.ch.length&&anyMatch(n.ch,t)));}
-  function flatten(ns,d){
+  function flatten(ns,d,parentM){
     for(const n of ns){
       const key=n.key;const hasC=n.ch.length>0;const isE=expanded.has(key);
       if(searchTerm){const m=n.name.toLowerCase().includes(searchTerm);if(!m&&!(hasC&&anyMatch(n.ch,searchTerm)))continue;}
@@ -1681,31 +1693,33 @@ function renderMonth(){
         if(d===focusedDepth){
           if(n.key!==focusedRow) continue;
           // Нашли нужную строку — добавляем и раскрываем детей
-          flat.push({n,d,key,hasC,isE:true});
-          if(hasC) flatten(n.ch,d+1);
+          flat.push({n,d,key,hasC,isE:true,parentM});
+          if(hasC) flatten(n.ch,d+1,n.m);
           continue;
         } else if(d < focusedDepth){
           // Выше уровня фокуса — рекурсируем вглубь без добавления в flat
-          if(hasC) flatten(n.ch,d+1);
+          if(hasC) flatten(n.ch,d+1,n.m);
           continue;
         }
         // d > focusedDepth: дочерние — показываем всё
       }
-      flat.push({n,d,key,hasC,isE});
-      if(isE&&hasC)flatten(n.ch,d+1);
+      flat.push({n,d,key,hasC,isE,parentM});
+      if(isE&&hasC)flatten(n.ch,d+1,n.m);
     }
   }
-  flatten(tree,0);
+  flatten(tree,0,tot);
+
+  const shareColId = shareMode==='rev'?'sumReal':shareMode==='kg'?'kg':shareMode==='prof'?'prof':null;
 
   const parts=[`<tr class="tot"><td><div class="cnm"><span style="width:13px;display:inline-block"></span><span class="rnm totlbl">📊 ИТОГО</span></div></td>`+
     vis.map(c=>{
       const v=c.id==='share'?(shareMode==='kg'?tot.kg:shareMode==='prof'?tot.prof:tot.rev):(tot[c.key]||0);
       const c2=c.fmt==='pct'?((c.key==='retPct'||c.key==='retKgPct')?(v>0?'neg':'neu'):(v<0?'neg':v>0?'pos':'neu')):(c.key==='prof'||c.key==='profNet'||c.key==='profKg')?(v>=0?'pos':'neg'):'';
-      const txt=c.id==='share'?'100%':fmtCell(v,c.fmt,tRev);
+      const txt=(shareColId&&c.id===shareColId)?'100%':(c.id==='share'?'100%':fmtCell(v,c.fmt,tRev));
       return `<td class="${c2}">${txt}</td>`;
     }).join('')+'</tr>'];
 
-  for(const{n,d,key,hasC,isE}of flat){
+  for(const{n,d,key,hasC,isE,parentM}of flat){
     const m=n.m;const lv=Math.min(d,3);const ind='&nbsp;'.repeat(d*3);
     const sk2=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const expBtn=hasC?`<button class="exp${isE?' open':''}" onclick="mtoggle('${sk2}',this)">${isE?'▾':'▸'}</button>`:
@@ -1720,6 +1734,12 @@ function renderMonth(){
         const shTot=shareMode==='kg'?tot.kg:shareMode==='prof'?tot.prof:tRev;
         const pct=(shTot?(shVal/shTot*100):0).toFixed(1);const bw=Math.max(2,Math.round(shTot?(shVal/shTot*46):0));
         txt=`<div class="barw"><div class="bar" style="width:${bw}px;background:${m.prof>=0?'#3fb950':'#f85149'}"></div>${pct}%</div>`;}
+      else if(shareColId&&c.id===shareColId){
+        // Доля от родителя: делим значение строки на то же поле родительского узла
+        // (родитель уровня 1 — ИТОГО; передаётся через parentM при построении flat)
+        const parentV=parentM?(parentM[c.key]||0):0;
+        txt=parentV?((v/parentV*100).toFixed(1)+'%'):'—';
+      }
       else txt=fmtCell(v,c.fmt,tRev);
       return `<td class="${c2}">${txt}</td>`;
     }).join('');
@@ -2221,6 +2241,42 @@ async function reloadData(){
   rawRows=[];expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};focusedRow=null;focusedName=null;focusedDepth=-1;
   await loadData();
 }
+
+// ══════════════════════════════════════════════════════════
+// KPI-тултипы: один общий фиксированный элемент вместо .ktip в потоке каждой карточки —
+// наведение мышью НИКОГДА не двигает layout (Шаг 2 ТЗ kpi-share-tooltip-style).
+// ══════════════════════════════════════════════════════════
+function initKpiTooltips(){
+  const tip=document.getElementById('kpiTip');
+  if(!tip) return;
+  let showTimer=null;
+  const hide=()=>{ clearTimeout(showTimer); showTimer=null; tip.style.display='none'; };
+  const show=(card)=>{
+    const text=card.getAttribute('data-tip');
+    if(!text) return;
+    tip.textContent=text;
+    tip.style.display='block';
+    // Позиционируем НАД карточкой, не выходя за экран (Шаг 2: getBoundingClientRect)
+    const r=card.getBoundingClientRect();
+    const tr=tip.getBoundingClientRect();
+    let left=r.left;
+    const maxLeft=window.innerWidth-tr.width-8;
+    if(left>maxLeft) left=Math.max(8,maxLeft);
+    if(left<8) left=8;
+    let top=r.top-tr.height-6;
+    if(top<4) top=r.bottom+6; // если места сверху нет — показать под карточкой
+    tip.style.left=left+'px';
+    tip.style.top=top+'px';
+  };
+  document.querySelectorAll('.kpi[data-tip]').forEach(card=>{
+    card.addEventListener('mouseenter',()=>{
+      clearTimeout(showTimer);
+      showTimer=setTimeout(()=>show(card),300);
+    });
+    card.addEventListener('mouseleave',hide);
+  });
+}
+initKpiTooltips();
 
 setViewMode('month');
 loadData();
