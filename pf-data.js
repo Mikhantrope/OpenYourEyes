@@ -66,6 +66,15 @@ const PF = {
   NON_PRODUCT: ['услуг','аренд','дистриб','транспорт','обслуж','сервис','подписк'],
   isDairy(sku) { return !this.NON_PRODUCT.some(k => sku.toLowerCase().includes(k)); },
 
+  // Имя начинается с «ФТ »/«ТТ » (фирменная точка / торговая точка) — используется, чтобы отличить
+  // реальные фирменные точки от посторонних контрагентов, в чьём названии случайно встретилось
+  // ключевое слово алиаса (см. ТЗ fix-akmol-zhenis: «Акмолинский областной центр...» перехватывал склад).
+  isFtTtName(name) { return /^(ФТ|ТТ)\s/i.test(String(name||'').trim()); },
+  // Кандидат в фирменные точки: группа «Фирменные точки» ИЛИ имя с префиксом ФТ/ТТ
+  isFtCandidateName(finalName, grp) {
+    return String(grp||'').toLowerCase().includes('фирмен') || this.isFtTtName(finalName);
+  },
+
   VAT: 1.16, // ставка НДС (16%, Казахстан 2026) — единая константа для всех расчётов «без НДС»
 
   // Фиксированный порядок каналов
@@ -597,8 +606,11 @@ const PF = {
         if(sub) putMap(subgroupMap,subgroupMapNorm,subgroupMapPrefix,key,sub);
       }
 
-      const allTxt=normKey([src,clean,finalName,grp,sub].join(' '));
-      if(finalName && (grp.toLowerCase().includes('фирмен') || allTxt.includes('тт ') || allTxt.includes('фт ') || allTxt.includes('сауран') || allTxt.includes('коктал') || allTxt.includes('артем') || allTxt.includes('евраз') || allTxt.includes('шапагат') || allTxt.includes('акмол') || allTxt.includes('женис'))){
+      // Кандидат в точки — только контрагент, который РЕАЛЬНО относится к фирменным точкам
+      // (группа «Фирменные точки» ИЛИ имя начинается с «ФТ »/«ТТ »). Раньше сюда попадал любой
+      // контрагент, в чьём тексте есть 'акмол'/'артем'/... — включая посторонние организации
+      // («Акмолинский областной центр по профилактике ВИЧ-инфекции» перехватывал склад «ТТ Акмол Женис»).
+      if (finalName && this.isFtCandidateName(finalName, grp)) {
         ttCandidates.push({name:finalName, group:grp, subgroup:sub});
       }
     }
@@ -660,21 +672,37 @@ const PF = {
       {keys:['акмол','женис','жеңіс','zhenis'], name:'ФТ Акмол Женис'},
     ];
 
+    // Диагностика: сколько раз алиас-ветка нашла бы кандидата БЕЗ префикса ФТ/ТТ (старое поведение —
+    // именно так «Акмолинский областной центр...» перехватывал склад «ТТ Акмол Женис»). После правки
+    // такого происходить не должно — счётчик должен остаться 0; если нет, выводим список в диагностику.
+    const aliasNonFtCatches=[];
+
     const findRetailPointBySklad = sklad => {
       const sk=normKey(sklad);
       if(!sk) return 'Розница без склада';
 
       // Сначала пытаемся вернуть ровно то название, которое уже есть в справочнике.
+      // Только среди РЕАЛЬНЫХ точек (имя ФТ/ТТ) — короткое имя постороннего кандидата не должно
+      // случайно «включаться» в название склада.
       for(const c of ttCandidates){
+        if(!this.isFtTtName(c.name)) continue;
         const cn=normKey(c.name);
         if(cn && (cn.includes(sk) || sk.includes(cn))) return c.name;
       }
 
-      // Потом — по ключевым словам склада.
+      // Потом — по ключевым словам склада (алиасы для старых/новых форматов названий складов).
       for(const a of TT_ALIASES){
         if(a.keys.some(k=>sk.includes(k))){
-          const fromDict=ttCandidates.find(c=>a.keys.some(k=>normKey(c.name).includes(k)));
-          return fromDict ? fromDict.name : a.name;
+          // Диагностика: что нашёл бы старый (небезопасный) поиск без фильтра по префиксу
+          const naiveMatch = ttCandidates.find(c=>a.keys.some(k=>normKey(c.name).includes(k)));
+          const fromDict = ttCandidates.find(c =>
+            this.isFtTtName(c.name) &&                          // имя точки, не просто содержит ключ
+            a.keys.some(k=>normKey(c.name).includes(k))
+          );
+          if (naiveMatch && naiveMatch !== fromDict && !this.isFtTtName(naiveMatch.name)) {
+            aliasNonFtCatches.push({sklad, alias:a.name, wouldCatch:naiveMatch.name, group:naiveMatch.group});
+          }
+          return fromDict ? fromDict.name : a.name;             // фолбэк a.name как был
         }
       }
 
@@ -1117,6 +1145,9 @@ const PF = {
       unmappedSkus,
       excludedGarbage,
       retailPoints,
+      // Счётчик перехватов склада посторонним контрагентом без префикса ФТ/ТТ (см. ТЗ fix-akmol-zhenis).
+      // Должен быть 0 после правки — если не 0, список ниже показывает какой склад/алиас/кандидат виноват.
+      aliasNonFtCatches,
       groupMap,groupMapNorm,displayMap,displayMapNorm,
       prikhodPrices:{pricesFromStatic,pricesFromSheet,maxPriceDay,maxSaleDay,staleWarning:priceStaleWarning},
     };
@@ -1136,6 +1167,10 @@ const PF = {
         console.table(excludedGarbage);
       }
       if(priceStaleWarning) console.warn('PF: '+priceStaleWarning);
+      if(aliasNonFtCatches.length){
+        console.warn('PF: посторонний контрагент (без префикса ФТ/ТТ) чуть не перехватил склад фирменной точки. Открой window.PF_SALES_DIAGNOSTICS.aliasNonFtCatches');
+        console.table(aliasNonFtCatches);
+      }
       window.dispatchEvent(new CustomEvent('pf:dataUpdated'));
     }
     return {rawRows,groupMap,subgroupMap,skuWeight,skuGroup,skuDisplayMap,months:months2,diagnostics};
