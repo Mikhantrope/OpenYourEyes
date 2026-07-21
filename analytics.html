@@ -110,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 
 .footer{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:10px;color:var(--dim);font-family:var(--mono);}
 </style>
-<link rel="stylesheet" href="pf-ui.css?v=20260708">
+<link rel="stylesheet" href="pf-ui.css?v=20260721">
 </head>
 <body>
 
@@ -181,6 +181,27 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
     <div class="card"><div class="ct">Цена продажи vs Цена закупа — оба БЕЗ НДС, ₸/шт</div><canvas id="cPrice"></canvas></div>
     <div class="card"><div class="ct">Сравнение цены: факт vs план по месяцам, ₸</div><canvas id="cPriceVsPlan"></canvas></div>
   </div>
+
+  <div class="card" style="margin-top:13px">
+    <div class="ct" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span>Динамика цен по SKU: закуп vs продажа (с НДС, по неделям)</span>
+      <input list="priceSkuList" id="priceSkuInput" placeholder="Выбери SKU (топ-30 по выручке)..."
+        style="margin-left:auto;padding:5px 9px;border:1px solid var(--border);border-radius:6px;background:var(--s2);color:var(--text);font-size:11px;min-width:260px"
+        oninput="onPriceSkuPick(this.value)">
+      <datalist id="priceSkuList"></datalist>
+    </div>
+    <canvas id="cSkuPrice" height="90"></canvas>
+    <div id="skuPriceSpread" style="display:flex;gap:22px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--muted)"></div>
+  </div>
+
+  <div class="card" style="margin-top:13px">
+    <div class="ct">⚠️ Цена закупа выросла — отпускная не отреагировала</div>
+    <div class="sl-d" style="margin-bottom:8px">
+      По средневзвешенным ценам прихода, без партионного учёта и спецусловий — список сигналов для проверки, не приговор.
+      Порог: рост закупа &gt;2% за 14 дней при отставании отпускной.
+    </div>
+    <table class="tbl" id="tPriceAlerts"></table>
+  </div>
 </div>
 
 <!-- 03 КАТЕГОРИИ -->
@@ -241,9 +262,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
   <span id="footerDate">PF Analytics</span>
 </div>
 
-<script src="pf-prikhod.js?v=20260708"></script>
-<script src="pf-data.js?v=20260708"></script>
-<script src="pf-utils.js?v=20260708"></script>
+<script src="pf-prikhod.js?v=20260721"></script>
+<script src="pf-history.js?v=20260721"></script>
+<script src="pf-data.js?v=20260721"></script>
+<script src="pf-utils.js?v=20260721"></script>
 <script>
 Chart.defaults.color='#5a7a96';
 Chart.defaults.borderColor='#1e2d40';
@@ -269,6 +291,7 @@ async function init(){
 
     const NON=PF.NON_PRODUCT;
     const rows=rawRows; // уже отфильтрованы в loadSales
+    _priceRows = rows; // кэш для интерактивного выбора SKU в разделе контроля отпускных цен
 
     // ── ПОМЕСЯЧНЫЕ ДАННЫЕ ────────────────────────────────────
     const monthly={};
@@ -620,6 +643,9 @@ async function init(){
       options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},
         scales:{x:{grid:{color:'rgba(30,45,64,.5)'},ticks:{callback:v=>v+'%'}},y:{grid:{display:false},ticks:{font:{size:9}}}}}});
 
+    // ── КОНТРОЛЬ ОТПУСКНЫХ ЦЕН ────────────────────────────────
+    initPriceControlSection(rows);
+
     prog(100); step('Готово!');
     setTimeout(()=>document.getElementById('ls').style.display='none',300);
 
@@ -627,6 +653,160 @@ async function init(){
     document.getElementById('lstep').textContent='Ошибка: '+err.message;
     console.error(err);
   }
+}
+
+// ══════════════════════════════════════════════════════════
+// КОНТРОЛЬ ОТПУСКНЫХ ЦЕН: закуп vs продажа по SKU + алерты недобора маржи
+// ══════════════════════════════════════════════════════════
+let _priceRows = null;
+let _skuPriceChart = null;
+const PRICE_ALERT_GROWTH_THRESHOLD = 0.02; // 2% — порог роста закупа
+const PRICE_ALERT_WINDOW_DAYS = 14;        // окно сравнения «было/стало»
+
+function weekKeyOf(dayStr){
+  const [y,m,d] = String(dayStr||'').split('-').map(Number);
+  const dt = new Date(y,(m||1)-1,d||1);
+  const dow = (dt.getDay()+6)%7; // Пн=0 ... Вс=6
+  dt.setDate(dt.getDate()-dow);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+function fmtWeekLabel(wk){
+  const [y,m,d] = String(wk||'').split('-');
+  return d && m ? `${d}.${m}` : String(wk||'');
+}
+
+function buildSkuWeeklySeries(sku){
+  const skuRows = _priceRows.filter(r=>r.sku===sku && (r.qtyReal||0)>0);
+  const byWeek = {};
+  for(const r of skuRows){
+    const wk = weekKeyOf(r.day);
+    if(!byWeek[wk]) byWeek[wk] = {qty:0, sellSum:0, zakupSum:0};
+    byWeek[wk].qty += r.qtyReal;
+    byWeek[wk].sellSum += (r.sumRealS||0);       // цена продажи с НДС (sumRealS/qtyReal)
+    byWeek[wk].zakupSum += (r.sebSaleWithNds||0); // цена закупа с НДС, средневзвешенная по факту продаж
+  }
+  return Object.keys(byWeek).sort().map(wk=>{
+    const d = byWeek[wk];
+    return { week:wk, qty:d.qty, sell: d.qty?d.sellSum/d.qty:0, zakup: d.qty?d.zakupSum/d.qty:0 };
+  });
+}
+
+function lastChangeWeekLabel(values, weeks){
+  for(let i=values.length-1;i>0;i--){
+    if(Math.abs(values[i]-values[i-1])>=1) return fmtWeekLabel(weeks[i]);
+  }
+  return values.length ? fmtWeekLabel(weeks[0]) : '—';
+}
+
+function drawSkuPriceChart(sku){
+  const series = buildSkuWeeklySeries(sku);
+  const labels = series.map(s=>fmtWeekLabel(s.week));
+  const zakup = series.map(s=>Math.round(s.zakup));
+  const sell  = series.map(s=>Math.round(s.sell));
+  const sellGreen = sell.map((v,i)=> v>=zakup[i] ? v : null);
+  const sellRed   = sell.map((v,i)=> v<zakup[i]  ? v : null);
+
+  if(_skuPriceChart) _skuPriceChart.destroy();
+  _skuPriceChart = new Chart(document.getElementById('cSkuPrice'), {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'Закуп, ₸/шт', data:zakup, borderColor:am, backgroundColor:'transparent', borderWidth:2, tension:.2, pointRadius:2, order:1 },
+      { label:'_fillGreen', data:sellGreen, fill:0, backgroundColor:'rgba(0,230,118,.18)', borderColor:'transparent', pointRadius:0, borderWidth:0, spanGaps:false, order:3 },
+      { label:'_fillRed',   data:sellRed,   fill:0, backgroundColor:'rgba(255,61,87,.18)', borderColor:'transparent', pointRadius:0, borderWidth:0, spanGaps:false, order:3 },
+      { label:'Продажа, ₸/шт', data:sell, borderColor:gr, backgroundColor:'transparent', borderWidth:2, tension:.2, pointRadius:2, order:2 },
+    ]},
+    options:{ responsive:true,
+      plugins:{ legend:{ labels:{ filter:item=>!item.text.startsWith('_') } } },
+      scales:{ y:{ beginAtZero:false, grid:{color:'rgba(30,45,64,.5)'} }, x:{ grid:{display:false} } } }
+  });
+
+  const last = series[series.length-1];
+  const spread = last ? Math.round(last.sell-last.zakup) : 0;
+  const spreadPct = last && last.zakup ? (spread/last.zakup*100) : 0;
+  const zakupChanged = lastChangeWeekLabel(zakup, series.map(s=>s.week));
+  const sellChanged  = lastChangeWeekLabel(sell,  series.map(s=>s.week));
+  document.getElementById('skuPriceSpread').innerHTML = series.length ? `
+    <div>Текущий спред: <b style="color:${spread>=0?'var(--green)':'var(--red)'}">${spread>=0?'+':''}${spread} ₸/шт (${spreadPct.toFixed(1)}%)</b></div>
+    <div>Закуп последний раз менялся: <b>${zakupChanged}</b></div>
+    <div>Продажа последний раз менялась: <b>${sellChanged}</b></div>
+  ` : `<div>Нет данных по продажам этого SKU</div>`;
+}
+
+function onPriceSkuPick(val){
+  if(!_priceSkuTop30 || !_priceSkuTop30.includes(val)) return;
+  drawSkuPriceChart(val);
+}
+
+let _priceSkuTop30 = null;
+
+function computePriceAlerts(rows){
+  let maxDay=''; for(const r of rows) if(r.day>maxDay) maxDay=r.day;
+  if(!maxDay) return [];
+  const dEnd = new Date(maxDay);
+  const cutoffRecent = new Date(dEnd); cutoffRecent.setDate(cutoffRecent.getDate()-PRICE_ALERT_WINDOW_DAYS);
+  const cutoffPrev = new Date(cutoffRecent); cutoffPrev.setDate(cutoffPrev.getDate()-PRICE_ALERT_WINDOW_DAYS);
+
+  const bySku = {};
+  for(const r of rows){
+    if((r.qtyReal||0)<=0) continue;
+    const dt = new Date(r.day);
+    if(isNaN(dt) || dt>dEnd) continue;
+    if(!bySku[r.sku]) bySku[r.sku] = {recent:{qty:0,zakup:0,sell:0}, prev:{qty:0,zakup:0,sell:0}};
+    const inRecent = dt>cutoffRecent;
+    const inPrev = !inRecent && dt>cutoffPrev;
+    if(!inRecent && !inPrev) continue;
+    const bucket = inRecent ? bySku[r.sku].recent : bySku[r.sku].prev;
+    bucket.qty += r.qtyReal;
+    bucket.zakup += (r.sebSaleWithNds||0);
+    bucket.sell += (r.sumRealS||0);
+  }
+
+  const alerts=[];
+  for(const [sku,d] of Object.entries(bySku)){
+    if(d.recent.qty<1 || d.prev.qty<1) continue;
+    const zakupNow=d.recent.zakup/d.recent.qty, zakupWas=d.prev.zakup/d.prev.qty;
+    const sellNow=d.recent.sell/d.recent.qty,  sellWas=d.prev.sell/d.prev.qty;
+    if(zakupWas<=0) continue;
+    const zakupGrowth=(zakupNow-zakupWas)/zakupWas;
+    if(zakupGrowth<=PRICE_ALERT_GROWTH_THRESHOLD) continue;
+    const zakupDelta=zakupNow-zakupWas, sellDelta=sellNow-sellWas;
+    if(sellDelta>=zakupDelta) continue; // отпускная догнала или обогнала закуп — не сигнал
+    const shortfall=zakupDelta-sellDelta;
+    alerts.push({sku, zakupWas:Math.round(zakupWas), zakupNow:Math.round(zakupNow),
+      sellWas:Math.round(sellWas), sellNow:Math.round(sellNow),
+      shortfall:Math.round(shortfall), qty:Math.round(d.recent.qty),
+      lostMargin:Math.round(shortfall*d.recent.qty)});
+  }
+  return alerts.sort((a,b)=>b.lostMargin-a.lostMargin);
+}
+
+function initPriceControlSection(rows){
+  _priceRows = rows;
+
+  // Топ-30 SKU по выручке — для даталиста выбора
+  const skuRev={};
+  for(const r of rows) skuRev[r.sku]=(skuRev[r.sku]||0)+(r.sumBezNds||0);
+  _priceSkuTop30 = Object.entries(skuRev).sort((a,b)=>b[1]-a[1]).slice(0,30).map(x=>x[0]);
+  document.getElementById('priceSkuList').innerHTML = _priceSkuTop30.map(s=>`<option value="${s}">`).join('');
+  if(_priceSkuTop30.length){
+    document.getElementById('priceSkuInput').value = _priceSkuTop30[0];
+    drawSkuPriceChart(_priceSkuTop30[0]);
+  }
+
+  // Алерты недобора маржи — по ВСЕМ SKU, не только выбранному
+  const alerts = computePriceAlerts(rows);
+  document.getElementById('tPriceAlerts').innerHTML =
+    `<tr><th>SKU</th><th>Закуп было→стало</th><th>Продажа было→стало</th><th>Недобор ₸/шт</th><th>Объём 14дн, шт</th><th>Недополученная маржа</th></tr>` +
+    (alerts.length
+      ? alerts.slice(0,30).map(a=>`<tr>
+          <td>${a.sku}</td>
+          <td>${PF.fmtN(a.zakupWas)} → ${PF.fmtN(a.zakupNow)} ₸</td>
+          <td>${PF.fmtN(a.sellWas)} → ${PF.fmtN(a.sellNow)} ₸</td>
+          <td class="neg">${PF.fmtN(a.shortfall)} ₸</td>
+          <td>${PF.fmtN(a.qty)}</td>
+          <td class="neg">${PF.fmtRev(a.lostMargin)} ₸</td>
+        </tr>`).join('')
+      : `<tr><td colspan="6" style="text-align:center;color:var(--green)">Нет сигналов за последние 14 дней</td></tr>`);
 }
 
 init();

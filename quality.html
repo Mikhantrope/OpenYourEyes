@@ -108,9 +108,21 @@ body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-ser
 .q-actions{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;}
 .qbtn{padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--s2);color:var(--text);font-size:11px;font-weight:700;cursor:pointer;}
 .qbtn:hover{border-color:var(--accent);color:var(--accent);}
+.qbtn.on{background:rgba(0,200,255,.15);border-color:var(--accent);color:var(--accent);}
+
+/* ВОЗВРАТЫ ПО ПРИЧИНАМ */
+.rchip{padding:2px 8px;border:1px solid var(--border);border-radius:10px;font-size:10px;cursor:pointer;background:var(--s2);color:var(--muted);white-space:nowrap;user-select:none;}
+.rchip.on{background:rgba(0,200,255,.15);border-color:var(--accent);color:var(--accent);}
+.returns-kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+.returns-kpi-grid .issue-card{cursor:default;}
+.returns-kpi-grid .issue-card:hover{border-color:var(--border);}
+.rv{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:800;}
+.rl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:4px;}
+.tbl td.num,.tbl th.num{text-align:right;}
+.tbl tr.tot td{font-weight:700;background:rgba(0,230,118,.06);border-top:1px solid rgba(0,230,118,.3);}
 
 </style>
-<link rel="stylesheet" href="pf-ui.css?v=20260708">
+<link rel="stylesheet" href="pf-ui.css?v=20260721">
 </head>
 <body>
 
@@ -176,11 +188,57 @@ body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-ser
     <div class="dow-grid" id="dowGrid"></div>
   </div>
 
+  <!-- ВОЗВРАТЫ ПО ПРИЧИНАМ -->
+  <div class="section" id="returns">
+    <div class="sh"><span class="sh-icon">↩️</span>Возвраты по причинам</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">
+      Причины возвратов фиксируются в 1С с мая 2026 — раздел показывает данные только с мая.
+      Суммы — без НДС (та же база, что и в остальных разделах Качества).
+    </div>
+
+    <div class="returns-kpi-grid">
+      <div class="issue-card"><div class="rl">Возвраты за период</div><div class="rv" id="retKpiTotal">—</div></div>
+      <div class="issue-card"><div class="rl">% от выручки</div><div class="rv" id="retKpiPct">—</div></div>
+      <div class="issue-card"><div class="rl">Топ-причина</div><div class="rv" id="retKpiTop" style="font-size:13px">—</div></div>
+    </div>
+
+    <div class="day-filter-bar" style="margin-bottom:10px;border-radius:8px">
+      <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Месяцы:</span>
+      <div id="returnsMonthChips" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+        <button class="qbtn on" id="retUnitRub" onclick="setReturnUnit('rub')">₸</button>
+        <button class="qbtn" id="retUnitKg" onclick="setReturnUnit('kg')">кг</button>
+        <button class="qbtn" onclick="copyReturnsTSV(this)">📋 TSV</button>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto">
+      <table class="tbl" id="returnsByMonthTable"></table>
+    </div>
+
+    <div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px">
+      <div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:6px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Причина × канал</div>
+        <div style="overflow-x:auto"><table class="tbl" id="returnsByChannelTable"></table></div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:6px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Причина × группа SKU</div>
+        <div style="overflow-x:auto"><table class="tbl" id="returnsBySkuGroupTable"></table></div>
+      </div>
+    </div>
+
+    <div style="margin-top:18px">
+      <div style="font-size:11px;font-weight:700;margin-bottom:6px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Топ-10 точек по возврату «Истёк срок годности» — перезаказ на местах</div>
+      <table class="tbl" id="returnsTopExpiredTable"></table>
+    </div>
+  </div>
+
 </div>
 
-<script src="pf-prikhod.js?v=20260708"></script>
-<script src="pf-data.js?v=20260708"></script>
-<script src="pf-utils.js?v=20260708"></script>
+<script src="pf-prikhod.js?v=20260721"></script>
+<script src="pf-history.js?v=20260721"></script>
+<script src="pf-data.js?v=20260721"></script>
+<script src="pf-utils.js?v=20260721"></script>
 <script>
 const fmtRev = v => Math.abs(v)>=1e6?(v/1e6).toFixed(1)+' млн':Math.abs(v)>=1e3?(v/1e3).toFixed(0)+' тыс':Math.round(v)+'';
 const fmtN = v => Math.round(v).toLocaleString('ru');
@@ -548,6 +606,9 @@ async function init(){
     });
     document.getElementById('dowGrid').innerHTML = dowHtml.join('');
 
+    // ── ВОЗВРАТЫ ПО ПРИЧИНАМ ──────────────────────────────────
+    initReturnsSection(rows);
+
     prog(100);
     setTimeout(()=>document.getElementById('ls').style.display='none',300);
 
@@ -555,6 +616,161 @@ async function init(){
     document.getElementById('lstep').textContent='Ошибка: '+err.message;
     console.error(err);
   }
+}
+
+// ══════════════════════════════════════════════════════════
+// ВОЗВРАТЫ ПО ПРИЧИНАМ — данные с мая 2026 (retReason заполняется только в ИсхРеалМай)
+// ══════════════════════════════════════════════════════════
+let _returnsRows = null;       // все строки с непустой retReason (возвраты с указанной причиной)
+let _returnsAllRows = null;    // все строки периода (для % от выручки и знаменателя)
+let _returnsState = { months: null, unit: 'rub' }; // months: null = все доступные
+
+function initReturnsSection(rows){
+  _returnsAllRows = rows;
+  _returnsRows = rows.filter(r => r.retReason);
+  const months = [...new Set(_returnsRows.map(r=>r.mk))].sort();
+  _returnsState.months = new Set(months); // по умолчанию — все доступные месяцы выбраны
+  drawReturnsSection();
+}
+
+function fmtMonthShort(mk){
+  const [y,m] = String(mk||'').split('-');
+  const MO_SHORT=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  return m ? MO_SHORT[(+m||1)-1]+' '+y : mk;
+}
+
+function toggleReturnMonth(mk){
+  if(_returnsState.months.has(mk)) _returnsState.months.delete(mk);
+  else _returnsState.months.add(mk);
+  drawReturnsSection();
+}
+
+function setReturnUnit(unit){
+  _returnsState.unit = unit;
+  document.getElementById('retUnitRub').classList.toggle('on', unit==='rub');
+  document.getElementById('retUnitKg').classList.toggle('on', unit==='kg');
+  drawReturnsSection();
+}
+
+function drawReturnsSection(){
+  if(!_returnsRows) return;
+  const allMonths = [...new Set(_returnsRows.map(r=>r.mk))].sort();
+  const selMonths = _returnsState.months;
+  const unit = _returnsState.unit;
+  const rub = r => Math.abs(r.sumR||0)/PF.VAT;   // без НДС, база как в остальных разделах Качества
+  const kg  = r => Math.abs(r.retKg||0);
+  const val = r => unit==='rub' ? rub(r) : kg(r);
+  const fmtV = v => unit==='rub' ? fmtRev(v)+' ₸' : (Math.round(v*10)/10).toLocaleString('ru')+' кг';
+
+  // Месячные чипы
+  document.getElementById('returnsMonthChips').innerHTML = allMonths.map(mk =>
+    `<span class="rchip ${selMonths.has(mk)?'on':''}" onclick="toggleReturnMonth('${mk}')">${fmtMonthShort(mk)}</span>`
+  ).join('');
+
+  const rowsInScope = _returnsRows.filter(r => selMonths.has(r.mk));
+
+  // Выручка для % (без НДС), за те же выбранные месяцы, по ВСЕМ строкам периода (не только возвраты)
+  const revInScope = _returnsAllRows.filter(r => selMonths.has(r.mk)).reduce((s,r)=>s+(r.sumBezNds||0),0);
+  const totalRub = rowsInScope.reduce((s,r)=>s+rub(r),0);
+  const totalKg  = rowsInScope.reduce((s,r)=>s+kg(r),0);
+
+  // ── KPI ──
+  document.getElementById('retKpiTotal').textContent = `${(Math.round(totalKg*10)/10).toLocaleString('ru')} кг / ${fmtRev(totalRub)} ₸`;
+  document.getElementById('retKpiPct').textContent = revInScope ? (totalRub/revInScope*100).toFixed(1)+'%' : '—';
+
+  const byReasonTotal = {};
+  for(const r of rowsInScope){ byReasonTotal[r.retReason]=(byReasonTotal[r.retReason]||0)+rub(r); }
+  const topReason = Object.entries(byReasonTotal).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('retKpiTop').textContent = topReason
+    ? `${topReason[0]} (${(topReason[1]/(totalRub||1)*100).toFixed(0)}%)` : '—';
+
+  // ── Таблица «Причина × месяц» ──
+  const reasonMonthMap = {}; // reason -> {mk: value}
+  for(const r of rowsInScope){
+    if(!reasonMonthMap[r.retReason]) reasonMonthMap[r.retReason]={};
+    reasonMonthMap[r.retReason][r.mk] = (reasonMonthMap[r.retReason][r.mk]||0) + val(r);
+  }
+  const reasonsSorted = Object.keys(reasonMonthMap).sort((a,b)=>{
+    const sa=Object.values(reasonMonthMap[a]).reduce((x,y)=>x+y,0);
+    const sb=Object.values(reasonMonthMap[b]).reduce((x,y)=>x+y,0);
+    return sb-sa;
+  });
+  const scopedMonths = allMonths.filter(m=>selMonths.has(m));
+  const monthTotals = scopedMonths.map(mk => reasonsSorted.reduce((s,rs)=>s+(reasonMonthMap[rs][mk]||0),0));
+  const grandTotal = monthTotals.reduce((a,b)=>a+b,0);
+  document.getElementById('returnsByMonthTable').innerHTML =
+    `<tr><th>Причина</th>${scopedMonths.map(m=>`<th class="num">${fmtMonthShort(m)}</th>`).join('')}<th class="num">Итого</th></tr>` +
+    reasonsSorted.map(rs=>{
+      const rowTotal = scopedMonths.reduce((s,m)=>s+(reasonMonthMap[rs][m]||0),0);
+      return `<tr><td>${rs}</td>${scopedMonths.map(m=>`<td class="num">${fmtV(reasonMonthMap[rs][m]||0)}</td>`).join('')}<td class="num">${fmtV(rowTotal)}</td></tr>`;
+    }).join('') +
+    `<tr class="tot"><td>Итого</td>${monthTotals.map(v=>`<td class="num">${fmtV(v)}</td>`).join('')}<td class="num">${fmtV(grandTotal)}</td></tr>`;
+
+  // ── Причина × канал ──
+  const byChannel = {};
+  for(const r of rowsInScope){
+    const g = r.group||'—';
+    if(!byChannel[r.retReason]) byChannel[r.retReason]={};
+    byChannel[r.retReason][g]=(byChannel[r.retReason][g]||0)+val(r);
+  }
+  const channels = [...new Set(rowsInScope.map(r=>r.group||'—'))].sort((a,b)=>PF.groupSortIdx(a)-PF.groupSortIdx(b));
+  document.getElementById('returnsByChannelTable').innerHTML =
+    `<tr><th>Причина</th>${channels.map(c=>`<th class="num">${c}</th>`).join('')}</tr>` +
+    reasonsSorted.slice(0,8).map(rs=>
+      `<tr><td>${rs}</td>${channels.map(c=>`<td class="num">${fmtV(byChannel[rs][c]||0)}</td>`).join('')}</tr>`
+    ).join('');
+
+  // ── Причина × группа SKU ──
+  const bySkuGroup = {};
+  for(const r of rowsInScope){
+    const sg = r.skuGroup||'Прочее';
+    if(!bySkuGroup[r.retReason]) bySkuGroup[r.retReason]={};
+    bySkuGroup[r.retReason][sg]=(bySkuGroup[r.retReason][sg]||0)+val(r);
+  }
+  const skuGroups = [...new Set(rowsInScope.map(r=>r.skuGroup||'Прочее'))]
+    .sort((a,b)=>PF.skuGroupSortIdx(a)-PF.skuGroupSortIdx(b));
+  document.getElementById('returnsBySkuGroupTable').innerHTML =
+    `<tr><th>Причина</th>${skuGroups.map(g=>`<th class="num">${g}</th>`).join('')}</tr>` +
+    reasonsSorted.slice(0,8).map(rs=>
+      `<tr><td>${rs}</td>${skuGroups.map(g=>`<td class="num">${fmtV(bySkuGroup[rs][g]||0)}</td>`).join('')}</tr>`
+    ).join('');
+
+  // ── Топ-10 точек по «Истёк срок годности» ──
+  const isExpired = reason => /истёк|истек|срок\s*годност/i.test(reason||'');
+  const expiredRows = rowsInScope.filter(r=>isExpired(r.retReason));
+  const byKnt = {};
+  for(const r of expiredRows){
+    if(!byKnt[r.knt]) byKnt[r.knt]={kg:0,rub:0};
+    byKnt[r.knt].kg += kg(r);
+    byKnt[r.knt].rub += rub(r);
+  }
+  // Выручка контрагента — за весь период (знаменатель для %)
+  const kntRevAll = {};
+  for(const r of _returnsAllRows){ kntRevAll[r.knt]=(kntRevAll[r.knt]||0)+(r.sumBezNds||0); }
+  const topExpired = Object.entries(byKnt)
+    .map(([knt,d])=>({knt, kg:d.kg, rub:d.rub, pct: kntRevAll[knt]?d.rub/kntRevAll[knt]*100:0}))
+    .sort((a,b)=>b.rub-a.rub).slice(0,10);
+  document.getElementById('returnsTopExpiredTable').innerHTML =
+    `<tr><th>Контрагент/точка</th><th class="num">Кг</th><th class="num">₸ (б/НДС)</th><th class="num">% от их выручки</th></tr>` +
+    (topExpired.length
+      ? topExpired.map(x=>`<tr><td>${x.knt}</td><td class="num">${(Math.round(x.kg*10)/10).toLocaleString('ru')}</td><td class="num">${fmtRev(x.rub)} ₸</td><td class="num">${x.pct.toFixed(1)}%</td></tr>`).join('')
+      : `<tr><td colspan="4" style="color:var(--green);text-align:center">Нет возвратов по причине «Истёк срок годности» за выбранный период</td></tr>`);
+
+  // Кэш для TSV-копирования
+  window._returnsTsvCache = { reasonsSorted, scopedMonths, reasonMonthMap, monthTotals, grandTotal, fmtV };
+}
+
+async function copyReturnsTSV(btn){
+  const c = window._returnsTsvCache;
+  if(!c) return;
+  const header = ['Причина', ...c.scopedMonths.map(fmtMonthShort), 'Итого'].join('\t');
+  const lines = c.reasonsSorted.map(rs=>{
+    const rowTotal = c.scopedMonths.reduce((s,m)=>s+(c.reasonMonthMap[rs][m]||0),0);
+    return [rs, ...c.scopedMonths.map(m=>Math.round(c.reasonMonthMap[rs][m]||0)), Math.round(rowTotal)].join('\t');
+  });
+  const totalLine = ['Итого', ...c.monthTotals.map(v=>Math.round(v)), Math.round(c.grandTotal)].join('\t');
+  const text = [header, ...lines, totalLine].join('\n');
+  return PFU.copyText(text, btn);
 }
 
 function toggleDetail(id){

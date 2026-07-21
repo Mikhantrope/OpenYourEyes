@@ -87,7 +87,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 .mini-s{font-size:10px;color:var(--dim);margin-top:4px;line-height:1.4;}
 
 </style>
-<link rel="stylesheet" href="pf-ui.css?v=20260708">
+<link rel="stylesheet" href="pf-ui.css?v=20260721">
 </head>
 <body>
 
@@ -115,7 +115,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
   <div class="kpi bl"><div class="kpi-l">Выручка (без НДС)</div><div class="kpi-v" style="color:var(--accent)" id="kRev">—</div><div class="kpi-s">за весь период</div></div>
   <div class="kpi am"><div class="kpi-l">Себестоимость</div><div class="kpi-v" style="color:var(--amber)" id="kSeb">—</div><div class="kpi-s">из прихода (без НДС)</div></div>
   <div class="kpi" id="kProfCard"><div class="kpi-l">Валовая прибыль</div><div class="kpi-v" id="kProf">—</div><div class="kpi-s" id="kMarS">маржа</div></div>
-  <div class="kpi pu"><div class="kpi-l">Возвраты</div><div class="kpi-v" style="color:var(--purple)" id="kRet">—</div><div class="kpi-s" id="kRetPct">% от выручки</div></div>
+  <a href="quality.html#returns" style="text-decoration:none;color:inherit;display:block" title="Разбор возвратов по причинам — quality.html"><div class="kpi pu"><div class="kpi-l">Возвраты</div><div class="kpi-v" style="color:var(--purple)" id="kRet">—</div><div class="kpi-s" id="kRetPct">% от выручки</div></div></a>
   <div class="kpi gr"><div class="kpi-l">Кол-во (Реал.)</div><div class="kpi-v" style="color:var(--green)" id="kQty">—</div><div class="kpi-s">штук отгружено</div></div>
 </div>
 
@@ -133,6 +133,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
       <div class="action-sub" id="summaryText">Загрузка ключевых выводов...</div>
     </div>
     <div class="pf-actions">
+      <button class="pf-export-btn" onclick="copyDaySummary(event)">📋 Сводка дня</button>
       <button class="pf-export-btn" onclick="copyDashboardSummary(event)">📋 Summary</button>
       <button class="pf-export-btn" onclick="copyDashboardReport(event)">📋 Отчёт</button>
       <button class="pf-export-btn" onclick="copyDashboardScreen(event)">📸 Скрин</button>
@@ -230,9 +231,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 
 </div>
 
-<script src="pf-prikhod.js?v=20260708"></script>
-<script src="pf-data.js?v=20260708"></script>
-<script src="pf-utils.js?v=20260708"></script>
+<script src="pf-prikhod.js?v=20260721"></script>
+<script src="pf-history.js?v=20260721"></script>
+<script src="pf-data.js?v=20260721"></script>
+<script src="pf-utils.js?v=20260721"></script>
 <script>
 Chart.defaults.color='#5a7a96';
 Chart.defaults.borderColor='#1e2d40';
@@ -246,6 +248,7 @@ const fmtRev = v => {
 };
 const fmtN = v => Math.round(v).toLocaleString('ru');
 window.PF_DASHBOARD_REPORT='';
+let _rawRowsCache=null;   // кэш уже загруженных rawRows — для «Сводки дня», без новых запросов
 
 async function init(){
   const prog = p => document.getElementById('prog').style.width=p+'%';
@@ -256,6 +259,7 @@ async function init(){
     prog(90); step('Расчёт...');
 
     const rows = rawRows;
+    _rawRowsCache = rawRows;
     const total = PF.agg(rows);
 
     // KPIs
@@ -611,6 +615,92 @@ async function init(){
 }
 
 
+
+function fmtDateRu(dayStr){
+  const [y,m,d] = String(dayStr||'').split('-');
+  return d && m ? `${d}.${m}` : String(dayStr||'');
+}
+
+async function copyDaySummary(ev){
+  const rows = _rawRowsCache;
+  if(!rows || !rows.length){
+    return PFU.copyText('Данные ещё загружаются, попробуй через секунду.', ev?.currentTarget);
+  }
+
+  // «Вчера» = последний день с продажами В ДАННЫХ (не календарное вчера)
+  let maxDay='';
+  for(const r of rows) if(r.day>maxDay) maxDay=r.day;
+  if(!maxDay){
+    return PFU.copyText('Нет данных о датах продаж.', ev?.currentTarget);
+  }
+  const dayRows = rows.filter(r=>r.day===maxDay);
+  if(!dayRows.length){
+    return PFU.copyText(`Нет данных за ${fmtDateRu(maxDay)}.`, ev?.currentTarget);
+  }
+
+  // 4 предыдущих даты с ТЕМ ЖЕ днём недели (недельная сезонность), не включая сам день
+  const priorSameDow = [];
+  {
+    const [y,m,d] = maxDay.split('-').map(Number);
+    const cursor = new Date(y,m-1,d);
+    for(let i=0;i<4;i++){
+      cursor.setDate(cursor.getDate()-7);
+      priorSameDow.push(`${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}-${String(cursor.getDate()).padStart(2,'0')}`);
+    }
+  }
+
+  const totToday = PF.agg(dayRows);
+  const priorTotals = priorSameDow
+    .map(ds => PF.agg(rows.filter(r=>r.day===ds)))
+    .filter(a => a.qty>0 || a.rev>0); // только те недели, где данные реально есть
+  const avgRev = priorTotals.length ? priorTotals.reduce((s,a)=>s+a.rev,0)/priorTotals.length : 0;
+  const devPct = avgRev ? (totToday.rev-avgRev)/avgRev*100 : null;
+
+  const akbSet = new Set(dayRows.map(r=>r.knt));
+
+  // Каналы: выручка дня + отклонение к своей средней за те же 4 дня недели
+  const chToday = PF.groupBy(dayRows, r=>r.group||'—');
+  const chLines = Object.entries(chToday).map(([g,gr])=>{
+    const gRev = gr.reduce((s,r)=>s+(r.sumBezNds||0),0);
+    const chPriorRevs = priorSameDow.map(ds =>
+      rows.filter(r=>r.day===ds && (r.group||'—')===g).reduce((s,r)=>s+(r.sumBezNds||0),0)
+    ).filter((v,i)=>priorTotals[i]); // берём только недели, где вообще были данные за этот день
+    const chAvg = chPriorRevs.length ? chPriorRevs.reduce((a,b)=>a+b,0)/chPriorRevs.length : 0;
+    const chDev = chAvg ? (gRev-chAvg)/chAvg*100 : null;
+    return {g, rev:gRev, dev:chDev};
+  }).sort((a,b)=>b.rev-a.rev);
+
+  // ── Алерты (до 3) ──
+  const alerts=[];
+  for(const c of chLines){
+    if(c.dev!=null && c.dev<=-25) alerts.push(`Канал «${c.g}» упал на ${Math.abs(Math.round(c.dev))}% к своей средней`);
+  }
+  const skuTotal={};
+  for(const r of rows) skuTotal[r.sku]=(skuTotal[r.sku]||0)+(r.sumBezNds||0);
+  const top20=Object.entries(skuTotal).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]);
+  const soldToday=new Set(dayRows.map(r=>r.sku));
+  const missingTop=top20.filter(s=>!soldToday.has(s));
+  if(missingTop.length) alerts.push(`Без продаж вчера из топ-20: ${missingTop.slice(0,3).join(', ')}${missingTop.length>3?` и ещё ${missingTop.length-3}`:''}`);
+  if(totToday.retPct>5) alerts.push(`Возвраты дня ${totToday.retPct.toFixed(1)}% — выше нормы`);
+  const alertsText = alerts.length ? alerts.slice(0,3).map(a=>'• '+a).join('\n') : '• Без отклонений';
+
+  const devTxt = devPct==null ? '' : ` (${devPct>=0?'+':''}${devPct.toFixed(0)}% к средней за 4 таких же дня недели)`;
+  const lines=[
+    `📊 PF · Сводка за ${fmtDateRu(maxDay)}`,
+    `Выручка: ${fmtRev(totToday.rev)} ₸ б/НДС${devTxt}`,
+    `Кг: ${(totToday.kg/1000).toFixed(1)} т · Чеков/строк: ${dayRows.length} · АКБ дня: ${akbSet.size}`,
+    `Прибыль: ${fmtRev(totToday.prof)} ₸ (маржа ${totToday.mar.toFixed(1)}%)`,
+    `Возвраты: ${totToday.retKg.toFixed(1)} кг / ${fmtRev(Math.abs(totToday.ret))} ₸ (${totToday.retPct.toFixed(1)}%)`,
+    '',
+    'Каналы (выручка, откл. к средней):',
+    ...chLines.map(c => `• ${c.g} ${fmtRev(c.rev)} ₸${c.dev==null?'':` (${c.dev>=0?'+':''}${c.dev.toFixed(0)}%)`}`),
+    '',
+    '⚠️ Внимание:',
+    alertsText,
+  ];
+
+  return PFU.copyText(lines.join('\n'), ev?.currentTarget);
+}
 
 async function copyDashboardSummary(ev){
   const el=document.getElementById('summaryText');

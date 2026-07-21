@@ -12,6 +12,39 @@
 //   Возвраты      = «Сумма возвратов»                     (sumR)
 // ═══════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════
+// PFCache — кэш CSV в IndexedDB (вместо sessionStorage).
+// Причина: лист ИсхРеалМай (~12.5 МБ) не влезает в лимит sessionStorage (~5 МБ) —
+// setItem молча падал (превышена квота), и лист перекачивался заново на каждой странице.
+// IndexedDB держит сотни МБ без проблем. API простой: get/set/del/clear.
+// Любая ошибка (приватный режим браузера, IndexedDB недоступна) — тихо работаем без кэша.
+// ═══════════════════════════════════════════════════════════════
+const PFCache = (() => {
+  const open = () => new Promise((res, rej) => {
+    if (typeof indexedDB === 'undefined') { rej(new Error('IndexedDB недоступна')); return; }
+    const q = indexedDB.open('pf-cache', 1);
+    q.onupgradeneeded = () => q.result.createObjectStore('csv');
+    q.onsuccess = () => res(q.result);
+    q.onerror = () => rej(q.error);
+  });
+  const op = async (mode, fn) => {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const tx = db.transaction('csv', mode), st = tx.objectStore('csv');
+      const r = fn(st);
+      tx.oncomplete = () => res(r && r.result);
+      tx.onerror = () => rej(tx.error);
+      tx.onabort = () => rej(tx.error);
+    });
+  };
+  return {
+    get: k => op('readonly',  st => st.get(k)),
+    set: (k,v) => op('readwrite', st => st.put(v,k)),
+    del: k => op('readwrite', st => st.delete(k)),
+    clear: () => op('readwrite', st => st.clear()),
+  };
+})();
+
 const PF = {
   PUB_ID:    '2PACX-1vTwyEj5Huy-avrqvCZj1rCqTBJObnOHNJ-GVdZic0J1_fwVafku2G0MpiZtGle8zOXzUUmEer26ylrO',
   GID_REAL:  '1186338740',
@@ -30,32 +63,36 @@ const PF = {
     return `https://docs.google.com/spreadsheets/d/e/${this.PUB_ID}/pub?gid=${gid}&single=true&output=csv`;
   },
 
-  // ── КЭШ CSV МЕЖДУ СТРАНИЦАМИ (sessionStorage, TTL по умолчанию 15 мин) ──
-  // Тяжёлые листы реализации (ИсхРеал/АО/Май) кэшируем тоже — квота обычно
-  // хватает; если sessionStorage переполнится, ловим ошибку и просто не кэшируем.
+  // ── КЭШ CSV МЕЖДУ СТРАНИЦАМИ (IndexedDB через PFCache, TTL по умолчанию 15 мин) ──
+  // Раньше был sessionStorage — не тянул тяжёлые листы (ИсхРеалМай ~12.5 МБ, лимит ~5 МБ).
   async fetchCsvCached(gid, ttlMin = 15) {
     const key = 'pf.csv.' + gid;
     try {
-      const c = JSON.parse(sessionStorage.getItem(key) || 'null');
+      const c = await PFCache.get(key);
       if (c && Date.now() - c.t < ttlMin * 60000) return c.text;
     } catch (e) {}
     const resp = await fetch(this.csvUrl(gid));
     if (!resp.ok) throw new Error('HTTP ' + resp.status + ' (gid ' + gid + ')');
     const text = await resp.text();
     try {
-      sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), text }));
+      await PFCache.set(key, { t: Date.now(), text });
       sessionStorage.setItem('pf.csv.updatedAt', String(Date.now()));
     } catch (e) {
-      // превышена квота sessionStorage — работаем без кэша для этого листа
+      // IndexedDB недоступна (приватный режим и т.п.) — работаем без кэша для этого листа
     }
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pf:dataUpdated'));
     return text;
   },
 
   clearCsvCache() {
+    // IndexedDB — асинхронно; возвращаем Promise, чтобы вызывающий код (например, кнопка
+    // обновления) мог дождаться реальной очистки перед location.reload().
+    const p = PFCache.clear().catch(()=>{});
+    // Миграция: подчистить старые ключи pf.csv.* из sessionStorage (прошлая версия кэша)
     try {
-      Object.keys(sessionStorage).filter(k => k.startsWith('pf.csv.')).forEach(k => sessionStorage.removeItem(k));
+      Object.keys(sessionStorage).filter(k => k.startsWith('pf.csv.') && k!=='pf.csv.updatedAt').forEach(k => sessionStorage.removeItem(k));
     } catch (e) {}
+    return p;
   },
 
   // Скачать и распарсить один лист (с кэшем)
@@ -411,6 +448,14 @@ const PF = {
     // P0.1: качаем все листы ОДНИМ Promise.all — вместо последовательных await
     // (было: SKU → контрагенты → ИсхРеал → ИсхРеалАО → ИсхРеалМай подряд, 10-20 сек).
     // Обрабатываем результаты по-прежнему последовательно: сначала справочники, потом реализация.
+    //
+    // ИсхРеал/ИсхРеалАО за закрытые месяцы (январь-апрель) заморожены в pf-history.js (PF_HISTORY) —
+    // они больше не меняются, качать их из Google Sheets на каждой загрузке страницы бессмысленно.
+    // Если pf-history.js не подключён (страница не обновлена / файл не подключили) — фолбэк на сеть,
+    // как раньше, чтобы сайт не сломался.
+    const historyReal   = (typeof PF_HISTORY!=='undefined' && PF_HISTORY.real)   ? this.parseCSV(PF_HISTORY.real)   : null;
+    const historyRealAO = (typeof PF_HISTORY!=='undefined' && PF_HISTORY.realAO) ? this.parseCSV(PF_HISTORY.realAO) : null;
+
     p(5,'Загрузка листов...');
     let _loaded = 0; const _total = 6;
     const _track = (pr,label) => pr.then(r => { _loaded++; p(5 + Math.round(_loaded/_total*40), label || `Листы ${_loaded}/${_total}...`); return r; });
@@ -418,8 +463,8 @@ const PF = {
     const [skuRows, kRows, rRows, aoRowsPre, mayRowsPre] = await Promise.all([
       _track(this.fetchCsvRows(this.GID_SKU), 'SKU справочник...'),
       _track(this.fetchCsvRows(this.GID_KONTR), 'Контрагенты...'),
-      _track(this.fetchCsvRows(this.GID_REAL), 'ИсхРеал...'),
-      _track(this.fetchCsvRows(this.GID_REAL_AO).catch(e => { console.warn('ИсхРеалАО не загружен:', e); return []; }), 'ИсхРеалАО...'),
+      _track(historyReal ? Promise.resolve(historyReal) : this.fetchCsvRows(this.GID_REAL), 'ИсхРеал...'),
+      _track(historyRealAO ? Promise.resolve(historyRealAO) : this.fetchCsvRows(this.GID_REAL_AO).catch(e => { console.warn('ИсхРеалАО не загружен:', e); return []; }), 'ИсхРеалАО...'),
       _track(this.fetchCsvRows(this.GID_REAL_MAY).catch(e => { console.warn('ИсхРеалМай не загружен:', e); return []; }), 'ИсхРеалМай...'),
       _track(this.ensurePrikhodPrices(), 'Цены прихода...'), // живые цены прихода — должны быть готовы ДО обработки строк реализации
     ]);
@@ -924,6 +969,7 @@ const PF = {
         sebSaleWithNds,
         prof: profNew,
         revSaleBezNds,
+        retReason:'', // «Причина возврата» есть только в ИсхРеалМай (с мая 2026)
         kg:    qtyN*w,
         retKg: qtyR*w,
       };
@@ -1003,7 +1049,7 @@ const PF = {
             skuGroup:findSkuGroupM(rawSku, sku),weight:w,
             qtyN,qtyR,qtyReal,sumReal,sumRealS,sumBezNds,sumR,
             seb:sebNew,sebWithNds,sebSale,sebSaleWithNds,
-            prof:sumBezNds-sebNew,revSaleBezNds,kg:qtyN*w,retKg:qtyR*w,
+            prof:sumBezNds-sebNew,revSaleBezNds,retReason:'',kg:qtyN*w,retKg:qtyR*w,
           };
           if(mappedGroup==='⚠️ Без группы'){
             addUnmappedContractor(rowObj);
@@ -1032,6 +1078,7 @@ const PF = {
         const miSumR=mi('суммавозвратов'), miSumBezNds=mi('суммабезналогов','безналогов');
         const miSklad=mi('склад');
         const miManager=mi('менеджер','торговый','manager');
+        const miRetReason=mi('причин'); // «Причина возврата» — заполнена только у возвратных строк, с мая 2026
         for(let i=1;i<mayRows.length;i++){
           const r=mayRows[i];
           const rawKnt=String(r[miKnt]||'').trim();
@@ -1078,6 +1125,7 @@ const PF = {
             sourceRow:i+1,
             sklad,
             manager:miManager>=0?String(r[miManager]||'').trim():'',
+            retReason:(miRetReason>=0 && Math.abs(sumR)>0)?(String(r[miRetReason]||'').trim()||'Не указана'):'',
             group:mappedGroup,
             subgroup:mappedSubgroup,
             skuGroup:findSkuGroupM(rawSku, sku),weight:w,
