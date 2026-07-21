@@ -267,11 +267,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 <script src="pf-data.js?v=20260721"></script>
 <script src="pf-utils.js?v=20260721"></script>
 <script>
-Chart.defaults.color='#5a7a96';
-Chart.defaults.borderColor='#1e2d40';
-Chart.defaults.font.family="'IBM Plex Mono',monospace";
-Chart.defaults.font.size=10;
-
 const ac='rgba(0,200,255,.85)',gr='rgba(0,230,118,.85)',rd='rgba(255,61,87,.85)',am='rgba(255,170,0,.85)',pu='rgba(176,77,255,.85)';
 const M4=['Янв','Фев','Мар','Апр(19д)'];
 const PLAN_NONDS=[242.2,217.8,243.0,152.3]; // апрель на 19 дней
@@ -285,6 +280,14 @@ async function init(){
   const step=s=>document.getElementById('lstep').textContent=s;
 
   try{
+    // Chart.js подключён с defer — на верхнем уровне инлайн-скрипта его может ещё не быть.
+    // Настройку дефолтов делаем внутри try: если Chart по какой-то причине ещё не готов,
+    // сработает catch ниже и покажет понятную ошибку в #lstep, вместо тихого зависания страницы.
+    Chart.defaults.color='#5a7a96';
+    Chart.defaults.borderColor='#1e2d40';
+    Chart.defaults.font.family="'IBM Plex Mono',monospace";
+    Chart.defaults.font.size=10;
+
     const {rawRows,months}=await PF.loadSales((p,s)=>{prog(p);step(s);});
 
     prog(90); step('Расчёт аналитики...');

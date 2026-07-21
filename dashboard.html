@@ -236,11 +236,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:13
 <script src="pf-data.js?v=20260721"></script>
 <script src="pf-utils.js?v=20260721"></script>
 <script>
-Chart.defaults.color='#5a7a96';
-Chart.defaults.borderColor='#1e2d40';
-Chart.defaults.font.family="'IBM Plex Mono',monospace";
-Chart.defaults.font.size=10;
-
 const fmtRev = v => {
   if(Math.abs(v)>=1e6) return (v/1e6).toFixed(1)+' млн';
   if(Math.abs(v)>=1e3) return (v/1e3).toFixed(0)+' тыс';
@@ -255,6 +250,14 @@ async function init(){
   const step = s => document.getElementById('lstep').textContent=s;
 
   try{
+    // Chart.js подключён с defer — на верхнем уровне инлайн-скрипта его может ещё не быть.
+    // Настройку дефолтов делаем внутри try: если Chart по какой-то причине ещё не готов,
+    // сработает catch ниже и покажет понятную ошибку в #lstep, вместо тихого зависания страницы.
+    Chart.defaults.color='#5a7a96';
+    Chart.defaults.borderColor='#1e2d40';
+    Chart.defaults.font.family="'IBM Plex Mono',monospace";
+    Chart.defaults.font.size=10;
+
     const {rawRows,months} = await PF.loadSales((p,s)=>{prog(p);step(s);});
     prog(90); step('Расчёт...');
 
