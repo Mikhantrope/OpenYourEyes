@@ -35,6 +35,12 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .pill{padding:3px 10px;border-radius:5px;border:none;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;}
 .pill.active{background:var(--accent);color:#fff;}
 .pill:hover:not(.active){color:var(--text);}
+/* Полоса «⚠️ Сегодня» — до 3 сигналов, кликабельны, не занимает место если пусто */
+.talert-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 12px;background:rgba(255,170,0,.08);border-bottom:1px solid rgba(255,170,0,.25);font-size:11px;}
+.talert-lbl{font-weight:800;color:var(--amber);white-space:nowrap;}
+.talert-item{cursor:pointer;color:var(--text);border-bottom:1px dashed var(--muted);transition:color .15s,border-color .15s;}
+.talert-item:hover{color:var(--amber);border-color:var(--amber);}
+.talert-sep{color:var(--dim);}
 
 /* VIEW MODE */
 .view-mode{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px;}
@@ -545,6 +551,9 @@ tr.dt-dimmed{opacity:.25;}
   <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><span class="tlbl">Категория SKU:</span><div class="chips" id="fSku"></div></div>
 </div>
 
+<!-- TODAY ALERTS: до 3 сигналов, появляется только если есть что показать -->
+<div class="talert-bar" id="todayAlertBar" style="display:none"></div>
+
 <!-- MONTH VIEW -->
 <div id="monthView">
   <table><thead id="mThead"><tr></tr></thead><tbody id="mTbody"></tbody></table>
@@ -1016,6 +1025,7 @@ async function loadData(){
     allSkuGroups=[...new Set(rawRows.map(r=>r.skuGroup))].sort();
     buildFilterChips();buildCtogs();buildMetricChooser();buildRowDimControls();buildExpandButtons();buildMHeader();
     updateAvailableDays();
+    renderTodayAlertBar();
 
     const uK=new Set(rawRows.map(r=>r.knt)).size;
     const uS=new Set(rawRows.map(r=>r.sku)).size;
@@ -1036,6 +1046,88 @@ async function loadData(){
       <a href="${PF.csvUrl(PF.GID_REAL)}" target="_blank" style="color:#58a6ff">Проверить CSV</a>`;
     document.getElementById('lstep').textContent='Ошибка!';
   }
+}
+
+// ══════════════════════════════════════════════════════════
+// БЛОК «⚠️ Сегодня» — алерты дня (перенесено с dashboard.html):
+// канал упал >25% к своей средней за 4 таких же дня недели; SKU из топ-20 без продаж
+// в последний день; возвраты дня >5%. До 3 сигналов, полоса скрыта если сигналов нет.
+// ══════════════════════════════════════════════════════════
+let todayAlerts=[];
+
+function computeTodayAlerts(rows){
+  if(!rows || !rows.length) return [];
+  let maxDay=''; for(const r of rows) if(r.day>maxDay) maxDay=r.day;
+  if(!maxDay) return [];
+  const dayRows=rows.filter(r=>r.day===maxDay);
+  if(!dayRows.length) return [];
+
+  // 4 предыдущих даты с ТЕМ ЖЕ днём недели (недельная сезонность), не включая сам день
+  const priorSameDow=[];
+  {
+    const [y,m,d]=maxDay.split('-').map(Number);
+    const cursor=new Date(y,m-1,d);
+    for(let i=0;i<4;i++){
+      cursor.setDate(cursor.getDate()-7);
+      priorSameDow.push(`${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}-${String(cursor.getDate()).padStart(2,'0')}`);
+    }
+  }
+  const totToday=PF.agg(dayRows);
+  const priorTotals=priorSameDow
+    .map(ds=>PF.agg(rows.filter(r=>r.day===ds)))
+    .filter(a=>a.qty>0||a.rev>0); // только недели, где данные реально есть
+
+  const chToday=PF.groupBy(dayRows, r=>r.group||'—');
+  const chLines=Object.entries(chToday).map(([g,gr])=>{
+    const gRev=gr.reduce((s,r)=>s+(r.sumBezNds||0),0);
+    const chPriorRevs=priorSameDow.map(ds=>
+      rows.filter(r=>r.day===ds && (r.group||'—')===g).reduce((s,r)=>s+(r.sumBezNds||0),0)
+    ).filter((v,i)=>priorTotals[i]);
+    const chAvg=chPriorRevs.length?chPriorRevs.reduce((a,b)=>a+b,0)/chPriorRevs.length:0;
+    const chDev=chAvg?(gRev-chAvg)/chAvg*100:null;
+    return {g,rev:gRev,dev:chDev};
+  });
+
+  const alerts=[];
+  for(const c of chLines){
+    if(c.dev!=null && c.dev<=-25) alerts.push({type:'channel',text:`Канал «${c.g}» упал на ${Math.abs(Math.round(c.dev))}% к своей средней`,value:c.g});
+  }
+  const skuTotal={};
+  for(const r of rows) skuTotal[r.sku]=(skuTotal[r.sku]||0)+(r.sumBezNds||0);
+  const top20=Object.entries(skuTotal).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]);
+  const soldToday=new Set(dayRows.map(r=>r.sku));
+  const missingTop=top20.filter(s=>!soldToday.has(s));
+  if(missingTop.length) alerts.push({type:'sku',text:`Без продаж вчера из топ-20: ${missingTop.slice(0,3).join(', ')}${missingTop.length>3?` и ещё ${missingTop.length-3}`:''}`,value:missingTop[0]});
+  if(totToday.retPct>5) alerts.push({type:'returns',text:`Возвраты дня ${totToday.retPct.toFixed(1)}% — выше нормы`,value:null});
+
+  return alerts.slice(0,3);
+}
+
+function renderTodayAlertBar(){
+  todayAlerts=computeTodayAlerts(rawRows);
+  const el=document.getElementById('todayAlertBar');
+  if(!el) return;
+  if(!todayAlerts.length){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='flex';
+  el.innerHTML='<span class="talert-lbl">⚠️ Сегодня:</span>'+
+    todayAlerts.map((a,i)=>`<span class="talert-item" onclick="applyTodayAlertFilter(${i})" title="Клик — отфильтровать таблицу">${a.text}</span>`).join('<span class="talert-sep">·</span>');
+}
+
+function applyTodayAlertFilter(i){
+  const a=todayAlerts[i];
+  if(!a) return;
+  if(a.type==='channel' && a.value){
+    filterGrp.clear(); filterGrp.add(a.value);
+    const fGrpEl=document.getElementById('fGrp');
+    if(fGrpEl) fGrpEl.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on', c.getAttribute('data-v')===a.value));
+    expanded.clear();levelState={};dayExpanded.clear();dayLevelState={};render();
+  } else if(a.type==='sku' && a.value){
+    searchTerm=a.value.toLowerCase();
+    const srchEl=document.getElementById('srch');
+    if(srchEl) srchEl.value=a.value;
+    render();
+  }
+  // returns-type — нет одного простого поля-цели для фильтра, только информирует
 }
 
 function updateAvailableDays(){
