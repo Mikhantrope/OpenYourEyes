@@ -1049,24 +1049,49 @@ async function loadData(){
 }
 
 // ══════════════════════════════════════════════════════════
-// БЛОК «⚠️ Сегодня» — алерты дня (перенесено с dashboard.html):
+// БЛОК «⚠️ Сегодня» — алерты дня (перенесено с dashboard.html, доработано ТЗ razbor-dnya):
 // канал упал >25% к своей средней за 4 таких же дня недели; SKU из топ-20 без продаж
 // в последний день; возвраты дня >5%. До 3 сигналов, полоса скрыта если сигналов нет.
+// «⚠️ Без группы» — незаполненный справочник контрагентов, НЕ канал — исключён из падений,
+// вместо этого отдельный тихий сигнал в конце («заполни справочник»).
+// Если данные устарели (>2 дней) — сравнение с историей вводит в заблуждение, алерты не считаем.
 // ══════════════════════════════════════════════════════════
+const NOGROUP_LABEL='⚠️ Без группы';
+const ALERT_STALE_DAYS=2;          // старше — не считаем падения, только предупреждение об устаревании
+const ALERT_MIN_CHANNEL_REV=100000; // не сигналим по каналам с выручкой дня И средней < 100к ₸ (шум)
 let todayAlerts=[];
+let todayAlertsMeta=null; // {header:{date,dow}, dayRows, priorSameDow, maxDay} — для будущей панели разбора
+
+function fmtDateShort(dayStr){
+  const [y,m,d]=String(dayStr||'').split('-');
+  return d&&m?`${d}.${m}`:String(dayStr||'');
+}
 
 function computeTodayAlerts(rows){
-  if(!rows || !rows.length) return [];
+  const empty={alerts:[],stale:null,header:null,noGroupAlert:null};
+  if(!rows || !rows.length) return empty;
   let maxDay=''; for(const r of rows) if(r.day>maxDay) maxDay=r.day;
-  if(!maxDay) return [];
+  if(!maxDay) return empty;
+
+  const [my,mm,md]=maxDay.split('-').map(Number);
+  const maxDayDate=new Date(my,mm-1,md);
+  const header={date:maxDay, dow:(WD[(maxDayDate.getDay()+6)%7]||'').toLowerCase()};
+
+  // Шаг 1в: устаревшие данные — падения по каналам сравнивать не с чем осмысленно
+  const now=new Date();
+  const todayMid=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const diffDays=Math.round((todayMid-maxDayDate)/86400000);
+  if(diffDays>ALERT_STALE_DAYS){
+    return {alerts:[], stale:`⚠️ Данные не обновлялись ${diffDays} дней (последняя продажа ${fmtDateShort(maxDay)})`, header, noGroupAlert:null};
+  }
+
   const dayRows=rows.filter(r=>r.day===maxDay);
-  if(!dayRows.length) return [];
+  if(!dayRows.length) return {...empty,header};
 
   // 4 предыдущих даты с ТЕМ ЖЕ днём недели (недельная сезонность), не включая сам день
   const priorSameDow=[];
   {
-    const [y,m,d]=maxDay.split('-').map(Number);
-    const cursor=new Date(y,m-1,d);
+    const cursor=new Date(my,mm-1,md);
     for(let i=0;i<4;i++){
       cursor.setDate(cursor.getDate()-7);
       priorSameDow.push(`${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}-${String(cursor.getDate()).padStart(2,'0')}`);
@@ -1077,7 +1102,8 @@ function computeTodayAlerts(rows){
     .map(ds=>PF.agg(rows.filter(r=>r.day===ds)))
     .filter(a=>a.qty>0||a.rev>0); // только недели, где данные реально есть
 
-  const chToday=PF.groupBy(dayRows, r=>r.group||'—');
+  // «Без группы» — не канал, исключаем из падений (Шаг 1а)
+  const chToday=PF.groupBy(dayRows.filter(r=>r.group!==NOGROUP_LABEL), r=>r.group||'—');
   const chLines=Object.entries(chToday).map(([g,gr])=>{
     const gRev=gr.reduce((s,r)=>s+(r.sumBezNds||0),0);
     const chPriorRevs=priorSameDow.map(ds=>
@@ -1085,32 +1111,52 @@ function computeTodayAlerts(rows){
     ).filter((v,i)=>priorTotals[i]);
     const chAvg=chPriorRevs.length?chPriorRevs.reduce((a,b)=>a+b,0)/chPriorRevs.length:0;
     const chDev=chAvg?(gRev-chAvg)/chAvg*100:null;
-    return {g,rev:gRev,dev:chDev};
+    return {g,rev:gRev,avg:chAvg,dev:chDev};
   });
 
   const alerts=[];
   for(const c of chLines){
+    if(c.rev<ALERT_MIN_CHANNEL_REV && c.avg<ALERT_MIN_CHANNEL_REV) continue; // шум мелких каналов
     if(c.dev!=null && c.dev<=-25) alerts.push({type:'channel',text:`Канал «${c.g}» упал на ${Math.abs(Math.round(c.dev))}% к своей средней`,value:c.g});
   }
   const skuTotal={};
-  for(const r of rows) skuTotal[r.sku]=(skuTotal[r.sku]||0)+(r.sumBezNds||0);
+  for(const r of rows) if(r.group!==NOGROUP_LABEL) skuTotal[r.sku]=(skuTotal[r.sku]||0)+(r.sumBezNds||0);
   const top20=Object.entries(skuTotal).sort((a,b)=>b[1]-a[1]).slice(0,20).map(x=>x[0]);
   const soldToday=new Set(dayRows.map(r=>r.sku));
   const missingTop=top20.filter(s=>!soldToday.has(s));
   if(missingTop.length) alerts.push({type:'sku',text:`Без продаж вчера из топ-20: ${missingTop.slice(0,3).join(', ')}${missingTop.length>3?` и ещё ${missingTop.length-3}`:''}`,value:missingTop[0]});
   if(totToday.retPct>5) alerts.push({type:'returns',text:`Возвраты дня ${totToday.retPct.toFixed(1)}% — выше нормы`,value:null});
 
-  return alerts.slice(0,3);
+  // Тихий сигнал «Без группы» — отдельно, не в лимите 3 (Шаг 1а)
+  const noGroupRev=dayRows.filter(r=>r.group===NOGROUP_LABEL).reduce((s,r)=>s+(r.sumBezNds||0),0);
+  const noGroupAlert=noGroupRev>0?{text:`⚠️ ${PF.fmtRev(noGroupRev)} ₸ без группы — заполни справочник контрагентов`}:null;
+
+  return {alerts:alerts.slice(0,3), stale:null, header, noGroupAlert, dayRows, priorSameDow, maxDay};
 }
 
 function renderTodayAlertBar(){
-  todayAlerts=computeTodayAlerts(rawRows);
+  const result=computeTodayAlerts(rawRows);
+  todayAlerts=result.alerts||[];
+  todayAlertsMeta=result;
   const el=document.getElementById('todayAlertBar');
   if(!el) return;
-  if(!todayAlerts.length){ el.style.display='none'; el.innerHTML=''; return; }
+
+  if(result.stale){
+    el.style.display='flex';
+    el.innerHTML=`<span class="talert-item" style="cursor:default">${result.stale}</span>`;
+    return;
+  }
+  if(!todayAlerts.length && !result.noGroupAlert){ el.style.display='none'; el.innerHTML=''; return; }
+
   el.style.display='flex';
-  el.innerHTML='<span class="talert-lbl">⚠️ Сегодня:</span>'+
-    todayAlerts.map((a,i)=>`<span class="talert-item" onclick="applyTodayAlertFilter(${i})" title="Клик — отфильтровать таблицу">${a.text}</span>`).join('<span class="talert-sep">·</span>');
+  const label=result.header?`За ${fmtDateShort(result.header.date)} (${result.header.dow}):`:'⚠️ Сегодня:';
+  let html=`<span class="talert-lbl">${label}</span>`;
+  html+=todayAlerts.map((a,i)=>`<span class="talert-item" onclick="applyTodayAlertFilter(${i})" title="Клик — отфильтровать таблицу">${a.text}</span>`).join('<span class="talert-sep">·</span>');
+  if(result.noGroupAlert){
+    if(todayAlerts.length) html+='<span class="talert-sep">·</span>';
+    html+=`<span class="talert-item" onclick="location.href='quality.html'" title="Открыть Качество данных">${result.noGroupAlert.text}</span>`;
+  }
+  el.innerHTML=html;
 }
 
 function applyTodayAlertFilter(i){
